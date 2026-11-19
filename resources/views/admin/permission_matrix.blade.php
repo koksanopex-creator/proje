@@ -837,7 +837,7 @@ function submitQuickRoleGroup(e) {
     btn.disabled = true;
     btn.textContent = 'Kaydediliyor...';
 
-    fetch('/admin/rol-gruplari', {
+    fetch('{{ url('admin/rol-gruplari') }}', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': token, 'Accept': 'application/json' },
         body: JSON.stringify({ name, icon, slug })

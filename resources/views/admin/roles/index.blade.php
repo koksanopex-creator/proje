@@ -1282,7 +1282,7 @@ function submitRoleGroupForm(e) {
     btn.disabled = true;
     btn.textContent = 'Kaydediliyor...';
 
-    const url = id ? `/admin/rol-gruplari/${id}` : '/admin/rol-gruplari';
+    const url = id ? `{{ url('admin/rol-gruplari') }}/${id}` : '{{ url('admin/rol-gruplari') }}';
     const method = id ? 'PUT' : 'POST';
 
     fetch(url, {
@@ -1317,7 +1317,7 @@ function deleteRoleGroup(id, name) {
     if (!confirm(`'${name}' rol grubunu silmek istediğinize emin misiniz?`)) return;
     const token = document.querySelector('input[name="_token"]').value;
 
-    fetch(`/admin/rol-gruplari/${id}`, {
+    fetch(`{{ url('admin/rol-gruplari') }}/${id}`, {
         method: 'DELETE',
         headers: {
             'Content-Type': 'application/json',
@@ -1815,7 +1815,7 @@ function renderModalUsersList(users) {
                         <span class="badge" style="font-size: 10.5px; font-weight: 600; padding: 2px 7px; border-radius: 4px; ${u.is_active ? 'background: #dcfce7; color: #15803d;' : 'background: #fee2e2; color: #b91c1c;'}">
                             ${u.is_active ? 'Aktif' : 'Pasif'}
                         </span>
-                        <a href="/admin/kullanici-rolleri?q=${encodeURIComponent(u.email)}" class="btn btn-xs" style="font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 5px; background: #f0f9ff; color: #0284c7; border: 1px solid #bae6fd; text-decoration: none; display: inline-flex; align-items: center; gap: 3px;">
+                        <a href="{{ url('admin/kullanici-rolleri') }}?q=${encodeURIComponent(u.email)}" class="btn btn-xs" style="font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 5px; background: #f0f9ff; color: #0284c7; border: 1px solid #bae6fd; text-decoration: none; display: inline-flex; align-items: center; gap: 3px;">
                             <span>⚡</span> <span>Yetkileri Düzenle</span>
                         </a>
                     </div>

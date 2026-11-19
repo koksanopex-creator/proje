@@ -1400,7 +1400,7 @@ function cleanAmountBeforeSubmit(form) {
 }
 
 function openEditThresholdModal(rule) {
-    document.getElementById('editThresholdForm').action = `/admin/doa-esikleri/${rule.id}`;
+    document.getElementById('editThresholdForm').action = `{{ url('admin/doa-esikleri') }}/${rule.id}`;
     document.getElementById('editRuleName').value = rule.name || '';
     document.getElementById('editRuleCurrency').value = rule.currency_code || 'USD';
     
@@ -1424,7 +1424,7 @@ function openEditThresholdModal(rule) {
 
 // AJAX Global Motor Toggle
 function toggleGlobalEngine(checkbox) {
-    fetch('/admin/doa-esikleri/toggle-global-engine', {
+    fetch('{{ url('admin/doa-esikleri/toggle-global-engine') }}', {
         method: 'POST',
         headers: {
             'X-CSRF-TOKEN': '{{ csrf_token() }}',
@@ -1447,7 +1447,7 @@ function toggleGlobalEngine(checkbox) {
 
 // AJAX Kural Aktif/Pasif
 function toggleRuleActive(id, checkbox) {
-    fetch(`/admin/doa-esikleri/${id}/toggle`, {
+    fetch(`{{ url('admin/doa-esikleri') }}/${id}/toggle`, {
         method: 'POST',
         headers: {
             'X-CSRF-TOKEN': '{{ csrf_token() }}',
@@ -1470,7 +1470,7 @@ function runSimulation() {
     const amount = document.getElementById('simAmount').value;
     const currency = document.getElementById('simCurrency').value;
 
-    fetch('/admin/doa-esikleri/simulate', {
+    fetch('{{ url('admin/doa-esikleri/simulate') }}', {
         method: 'POST',
         headers: {
             'X-CSRF-TOKEN': '{{ csrf_token() }}',

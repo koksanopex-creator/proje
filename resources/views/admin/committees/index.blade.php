@@ -1691,7 +1691,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // AJAX AKTİF/PASİF TOGGLE
 function toggleCommitteeActive(id, checkbox) {
-    fetch(`/admin/kurullar/${id}/toggle`, {
+    fetch(`{{ url('admin/kurullar') }}/${id}/toggle`, {
         method: 'POST',
         headers: {
             'X-CSRF-TOKEN': '{{ csrf_token() }}',
@@ -1718,7 +1718,7 @@ function toggleQuorumPct(prefix) {
 }
 
 function openAddMemberModal(committeeId, committeeName, defaultRole = 'uye') {
-    document.getElementById('addMemberForm').action = `/admin/kurullar/${committeeId}/members`;
+    document.getElementById('addMemberForm').action = `{{ url('admin/kurullar') }}/${committeeId}/members`;
     document.getElementById('addMemberSubhead').innerText = `Seçili Kurul: ${committeeName}`;
     if (defaultRole) {
         document.getElementById('addMemberRoleSelect').value = defaultRole;
@@ -1727,7 +1727,7 @@ function openAddMemberModal(committeeId, committeeName, defaultRole = 'uye') {
 }
 
 function openEditCommitteeModal(committee) {
-    document.getElementById('editCommitteeForm').action = `/admin/kurullar/${committee.id}`;
+    document.getElementById('editCommitteeForm').action = `{{ url('admin/kurullar') }}/${committee.id}`;
     document.getElementById('editCommName').value = committee.name || '';
     document.getElementById('editVotingType').value = committee.voting_type || 'majority';
     document.getElementById('editQuorumPct').value = committee.quorum_percentage || 51;
@@ -1751,7 +1751,7 @@ function openEditCommitteeModal(committee) {
 
 function confirmRemoveMember(committeeId, memberId, memberName, committeeName) {
     const form = document.getElementById('removeMemberForm');
-    form.action = `/admin/kurullar/${committeeId}/members/${memberId}`;
+    form.action = `{{ url('admin/kurullar') }}/${committeeId}/members/${memberId}`;
     document.getElementById('removeMemberConfirmText').innerHTML = 
         `<strong>${memberName}</strong> adlı kullanıcıyı <strong>${committeeName}</strong> kurulundan çıkarmak istediğinize emin misiniz?`;
     openCustomModal('removeMemberConfirmModal');

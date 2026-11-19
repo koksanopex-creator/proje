@@ -1113,7 +1113,7 @@ function submitUserRoles() {
 
     const token = document.querySelector('input[name="_token"]') ? document.querySelector('input[name="_token"]').value : '{{ csrf_token() }}';
 
-    fetch(`/admin/kullanici-rolleri/${currentEditingUserId}/roller`, {
+    fetch(`{{ url('admin/kullanici-rolleri') }}/${currentEditingUserId}/roller`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',

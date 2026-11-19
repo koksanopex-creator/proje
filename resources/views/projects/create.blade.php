@@ -3421,7 +3421,7 @@ function saveCategoryModalAction() {
     }
 
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}';
-    const url = editId ? `/admin/kategoriler/${editId}` : '{{ route("admin.categories.store") }}';
+    const url = editId ? `{{ url('admin/kategoriler') }}/${editId}` : '{{ route("admin.categories.store") }}';
     const method = editId ? 'PUT' : 'POST';
 
     const saveBtn = document.getElementById('btnSaveCategory');
@@ -3630,7 +3630,7 @@ function saveTeamRoleAction() {
     }
 
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}';
-    const url = editId ? `/admin/team-roles/${editId}` : '{{ route("admin.team_roles.store") }}';
+    const url = editId ? `{{ url('admin/team-roles') }}/${editId}` : '{{ route("admin.team_roles.store") }}';
     const method = editId ? 'PUT' : 'POST';
 
     fetch(url, {
