@@ -788,6 +788,34 @@ textarea.modal-form-control {
     width: 15px;
     height: 15px;
 }
+
+/* Kurula Üye Ekle Kullanıcı Seçici & Arama Stilleri */
+.member-user-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 7px 10px;
+    border-radius: 8px;
+    border: 1.5px solid #f1f5f9;
+    background: #ffffff;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    user-select: none;
+}
+.member-user-item:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+}
+.member-user-item.is-selected {
+    background: #f0fdf4 !important;
+    border-color: #10b981 !important;
+    box-shadow: 0 0 0 1px #10b981;
+}
+.member-user-item.is-disabled {
+    opacity: 0.65;
+    background: #f8fafc;
+    cursor: not-allowed;
+}
 </style>
 
 <div class="container-fluid px-4 py-3">
@@ -839,6 +867,9 @@ textarea.modal-form-control {
         </a>
         <a href="{{ route('admin.system_health') }}" class="matrix-tab-link">
             <span>🩺</span> <span>Sistem Sağlığı</span>
+        </a>
+        <a href="{{ route('admin.notification_logs.index') }}" class="matrix-tab-link">
+            <span>📧</span> <span>Bildirim & Mail Logları</span>
         </a>
     </div>
 
@@ -1451,8 +1482,8 @@ textarea.modal-form-control {
 
 <!-- MODAL 3: KURULA ÜYE EKLE -->
 <div id="addMemberModal" class="custom-modal-backdrop" onclick="handleBackdropClick(event, 'addMemberModal')">
-    <div class="custom-modal-dialog">
-        <form id="addMemberForm" method="POST">
+    <div class="custom-modal-dialog" style="max-width: 560px;">
+        <form id="addMemberForm" method="POST" onsubmit="return validateAddMemberForm()">
             @csrf
             <div class="custom-modal-header">
                 <h3 class="custom-modal-title">
@@ -1465,14 +1496,72 @@ textarea.modal-form-control {
                     Seçili Kurul: -
                 </div>
 
-                <div class="modal-form-group">
-                    <label class="modal-form-label">Personel / Kullanıcı Seçin <span class="text-danger">*</span></label>
-                    <select name="user_id" class="modal-form-control" required>
-                        <option value="">Seçim Yapınız...</option>
-                        @foreach($allUsers as $u)
-                            <option value="{{ $u->id }}">{{ $u->name }} ({{ $u->email }})</option>
-                        @endforeach
-                    </select>
+                <!-- Gizli Seçili User ID -->
+                <input type="hidden" name="user_id" id="selectedAddMemberUserId" required>
+
+                <!-- Seçili Personel Bilgi Kartı (Bir personel tıklandığında görünür) -->
+                <div id="memberSelectedUserBox" style="display: none; margin-bottom: 14px; background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 10px; padding: 10px 14px; align-items: center; justify-content: space-between;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div id="selectedUserAvatar" style="width: 34px; height: 34px; border-radius: 50%; background: #059669; color: #ffffff; font-weight: 700; display: flex; align-items: center; justify-content: center; font-size: 13px;">✓</div>
+                        <div>
+                            <div id="selectedUserName" style="font-weight: 700; color: #065f46; font-size: 13.5px;">-</div>
+                            <div id="selectedUserSub" style="font-size: 11.5px; color: #166534;">-</div>
+                        </div>
+                    </div>
+                    <button type="button" onclick="clearSelectedMemberUser()" style="background: #ffffff; border: 1px solid #bbf7d0; color: #dc2626; font-size: 11.5px; font-weight: 700; cursor: pointer; padding: 4px 8px; border-radius: 6px;">✕ Değiştir</button>
+                </div>
+
+                <!-- Personel Seçim, Arama & Sayfalama Bölümü -->
+                <div class="modal-form-group" id="memberUserSelectGroup" style="margin-bottom: 16px;">
+                    <label class="modal-form-label" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <span>Personel / Kullanıcı Seçin <span class="text-danger">*</span></span>
+                        <span id="memberUserSearchCountBadge" style="font-size: 11px; font-weight: 600; color: #0284c7; background: #e0f2fe; padding: 2px 8px; border-radius: 6px;">Yükleniyor...</span>
+                    </label>
+
+                    <!-- Anlık Arama Kutusu -->
+                    <div style="position: relative; margin-bottom: 8px;">
+                        <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 13px; color: #94a3b8; pointer-events: none;">🔍</span>
+                        <input type="text" 
+                               id="memberUserSearchInput" 
+                               class="modal-form-control" 
+                               placeholder="İsim, e-posta, unvan veya sicil no ile anlık ara..." 
+                               style="padding-left: 34px; padding-right: 32px; height: 38px; font-size: 13px;" 
+                               oninput="debouncedMemberUserSearch()"
+                               autocomplete="off">
+                        <button type="button" 
+                                id="memberUserSearchClearBtn" 
+                                onclick="clearMemberUserSearch()" 
+                                style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: #e2e8f0; border: none; width: 20px; height: 20px; border-radius: 50%; font-size: 11px; color: #475569; cursor: pointer; display: none; align-items: center; justify-content: center; line-height: 1;"
+                                title="Aramayı Temizle">✕</button>
+                    </div>
+
+                    <!-- Kullanıcı Listesi (Scrollable & Paginated) -->
+                    <div id="memberUserListContainer" style="max-height: 220px; overflow-y: auto; border: 1.5px solid #e2e8f0; border-radius: 10px; background: #ffffff; padding: 6px; display: flex; flex-direction: column; gap: 4px;">
+                        <div style="padding: 24px; text-align: center; color: #94a3b8; font-size: 12.5px;">
+                            ⏳ Personel listesi yükleniyor...
+                        </div>
+                    </div>
+
+                    <!-- Sayfalama (Pagination) Alt Çubuğu -->
+                    <div id="memberUserPaginationBar" style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; padding: 4px 6px; font-size: 11.5px; color: #64748b; background: #f8fafc; border: 1px solid #f1f5f9; border-radius: 8px;">
+                        <button type="button" 
+                                id="memberUserPrevBtn" 
+                                onclick="changeMemberUserPage(-1)" 
+                                class="btn btn-xs btn-outline-secondary" 
+                                style="padding: 3px 10px; font-size: 11.5px; border-radius: 6px;" 
+                                disabled>
+                            ◀ Önceki
+                        </button>
+                        <span id="memberUserPageInfo" style="font-weight: 700; color: #334155;">Sayfa 1 / 1</span>
+                        <button type="button" 
+                                id="memberUserNextBtn" 
+                                onclick="changeMemberUserPage(1)" 
+                                class="btn btn-xs btn-outline-secondary" 
+                                style="padding: 3px 10px; font-size: 11.5px; border-radius: 6px;" 
+                                disabled>
+                            Sonraki ▶
+                        </button>
+                    </div>
                 </div>
 
                 <div class="modal-form-group">
@@ -1717,13 +1806,224 @@ function toggleQuorumPct(prefix) {
     container.style.display = (vt === 'quorum_percentage') ? 'block' : 'none';
 }
 
+// =========================================================================
+// KURULA ÜYE ATA: ANLIK ARAMA, SAYFALAMA VE KULLANICI SEÇİMİ
+// =========================================================================
+let currentMemberAssignCommitteeId = null;
+let currentMemberPage = 1;
+let currentMemberTotalPages = 1;
+let memberUserSearchTimeout = null;
+let selectedMemberUserData = null;
+
 function openAddMemberModal(committeeId, committeeName, defaultRole = 'uye') {
+    currentMemberAssignCommitteeId = committeeId;
     document.getElementById('addMemberForm').action = `{{ url('admin/kurullar') }}/${committeeId}/members`;
     document.getElementById('addMemberSubhead').innerText = `Seçili Kurul: ${committeeName}`;
     if (defaultRole) {
         document.getElementById('addMemberRoleSelect').value = defaultRole;
     }
+
+    // Seçimi ve Arama Kutusunu Sıfırla
+    clearSelectedMemberUser();
+    const searchInput = document.getElementById('memberUserSearchInput');
+    if (searchInput) searchInput.value = '';
+    const clearBtn = document.getElementById('memberUserSearchClearBtn');
+    if (clearBtn) clearBtn.style.display = 'none';
+    currentMemberPage = 1;
+
     openCustomModal('addMemberModal');
+
+    // İlk sayfayı asenkron yükle (Alfabetik sırada ilk 25 kişi)
+    loadCommitteeUsers(1);
+}
+
+function debouncedMemberUserSearch() {
+    clearTimeout(memberUserSearchTimeout);
+    const input = document.getElementById('memberUserSearchInput');
+    const clearBtn = document.getElementById('memberUserSearchClearBtn');
+    if (input.value.trim().length > 0) {
+        clearBtn.style.display = 'flex';
+    } else {
+        clearBtn.style.display = 'none';
+    }
+    memberUserSearchTimeout = setTimeout(() => {
+        loadCommitteeUsers(1);
+    }, 250);
+}
+
+function clearMemberUserSearch() {
+    const input = document.getElementById('memberUserSearchInput');
+    input.value = '';
+    document.getElementById('memberUserSearchClearBtn').style.display = 'none';
+    input.focus();
+    loadCommitteeUsers(1);
+}
+
+function changeMemberUserPage(delta) {
+    const targetPage = currentMemberPage + delta;
+    if (targetPage >= 1 && targetPage <= currentMemberTotalPages) {
+        loadCommitteeUsers(targetPage);
+    }
+}
+
+function loadCommitteeUsers(page = 1) {
+    currentMemberPage = page;
+    const container = document.getElementById('memberUserListContainer');
+    const query = document.getElementById('memberUserSearchInput')?.value.trim() || '';
+    const badge = document.getElementById('memberUserSearchCountBadge');
+    const prevBtn = document.getElementById('memberUserPrevBtn');
+    const nextBtn = document.getElementById('memberUserNextBtn');
+    const pageInfo = document.getElementById('memberUserPageInfo');
+
+    container.innerHTML = `
+        <div style="padding: 24px; text-align: center; color: #94a3b8; font-size: 12.5px;">
+            ⏳ Personel listesi taranıyor...
+        </div>
+    `;
+
+    const searchUrl = `{{ route('admin.committees.search_users') }}?q=${encodeURIComponent(query)}&page=${page}&committee_id=${currentMemberAssignCommitteeId || ''}`;
+
+    fetch(searchUrl)
+        .then(res => res.json())
+        .then(data => {
+            if (!data.success || !data.users || data.users.length === 0) {
+                container.innerHTML = `
+                    <div style="padding: 24px; text-align: center; color: #94a3b8; font-size: 12.5px;">
+                        ${query ? '🔍 Aradığınız kritere uygun personel bulunamadı.' : 'Kayıtlı aktif personel bulunamadı.'}
+                    </div>
+                `;
+                badge.innerText = '0 Personel';
+                pageInfo.innerText = 'Sayfa 0 / 0';
+                prevBtn.disabled = true;
+                nextBtn.disabled = true;
+                return;
+            }
+
+            currentMemberTotalPages = data.last_page;
+            badge.innerText = `${data.total} Personel`;
+            pageInfo.innerText = `Sayfa ${data.current_page} / ${data.last_page}`;
+            prevBtn.disabled = data.current_page <= 1;
+            nextBtn.disabled = data.current_page >= data.last_page;
+
+            let html = '';
+            data.users.forEach(u => {
+                const isSelected = selectedMemberUserData && selectedMemberUserData.id === u.id;
+                const selectedClass = isSelected ? 'is-selected' : '';
+                const alreadyMemberBadge = u.already_member ? 
+                    `<span style="background: #f1f5f9; color: #64748b; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; border: 1px solid #e2e8f0;">✓ Kurulda Mevcut</span>` : '';
+
+                html += `
+                    <div class="member-user-item ${selectedClass}" 
+                         id="userItemRow_${u.id}"
+                         onclick='selectMemberUser(${JSON.stringify(u)})'>
+                        <div style="display: flex; align-items: center; gap: 9px; min-width: 0;">
+                            <div style="width: 32px; height: 32px; border-radius: 50%; background: #e0f2fe; color: #0284c7; font-weight: 800; font-size: 12.5px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                ${escapeHtml(u.initials)}
+                            </div>
+                            <div style="min-width: 0;">
+                                <div style="font-size: 12.5px; font-weight: 700; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                    ${escapeHtml(u.name)}
+                                </div>
+                                <div style="font-size: 11px; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                    ${escapeHtml(u.email)} ${u.unvan ? '• ' + escapeHtml(u.unvan) : ''} ${u.bolum_name ? '(' + escapeHtml(u.bolum_name) + ')' : ''}
+                                </div>
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+                            ${alreadyMemberBadge}
+                            <span class="user-select-indicator" style="font-size: 11px; font-weight: 700; color: ${isSelected ? '#059669' : '#0284c7'}; background: ${isSelected ? '#dcfce7' : '#f0f9ff'}; padding: 3px 8px; border-radius: 6px; border: 1px solid ${isSelected ? '#86efac' : '#bae6fd'};">
+                                ${isSelected ? '✓ Seçildi' : 'Seç'}
+                            </span>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        })
+        .catch(err => {
+            console.error(err);
+            container.innerHTML = `
+                <div style="padding: 20px; text-align: center; color: #dc2626; font-size: 12px;">
+                    ⚠️ Personel listesi yüklenirken bir hata oluştu.
+                </div>
+            `;
+        });
+}
+
+function selectMemberUser(user) {
+    selectedMemberUserData = user;
+    document.getElementById('selectedAddMemberUserId').value = user.id;
+
+    // Seçili kutusunu göster
+    const box = document.getElementById('memberSelectedUserBox');
+    document.getElementById('selectedUserAvatar').innerText = user.initials;
+    document.getElementById('selectedUserName').innerText = user.name;
+    document.getElementById('selectedUserSub').innerText = `${user.email} ${user.unvan ? '• ' + user.unvan : ''} ${user.bolum_name ? '(' + user.bolum_name + ')' : ''}`;
+    box.style.display = 'flex';
+
+    // Listede seçilen öğeyi işaretle
+    document.querySelectorAll('.member-user-item').forEach(el => {
+        el.classList.remove('is-selected');
+        const indicator = el.querySelector('.user-select-indicator');
+        if (indicator) {
+            indicator.innerText = 'Seç';
+            indicator.style.color = '#0284c7';
+            indicator.style.background = '#f0f9ff';
+            indicator.style.borderColor = '#bae6fd';
+        }
+    });
+
+    const activeRow = document.getElementById(`userItemRow_${user.id}`);
+    if (activeRow) {
+        activeRow.classList.add('is-selected');
+        const indicator = activeRow.querySelector('.user-select-indicator');
+        if (indicator) {
+            indicator.innerText = '✓ Seçildi';
+            indicator.style.color = '#059669';
+            indicator.style.background = '#dcfce7';
+            indicator.style.borderColor = '#86efac';
+        }
+    }
+}
+
+function clearSelectedMemberUser() {
+    selectedMemberUserData = null;
+    const hiddenInput = document.getElementById('selectedAddMemberUserId');
+    if (hiddenInput) hiddenInput.value = '';
+    const box = document.getElementById('memberSelectedUserBox');
+    if (box) box.style.display = 'none';
+
+    document.querySelectorAll('.member-user-item').forEach(el => {
+        el.classList.remove('is-selected');
+        const indicator = el.querySelector('.user-select-indicator');
+        if (indicator) {
+            indicator.innerText = 'Seç';
+            indicator.style.color = '#0284c7';
+            indicator.style.background = '#f0f9ff';
+            indicator.style.borderColor = '#bae6fd';
+        }
+    });
+}
+
+function validateAddMemberForm() {
+    const userId = document.getElementById('selectedAddMemberUserId').value;
+    if (!userId) {
+        alert('Lütfen kurula atamak istediğiniz personeli listeden seçin.');
+        document.getElementById('memberUserSearchInput')?.focus();
+        return false;
+    }
+    return true;
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
 }
 
 function openEditCommitteeModal(committee) {

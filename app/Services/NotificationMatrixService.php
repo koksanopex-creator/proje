@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\NotificationMatrix;
 use App\Models\NotificationTemplate;
 use App\Models\InAppNotification;
+use App\Models\NotificationLog;
 use App\Models\User;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
@@ -90,8 +91,8 @@ class NotificationMatrixService
             /** @var User $targetUser */
             $targetUser = $r['user'];
 
-            // ZENGİN DİNAMİK DEĞİŞKEN HAVUZU (Username, Departman Name vb.)
-            $deptName = $variables['departman_adi'] ?? ($targetUser->bolum?->name ?? 'Merkez Departman');
+            // ZENGİN DİNAMİK DEĞİŞKEN HAVUZU
+            $deptName = $variables['departman_adi'] ?? ($targetUser->bolum?->ad ?? ($targetUser->bolum?->name ?? 'Merkez Departman'));
             $actorName = $variables['islem_yapan'] ?? ($variables['olusturan'] ?? ($currentUser?->name ?? 'Sistem'));
 
             $richVars = [
@@ -128,6 +129,12 @@ class NotificationMatrixService
             if (!empty($variables['proje_kodu'])) {
                 $richVars['project_code'] = $variables['proje_kodu'];
             }
+            if (!empty($variables['kurul_adi'])) {
+                $richVars['committee_name'] = $variables['kurul_adi'];
+            }
+            if (!empty($variables['committee_name'])) {
+                $richVars['kurul_adi'] = $variables['committee_name'];
+            }
 
             // Olay özel değişkenleriyle birleştir
             $finalVars = array_merge($richVars, $variables);
@@ -146,6 +153,22 @@ class NotificationMatrixService
                     'message' => $bellBody,
                     'action_url' => $actionUrl,
                 ]);
+
+                // Bildirim Loguna Ekle (Zil)
+                NotificationLog::create([
+                    'channel' => 'bell',
+                    'event_key' => $eventKey,
+                    'event_title' => $template->event_title,
+                    'user_id' => $targetUser->id,
+                    'recipient_name' => $targetUser->name,
+                    'recipient_email' => $targetUser->email,
+                    'subject' => $bellTitle,
+                    'body' => $bellBody,
+                    'action_url' => $actionUrl,
+                    'status' => 'sent',
+                    'sent_by_user_id' => $currentUser?->id,
+                    'metadata' => ['variables' => $variables],
+                ]);
             }
 
             if ($r['mail'] && !empty($targetUser->email)) {
@@ -154,8 +177,42 @@ class NotificationMatrixService
                         $msg->to($targetUser->email, $targetUser->name)
                             ->subject($mailSubject);
                     });
+
+                    // Bildirim Loguna Ekle (E-Posta Başarılı)
+                    NotificationLog::create([
+                        'channel' => 'mail',
+                        'event_key' => $eventKey,
+                        'event_title' => $template->event_title,
+                        'user_id' => $targetUser->id,
+                        'recipient_name' => $targetUser->name,
+                        'recipient_email' => $targetUser->email,
+                        'subject' => $mailSubject,
+                        'body' => $mailBody,
+                        'action_url' => $actionUrl,
+                        'status' => 'sent',
+                        'sent_by_user_id' => $currentUser?->id,
+                        'metadata' => ['variables' => $variables],
+                    ]);
+
                     Log::info("E-Posta Gönderildi: {$targetUser->email} | Başlık: {$mailSubject}");
                 } catch (\Throwable $e) {
+                    // Bildirim Loguna Ekle (E-Posta Başarısız)
+                    NotificationLog::create([
+                        'channel' => 'mail',
+                        'event_key' => $eventKey,
+                        'event_title' => $template->event_title,
+                        'user_id' => $targetUser->id,
+                        'recipient_name' => $targetUser->name,
+                        'recipient_email' => $targetUser->email,
+                        'subject' => $mailSubject,
+                        'body' => $mailBody,
+                        'action_url' => $actionUrl,
+                        'status' => 'failed',
+                        'error_message' => $e->getMessage(),
+                        'sent_by_user_id' => $currentUser?->id,
+                        'metadata' => ['variables' => $variables],
+                    ]);
+
                     Log::error("E-Posta Gönderim Hatası ({$targetUser->email}): " . $e->getMessage());
                 }
             }
@@ -196,6 +253,8 @@ class NotificationMatrixService
 
         $actionUrl = route('meetings.show', $meeting->id);
 
+        $deptName = $project->bolum?->ad ?? ($project->bolum?->name ?? 'Merkez Departman');
+
         $variables = [
             'toplanti_baslik' => $meeting->title,
             'meeting_title' => $meeting->title,
@@ -203,7 +262,7 @@ class NotificationMatrixService
             'project_code' => $project->code,
             'proje_adi' => $project->title,
             'project_name' => $project->title,
-            'departman_adi' => $project->bolum?->name ?? 'Merkez Departman',
+            'departman_adi' => $deptName,
             'tarih' => $meeting->meeting_date ? $meeting->meeting_date->format('d.m.Y H:i') : now()->format('d.m.Y H:i'),
             'lokasyon' => $meeting->location ?: 'Şantiye Ofisi / Konferans Salonu',
             'islem_yapan' => $actorName,
@@ -289,6 +348,22 @@ class NotificationMatrixService
                     'message' => $bellBody,
                     'action_url' => $actionUrl,
                 ]);
+
+                // Bildirim Logu (Zil)
+                NotificationLog::create([
+                    'channel' => 'bell',
+                    'event_key' => $eventKey,
+                    'event_title' => $template->event_title,
+                    'user_id' => $targetUser->id,
+                    'recipient_name' => $targetUser->name,
+                    'recipient_email' => $targetUser->email,
+                    'subject' => $bellTitle,
+                    'body' => $bellBody,
+                    'action_url' => $actionUrl,
+                    'status' => 'sent',
+                    'sent_by_user_id' => $currentUser?->id,
+                    'metadata' => ['meeting_id' => $meeting->id, 'variables' => $variables],
+                ]);
             }
 
             if ($r['mail'] && !empty($targetUser->email)) {
@@ -297,8 +372,42 @@ class NotificationMatrixService
                         $msg->to($targetUser->email, $targetUser->name)
                             ->subject($mailSubject);
                     });
+
+                    // Bildirim Logu (Mail Başarılı)
+                    NotificationLog::create([
+                        'channel' => 'mail',
+                        'event_key' => $eventKey,
+                        'event_title' => $template->event_title,
+                        'user_id' => $targetUser->id,
+                        'recipient_name' => $targetUser->name,
+                        'recipient_email' => $targetUser->email,
+                        'subject' => $mailSubject,
+                        'body' => $mailBody,
+                        'action_url' => $actionUrl,
+                        'status' => 'sent',
+                        'sent_by_user_id' => $currentUser?->id,
+                        'metadata' => ['meeting_id' => $meeting->id, 'variables' => $variables],
+                    ]);
+
                     Log::info("Toplantı Durum E-Postası Gönderildi: {$targetUser->email} | Başlık: {$mailSubject}");
                 } catch (\Throwable $e) {
+                    // Bildirim Logu (Mail Hata)
+                    NotificationLog::create([
+                        'channel' => 'mail',
+                        'event_key' => $eventKey,
+                        'event_title' => $template->event_title,
+                        'user_id' => $targetUser->id,
+                        'recipient_name' => $targetUser->name,
+                        'recipient_email' => $targetUser->email,
+                        'subject' => $mailSubject,
+                        'body' => $mailBody,
+                        'action_url' => $actionUrl,
+                        'status' => 'failed',
+                        'error_message' => $e->getMessage(),
+                        'sent_by_user_id' => $currentUser?->id,
+                        'metadata' => ['meeting_id' => $meeting->id, 'variables' => $variables],
+                    ]);
+
                     Log::error("Toplantı Durum E-Posta Gönderim Hatası ({$targetUser->email}): " . $e->getMessage());
                 }
             }
@@ -349,7 +458,7 @@ class NotificationMatrixService
             return;
         }
 
-        $deptName = $targetUser->bolum?->name ?? ($project->bolum?->name ?? 'Merkez Departman');
+        $deptName = $targetUser->bolum?->ad ?? ($targetUser->bolum?->name ?? ($project->bolum?->ad ?? ($project->bolum?->name ?? 'Merkez Departman')));
         $gundemText = $meeting->agenda ? nl2br(e($meeting->agenda)) : 'Gündem maddeleri toplantı öncesinde paylaşılacaktır.';
 
         $variables = [
@@ -384,6 +493,23 @@ class NotificationMatrixService
                 'message' => $bellBody,
                 'action_url' => $cleanActionUrl,
             ]);
+
+            // Bildirim Logu (Zil)
+            NotificationLog::create([
+                'channel' => 'bell',
+                'event_key' => $eventKey,
+                'event_title' => $template->event_title,
+                'user_id' => $targetUser->id,
+                'recipient_name' => $targetUser->name,
+                'recipient_email' => $targetUser->email,
+                'subject' => $bellTitle,
+                'body' => $bellBody,
+                'action_url' => $cleanActionUrl,
+                'status' => 'sent',
+                'sent_by_user_id' => $currentUser?->id,
+                'metadata' => ['meeting_id' => $meeting->id, 'variables' => $variables],
+            ]);
+
             Log::info("Toplantı Davet Zili Gönderildi: {$targetUser->id} ({$targetUser->name})");
         }
 
@@ -397,8 +523,42 @@ class NotificationMatrixService
                     $msg->to($targetUser->email, $targetUser->name)
                         ->subject($mailSubject);
                 });
+
+                // Bildirim Logu (Mail Başarılı)
+                NotificationLog::create([
+                    'channel' => 'mail',
+                    'event_key' => $eventKey,
+                    'event_title' => $template->event_title,
+                    'user_id' => $targetUser->id,
+                    'recipient_name' => $targetUser->name,
+                    'recipient_email' => $targetUser->email,
+                    'subject' => $mailSubject,
+                    'body' => $mailBody,
+                    'action_url' => $cleanActionUrl,
+                    'status' => 'sent',
+                    'sent_by_user_id' => $currentUser?->id,
+                    'metadata' => ['meeting_id' => $meeting->id, 'variables' => $variables],
+                ]);
+
                 Log::info("Toplantı Davet E-Postası Gönderildi: {$targetUser->email} | Başlık: {$mailSubject}");
             } catch (\Throwable $e) {
+                // Bildirim Logu (Mail Hata)
+                NotificationLog::create([
+                    'channel' => 'mail',
+                    'event_key' => $eventKey,
+                    'event_title' => $template->event_title,
+                    'user_id' => $targetUser->id,
+                    'recipient_name' => $targetUser->name,
+                    'recipient_email' => $targetUser->email,
+                    'subject' => $mailSubject,
+                    'body' => $mailBody,
+                    'action_url' => $cleanActionUrl,
+                    'status' => 'failed',
+                    'error_message' => $e->getMessage(),
+                    'sent_by_user_id' => $currentUser?->id,
+                    'metadata' => ['meeting_id' => $meeting->id, 'variables' => $variables],
+                ]);
+
                 Log::error("Toplantı Davet E-Posta Gönderim Hatası ({$targetUser->email}): " . $e->getMessage());
             }
         }
@@ -439,8 +599,42 @@ class NotificationMatrixService
                 $msg->to($share->email)
                     ->subject($mailSubject);
             });
+
+            // Bildirim Logu (Harici Mail Başarılı)
+            NotificationLog::create([
+                'channel' => 'mail',
+                'event_key' => 'proje_taslak_harici_paylasim',
+                'event_title' => $template->event_title,
+                'user_id' => null,
+                'recipient_name' => $share->email,
+                'recipient_email' => $share->email,
+                'subject' => $mailSubject,
+                'body' => $mailBody,
+                'action_url' => $accessUrl,
+                'status' => 'sent',
+                'sent_by_user_id' => $sender->id,
+                'metadata' => ['project_id' => $project->id, 'variables' => $variables],
+            ]);
+
             Log::info("Harici E-Posta Gönderildi: {$share->email} | Başlık: {$mailSubject}");
         } catch (\Throwable $e) {
+            // Bildirim Logu (Harici Mail Hata)
+            NotificationLog::create([
+                'channel' => 'mail',
+                'event_key' => 'proje_taslak_harici_paylasim',
+                'event_title' => $template->event_title,
+                'user_id' => null,
+                'recipient_name' => $share->email,
+                'recipient_email' => $share->email,
+                'subject' => $mailSubject,
+                'body' => $mailBody,
+                'action_url' => $accessUrl,
+                'status' => 'failed',
+                'error_message' => $e->getMessage(),
+                'sent_by_user_id' => $sender->id,
+                'metadata' => ['project_id' => $project->id, 'variables' => $variables],
+            ]);
+
             Log::error("Harici E-Posta Gönderim Hatası ({$share->email}): " . $e->getMessage());
         }
     }

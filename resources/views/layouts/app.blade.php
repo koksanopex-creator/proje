@@ -1013,6 +1013,11 @@
                         <span class="nav-label">Denetim Logları</span>
                     </a>
 
+                    <a href="{{ route('admin.notification_logs.index') }}" class="nav-item {{ request()->routeIs('admin.notification_logs*') ? 'active' : '' }}" title="Bildirim & Mail Logları">
+                        <span class="nav-icon">📧</span>
+                        <span class="nav-label">Bildirim & Mail Logları</span>
+                    </a>
+
                     @if(auth()->user()->isSuperAdmin())
                         <a href="{{ route('admin.settings') }}" class="nav-item {{ request()->routeIs('admin.settings*') ? 'active' : '' }}" title="Sistem Ayarları">
                             <span class="nav-icon">⚙️</span>

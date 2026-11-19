@@ -659,6 +659,9 @@ textarea.modal-form-control {
         <a href="{{ route('admin.system_health') }}" class="matrix-tab-link">
             <span>🩺</span> <span>Sistem Sağlığı</span>
         </a>
+        <a href="{{ route('admin.notification_logs.index') }}" class="matrix-tab-link">
+            <span>📧</span> <span>Bildirim & Mail Logları</span>
+        </a>
     </div>
 
     <!-- MINIMAL & KİBAR YAN YANA KPI STRIP -->

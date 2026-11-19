@@ -39,8 +39,6 @@ class CommitteeController extends Controller
             ->orderBy('name')
             ->get();
 
-        $allUsers = User::where('is_active', true)->orderBy('name')->get();
-
         // İstatistikler (KPI Summary)
         $totalCommittees = $committees->count();
         $activeCommittees = $committees->where('is_active', true)->count();
@@ -58,7 +56,68 @@ class CommitteeController extends Controller
             'pending_approvals' => $pendingApprovals,
         ];
 
-        return view('admin.committees.index', compact('committees', 'allUsers', 'stats'));
+        return view('admin.committees.index', compact('committees', 'stats'));
+    }
+
+    /**
+     * Kurula Üye Ekleme Modalı için Asenkron, Sayfalamalı ve Anlık Kullanıcı Arama
+     */
+    public function searchUsers(Request $request)
+    {
+        $this->checkViewPermission();
+
+        $query = trim($request->input('q', ''));
+        $page = max(1, (int)$request->input('page', 1));
+        $committeeId = $request->input('committee_id');
+        $perPage = 25; // 20-30 arası alfabetik sayfalama
+
+        $alreadyMemberIds = [];
+        if ($committeeId) {
+            $alreadyMemberIds = CommitteeMember::where('committee_id', $committeeId)
+                ->pluck('user_id')
+                ->toArray();
+        }
+
+        $usersQuery = User::where('is_active', true)
+            ->select(['id', 'name', 'email', 'unvan', 'sicil_no', 'bolum_id'])
+            ->with('bolum:id,ad');
+
+        if ($query !== '') {
+            $usersQuery->where(function ($q) use ($query) {
+                $q->where('name', 'like', "%{$query}%")
+                    ->orWhere('email', 'like', "%{$query}%")
+                    ->orWhere('sicil_no', 'like', "%{$query}%")
+                    ->orWhere('unvan', 'like', "%{$query}%");
+            });
+        }
+
+        $usersQuery->orderBy('name', 'asc');
+
+        $paginator = $usersQuery->paginate($perPage, ['*'], 'page', $page);
+
+        $items = collect($paginator->items())->map(function ($u) use ($alreadyMemberIds) {
+            $isAlreadyMember = in_array($u->id, $alreadyMemberIds);
+            return [
+                'id' => $u->id,
+                'name' => $u->name,
+                'email' => $u->email,
+                'unvan' => $u->unvan ?? '',
+                'sicil_no' => $u->sicil_no ?? '',
+                'bolum_name' => $u->bolum?->ad ?? '',
+                'initials' => mb_strtoupper(mb_substr($u->name, 0, 1)),
+                'already_member' => $isAlreadyMember,
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'users' => $items,
+            'current_page' => $paginator->currentPage(),
+            'last_page' => $paginator->lastPage(),
+            'total' => $paginator->total(),
+            'per_page' => $paginator->perPage(),
+            'has_more' => $paginator->hasMorePages(),
+        ]);
     }
 
     public function store(Request $request)

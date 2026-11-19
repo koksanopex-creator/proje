@@ -47,4 +47,11 @@ return [
         'secret' => env('MERKEZI_WEBHOOK_SECRET', ''),
     ],
 
+    'microsoft' => [
+        'tenant_id' => env('MICROSOFT_TENANT_ID'),
+        'client_id' => env('MICROSOFT_CLIENT_ID'),
+        'client_secret' => env('MICROSOFT_CLIENT_SECRET'),
+        'from_address' => env('MICROSOFT_FROM_ADDRESS', 'kys@koksan.com'),
+    ],
+
 ];

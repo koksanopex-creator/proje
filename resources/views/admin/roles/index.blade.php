@@ -515,6 +515,10 @@ body.hide-col-status .col-status { display: none !important; }
         <span class="tab-emoji">🩺</span>
         <span>Sistem Sağlığı</span>
     </a>
+    <a href="{{ route('admin.notification_logs.index') }}" class="matrix-tab-link">
+        <span class="tab-emoji">📧</span>
+        <span>Bildirim & Mail Logları</span>
+    </a>
 </div>
 
 @if(session('success'))

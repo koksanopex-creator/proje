@@ -28,6 +28,7 @@ use App\Http\Controllers\Admin\CurrencyController;
 use App\Http\Controllers\Admin\UserRoleController;
 use App\Http\Controllers\Admin\DoaThresholdController;
 use App\Http\Controllers\Admin\CommitteeController;
+use App\Http\Controllers\Admin\NotificationLogController;
 use App\Http\Controllers\Auth\SsoController;
 
 // Kimlik Doğrulama (Auth) & Merkezi SSO Rotaları
@@ -175,6 +176,12 @@ Route::middleware('auth')->group(function () {
         Route::post('/bildirim-sablonlari', [NotificationMatrixController::class, 'storeTemplate'])->name('notification_templates.store');
         Route::put('/bildirim-sablonlari/{id}', [NotificationMatrixController::class, 'updateTemplate'])->name('notification_templates.update');
         Route::post('/sync-bolumler', [NotificationMatrixController::class, 'syncBolumler'])->name('sync_bolumler');
+
+        // Bildirim & Mail Logları
+        Route::get('/bildirim-loglari', [NotificationLogController::class, 'index'])->name('admin.notification_logs.index');
+        Route::get('/bildirim-loglari/{id}', [NotificationLogController::class, 'show'])->name('admin.notification_logs.show');
+        Route::post('/bildirim-loglari/test-mail', [NotificationLogController::class, 'sendTestMail'])->name('admin.notification_logs.test_mail');
+        Route::post('/bildirim-loglari/{id}/resend', [NotificationLogController::class, 'resend'])->name('admin.notification_logs.resend');
         // Kategori Yönetimi CRUD
         Route::get('/kategoriler', [ProjectCategoryController::class, 'index'])->name('categories.index');
         Route::post('/kategoriler', [ProjectCategoryController::class, 'store'])->name('categories.store');
@@ -214,6 +221,7 @@ Route::middleware('auth')->group(function () {
 
         // Kurullar ve Komiteler Yönetimi
         Route::get('/kurullar', [CommitteeController::class, 'index'])->name('committees.index');
+        Route::get('/kurullar/search-users', [CommitteeController::class, 'searchUsers'])->name('committees.search_users');
         Route::post('/kurullar', [CommitteeController::class, 'store'])->name('committees.store');
         Route::put('/kurullar/{id}', [CommitteeController::class, 'update'])->name('committees.update');
         Route::delete('/kurullar/{id}', [CommitteeController::class, 'destroy'])->name('committees.destroy');

@@ -1,0 +1,27 @@
+# GÖREV PLANI: Microsoft Graph E-Posta Entegrasyonu ve Bildirim/Mail Logları
+
+- [x] 1. Microsoft Graph Mail Transport Sınıfı ve Konfigürasyonunun Oluşturulması <!-- id: 1 -->
+  - [x] `app/Mail/Transports/MicrosoftGraphTransport.php` sınıfını oluştur <!-- id: 1.1 -->
+  - [x] `config/services.php` içine Microsoft Graph ayarlarını ekle <!-- id: 1.2 -->
+  - [x] `config/mail.php` içine `microsoft-graph` mailer tanımla <!-- id: 1.3 -->
+  - [x] `app/Providers/AppServiceProvider.php` içinde mailer'ı tescil et <!-- id: 1.4 -->
+  - [x] `.env` ve `.env.example` içine Azure AD ve `kys@koksan.com` ayarlarını ekle <!-- id: 1.5 -->
+- [x] 2. Veritabanı ve Model Altyapısı <!-- id: 2 -->
+  - [x] Migration: `2026_11_19_000004_create_notification_logs_table.php` oluştur ve çalıştır <!-- id: 2.1 -->
+  - [x] Model: `app/Models/NotificationLog.php` sınıfını oluştur <!-- id: 2.2 -->
+- [x] 3. `NotificationMatrixService` Loglama Entegrasyonu <!-- id: 3 -->
+  - [x] Tüm zil ve e-posta bildirimlerinin otomatik loglanmasını sağla <!-- id: 3.1 -->
+  - [x] Başarısız e-posta gönderimlerinde hatanın yakalanarak `failed` statüsüyle loglanmasını sağla <!-- id: 3.2 -->
+- [x] 4. Yönetim Arayüzü ve Test Modülü <!-- id: 4 -->
+  - [x] Controller: `app/Http/Controllers/Admin/NotificationLogController.php` oluştur <!-- id: 4.1 -->
+  - [x] Rotalar: `routes/web.php` içine `/admin/bildirim-loglari` rotalarını ekle <!-- id: 4.2 -->
+  - [x] Blade Görünümü: `resources/views/admin/notification_logs/index.blade.php` oluştur <!-- id: 4.3 -->
+  - [x] Menü ve Üst Sekme Linklerini Güncelle <!-- id: 4.4 -->
+- [x] 5. Yerel Doğrulama ve Canlı Test <!-- id: 5 -->
+  - [x] Canlı test maili gönder ve gelen yanıtı/log kaydını kontrol et <!-- id: 5.1 -->
+  - [x] Kurul üyesi çıkarma, toplantı daveti gibi akışlarda zil ve mail loglarının oluştuğunu doğrula <!-- id: 5.2 -->
+- [ ] 6. Sunucu Dağıtımı ve Doğrulama <!-- id: 6 -->
+  - [ ] Git commit ve push yap <!-- id: 6.1 -->
+  - [ ] Sunucuya SSH ile bağlanıp `git pull`, migration ve cache temizliği yap <!-- id: 6.2 -->
+  - [ ] Sunucu `.env` dosyasına Microsoft Graph anahtarlarını ekle <!-- id: 6.3 -->
+  - [ ] Sunucuda canlı test maili gönder ve sonucu doğrula <!-- id: 6.4 -->

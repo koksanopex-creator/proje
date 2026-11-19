@@ -588,6 +588,10 @@
         <span class="tab-emoji">🩺</span>
         <span>Sistem Sağlığı</span>
     </a>
+    <a href="{{ route('admin.notification_logs.index') }}" class="matrix-tab-link">
+        <span class="tab-emoji">📧</span>
+        <span>Bildirim & Mail Logları</span>
+    </a>
 </div>
 
 <!-- CANLI TEST SONUÇ PANOSU (ALERT BANNER) -->

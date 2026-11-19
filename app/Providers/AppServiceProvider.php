@@ -9,6 +9,8 @@ use Illuminate\Support\ViewErrorBag;
 use App\Models\User;
 use App\Models\Permission;
 use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\Transports\MicrosoftGraphTransport;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -26,6 +28,17 @@ class AppServiceProvider extends ServiceProvider
 
         // View ErrorBag varsayılanı (tüm ortamlarda dayanıklılık)
         View::share('errors', session('errors', new ViewErrorBag()));
+
+        // Microsoft Graph Mail Sürücüsü (kys@koksan.com)
+        Mail::extend('microsoft-graph', function (array $config = []) {
+            $msConfig = config('services.microsoft');
+            return new MicrosoftGraphTransport(
+                (string) ($msConfig['tenant_id'] ?? ''),
+                (string) ($msConfig['client_id'] ?? ''),
+                (string) ($msConfig['client_secret'] ?? ''),
+                (string) ($msConfig['from_address'] ?? 'kys@koksan.com')
+            );
+        });
 
         // Madde 15: Superadmin her şeye yetkilidir (Gate::before)
         Gate::before(function (User $user, string $ability) {
