@@ -233,12 +233,17 @@ class UserSyncService
     {
         $users = [];
 
-        // 1. merkezi_app kontrolü
+        // 1. merkezi_auth_db veya merkezi_app kontrolü
         try {
-            $hasMerkeziApp = DB::select("SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = 'merkezi_app'");
-            if (!empty($hasMerkeziApp)) {
-                $raw = DB::table('merkezi_app.users as u')
-                    ->leftJoin('merkezi_app.departments as d', 'u.department_id', '=', 'd.id')
+            $centralDb = null;
+            $hasDb = DB::select("SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME IN ('merkezi_auth_db', 'merkezi_app') ORDER BY FIELD(SCHEMA_NAME, 'merkezi_auth_db', 'merkezi_app') LIMIT 1");
+            if (!empty($hasDb)) {
+                $centralDb = $hasDb[0]->SCHEMA_NAME ?? $hasDb[0]->schema_name;
+            }
+
+            if ($centralDb) {
+                $raw = DB::table("{$centralDb}.users as u")
+                    ->leftJoin("{$centralDb}.departments as d", 'u.department_id', '=', 'd.id')
                     ->whereNull('u.deleted_at')
                     ->where('u.is_customer', 0) // Müşterileri çekme, sadece personelleri al
                     ->select([
@@ -265,7 +270,7 @@ class UserSyncService
                 }
             }
         } catch (\Throwable $e) {
-            Log::info("merkezi_app veritabanından çekilemedi: " . $e->getMessage());
+            Log::info("Merkezi auth veritabanından çekilemedi: " . $e->getMessage());
         }
 
         // 2. iaa_db kontrolü
