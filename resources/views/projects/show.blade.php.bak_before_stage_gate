@@ -1,0 +1,2686 @@
+@extends('layouts.app')
+
+@section('title', $project->title)
+@section('page_title', $project->title)
+@section('page_subtitle', $project->code . ' • ' . ucfirst($project->category) . ' Projesi')
+
+@section('content')
+    @if(session('new_external_observers'))
+        <div class="pastel-blue-helper-box mb-4" style="background: #eff6ff; border-color: #93c5fd; padding: 16px 20px;">
+            <span class="helper-box-icon" style="font-size: 24px;">🔑</span>
+            <div class="helper-box-content">
+                <strong style="font-size: 14px; color: #1e40af; display: block; margin-bottom: 6px;">
+                    Harici Gözlemciler İçin Geçici Giriş Bilgileri Oluşturuldu
+                </strong>
+                <div style="font-size: 12.5px; color: #1e3a8a; margin-bottom: 10px;">
+                    Aşağıdaki harici kullanıcılara özel tek kullanımlık geçici şifreler üretildi. Bu kişiler yalnızca bu projeye erişebilir:
+                </div>
+                <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+                    @foreach(session('new_external_observers') as $cred)
+                        <div style="background: #ffffff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 8px 14px; font-size: 12px;">
+                            <div><strong>{{ $cred['name'] }}</strong> ({{ $cred['email'] }})</div>
+                            <div style="margin-top: 3px; font-family: monospace; font-size: 12.5px; color: #0284c7; font-weight: 700;">
+                                Şifre: <code>{{ $cred['password'] }}</code>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+    @endif
+
+    @if(session('new_observer_password'))
+        @php $newObs = session('new_observer_password'); @endphp
+        <div class="pastel-blue-helper-box mb-4" style="background: #eff6ff; border-color: #93c5fd; padding: 16px 20px;">
+            <span class="helper-box-icon" style="font-size: 24px;">🔑</span>
+            <div class="helper-box-content">
+                <strong style="font-size: 14px; color: #1e40af; display: block; margin-bottom: 4px;">
+                    Yeni Harici Gözlemci Giriş Bilgisi
+                </strong>
+                <div style="font-size: 12.5px; color: #1e3a8a;">
+                    <strong>{{ $newObs['name'] }}</strong> ({{ $newObs['email'] }}) için sistem geçici şifresi: <code style="background: #dbeafe; padding: 2px 6px; border-radius: 4px; font-size: 13px; font-weight: 700; color: #1d4ed8;">{{ $newObs['password'] }}</code>
+                </div>
+            </div>
+        </div>
+    @endif
+    @if(isset($isObserver) && $isObserver)
+        <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 12px 18px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <span style="font-size: 22px;">👁️</span>
+                <div>
+                    <strong style="color: #1e40af; font-size: 13.5px;">Gözlemci (Salt Okunur) Modundasınız</strong>
+                    <div style="color: #3b82f6; font-size: 12px;">Bu projeyi izleyici olarak takip etmektesiniz. Aşamaları, Gantt şemasını, bütçe kalemlerini ve dokümanları salt okunur olarak inceleyebilirsiniz.</div>
+                </div>
+            </div>
+            <span class="badge" style="background: #dbeafe; color: #1d4ed8; font-weight: 700; padding: 5px 12px; border-radius: 6px;">
+                🔒 Read-Only İzleyici
+            </span>
+        </div>
+    @endif
+        @if($project->isDraft())
+        <!-- =========================================================================
+             TASLAK PROJE İNCELEME, ÖNERİ & PAYLAŞIM BANNERI
+             ========================================================================= -->
+        <div class="card mb-4" style="background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); border: 1.5px solid #fde68a; border-radius: 12px; box-shadow: 0 4px 16px rgba(245, 158, 11, 0.12); overflow: hidden; margin-bottom: 20px;">
+            <div class="card-body" style="padding: 18px 24px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+                    <div style="display: flex; align-items: center; gap: 14px;">
+                        <div style="width: 44px; height: 44px; border-radius: 10px; background: #fef08a; color: #b45309; display: flex; align-items: center; justify-content: center; font-size: 22px; box-shadow: 0 2px 8px rgba(180, 83, 9, 0.15);">
+                            📝
+                        </div>
+                        <div>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <h3 style="margin: 0; font-size: 16px; font-weight: 800; color: #92400e;">BU PROJE TASLAK MODUNDADIR</h3>
+                                <span class="badge" style="background: #fef08a; color: #854d0e; font-weight: 700; font-size: 11px;">Eksik Bilgi / Taslak</span>
+                            </div>
+                            <p style="margin: 3px 0 0; font-size: 12.5px; color: #78350f;">
+                                Proje henüz resmi onay sürecine gönderilmemiştir. Taslağı paydaşlarla paylaşabilir, satır satır gelen önerileri inceleyebilir ve eksikleri tamamlayıp yayınlayabilirsiniz.
+                            </p>
+                        </div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                        @if($canManage)
+                            <button type="button" class="btn btn-sm btn-outline-warning" onclick="openShareDraftModal()" style="background: #ffffff; color: #b45309; border-color: #f59e0b; font-weight: 700; padding: 7px 14px; border-radius: 6px; display: inline-flex; align-items: center; gap: 6px;">
+                                <span>👥</span> Taslağı Paylaş
+                            </button>
+                        @endif
+
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="openViewSuggestionsModal()" style="background: #ffffff; color: #475569; border-color: #cbd5e1; font-weight: 700; padding: 7px 14px; border-radius: 6px; display: inline-flex; align-items: center; gap: 6px;">
+                            <span>💡</span> Önerileri Gör
+                            <span class="badge" style="background: #0284c7; color: #ffffff; border-radius: 10px; padding: 2px 7px; font-size: 11px;">
+                                {{ $project->draftSuggestions->count() }}
+                            </span>
+                        </button>
+
+                        @if($canManage)
+                            <form action="{{ route('projects.publish_draft', $project->id) }}" method="POST" style="margin: 0;" onsubmit="return confirm('Bu taslak projeyi yayınlamak ve resmi onay sürecini başlatmak istediğinize emin misiniz?');">
+                                @csrf
+                                <button type="submit" class="btn btn-sm btn-success" style="font-weight: 700; padding: 7px 16px; border-radius: 6px; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 6px rgba(16, 185, 129, 0.25);">
+                                    <span>🚀</span> Projeyi Yayınla
+                                </button>
+                            </form>
+                        @endif
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+    <!-- PROJE ÖZET BAŞLIK KARTI -->
+    <div class="card" style="margin-bottom: 20px;">
+        <div class="card-body" style="padding: 20px 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px;">
+                <div>
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                        <span style="font-size: 13px; font-weight: 800; color: var(--primary); background: var(--primary-light); padding: 4px 10px; border-radius: 6px;">
+                            {{ $project->code }}
+                        </span>
+                        <x-status-badge :status="$project->status" />
+                        <x-priority-badge :priority="$project->priority" />
+                        @php
+                            $isPrivate = ($project->visibility ?? 'private') === 'private';
+                            $canTogglePrivacy = auth()->user()->isSuperAdmin() || auth()->user()->isAdmin() || auth()->user()->hasPermission('proje.manage') || $project->manager_id === auth()->id() || $project->sponsor_id === auth()->id() || $project->created_by === auth()->id();
+                        @endphp
+                        <div id="projectPrivacyWrapper" style="display: inline-flex; align-items: center; gap: 6px;">
+                            <span id="projectPrivacyBadge" class="badge" style="font-size: 11.5px; font-weight: 700; padding: 4px 10px; border-radius: 6px; display: inline-flex; align-items: center; gap: 5px; {{ $isPrivate ? 'background: #fef2f2; color: #991b1b; border: 1px solid #fecaca;' : 'background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd;' }}" title="{{ $isPrivate ? 'Yalnızca atanan ekip üyeleri, liderler ve gözlemciler görebilir' : 'Tüm şirket portföyde ve aramalarda görebilir' }}">
+                                <span id="projectPrivacyIcon">{{ $isPrivate ? '🔒' : '🌐' }}</span>
+                                <span id="projectPrivacyText">{{ $isPrivate ? 'Özel / Gizli Proje' : 'Genel Proje' }}</span>
+                            </span>
+                            @if($canTogglePrivacy)
+                                <button type="button" class="btn btn-xs btn-outline-secondary" onclick="toggleProjectPrivacy({{ $project->id }})" style="padding: 2px 8px; font-size: 11px; font-weight: 600; border-radius: 5px; border-color: #cbd5e1; color: #475569; background: #ffffff;" title="Proje gizlilik durumunu Genel ile Özel arasında anlık değiştir">
+                                    🔄 Gizliliği Değiştir
+                                </button>
+                            @endif
+                        </div>
+                    </div>
+                                        <h2 style="font-size: 20px; font-weight: 800; color: var(--navy); margin-bottom: 8px;">{{ $project->title }}</h2>
+                    
+                    <!-- PROJE KAPSAMI, VİZYONU & YAZAR KÜNYESİ -->
+                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px 18px; max-width: 880px; margin-top: 6px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 8px; border-bottom: 1px solid #edf2f7; padding-bottom: 6px;">
+                            <span style="font-size: 12px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px;">
+                                <span>📝</span> Proje Açıklaması & Kapsam Vizyonu
+                            @if($project->isDraft())
+                                <button type="button" class="btn btn-xs btn-outline-info" onclick="openAddSuggestionModal('description', 'Proje Açıklaması ve Kapsamı')" style="font-size: 11px; padding: 1px 7px; border-radius: 4px; font-weight: 700; margin-left: 8px; border-color: #38bdf8; color: #0284c7;">
+                                    💬 Öneri Ekle
+                                </button>
+                            @endif
+                            </span>
+                            <div style="display: flex; align-items: center; gap: 8px; font-size: 11.5px;">
+                                <span style="color: #0369a1; background: #e0f2fe; padding: 2px 8px; border-radius: 4px; font-weight: 600;">
+                                    ✍️ Hazırlayan: {{ $project->creator->name ?? $project->manager->name ?? 'Proje Yöneticisi' }}
+                                </span>
+                                <span style="color: #64748b; background: #ffffff; border: 1px solid #e2e8f0; padding: 2px 8px; border-radius: 4px;">
+                                    📅 {{ $project->created_at ? $project->created_at->translatedFormat('d F Y, H:i') : '-' }}
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <div class="project-rich-description" style="font-size: 13.5px; color: #1e293b; line-height: 1.65;">
+                            @if($project->description)
+                                {!! $project->description !!}
+                            @else
+                                <span style="color: #94a3b8; font-style: italic;">Proje açıklaması ve vizyonu belirtilmemiş.</span>
+                            @endif
+                        </div>
+
+                        @if($project->files->count() > 0)
+                            <div style="margin-top: 12px; padding-top: 10px; border-top: 1px dashed #cbd5e1;">
+                                <div style="font-size: 11.5px; font-weight: 700; color: #475569; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+                                    <span>📎</span> Proje Kapsam Ekleri & Dokümanlar ({{ $project->files->count() }}):
+                                </div>
+                                <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                                    @foreach($project->files as $pFile)
+                                        @php
+                                            $ext = strtolower(pathinfo($pFile->original_name, PATHINFO_EXTENSION));
+                                            $fileIcon = in_array($ext, ['png','jpg','jpeg','webp','gif']) ? '🖼️' : ($ext === 'pdf' ? '📕' : (in_array($ext, ['xls','xlsx','xlm']) ? '📊' : (in_array($ext, ['doc','docx']) ? '📘' : ($ext === 'xml' ? '📙' : '📄'))));
+                                        @endphp
+                                        <a href="{{ route('projects.download_file', [$project->id, $pFile->id]) }}" style="text-decoration: none; display: inline-flex; align-items: center; gap: 6px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 5px 12px; font-size: 12px; font-weight: 600; color: #1e293b; transition: all 0.15s; box-shadow: 0 1px 2px rgba(0,0,0,0.03);" onmouseover="this.style.borderColor='#0284c7'; this.style.background='#f0f9ff';" onmouseout="this.style.borderColor='#cbd5e1'; this.style.background='#ffffff';">
+                                            <span>{{ $fileIcon }}</span>
+                                            <span>{{ Str::limit($pFile->original_name, 30) }}</span>
+                                            <span style="font-size: 10.5px; color: #64748b;">({{ number_format($pFile->file_size / 1024, 1) }} KB)</span>
+                                            <span style="font-size: 11px; color: #0284c7; font-weight: 700;">⬇ İndir</span>
+                                        </a>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+
+                <!-- AKSİYON BUTONLARI -->
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    @can('proje.approve')
+                        @if($project->current_waiting_role_id)
+                            <form action="{{ route('projects.approve', $project->id) }}" method="POST">
+                                @csrf
+                                <button type="submit" class="btn btn-success">
+                                    ✓ Onayla ve Süreci İlerlet
+                                </button>
+                            </form>
+                        @else
+                            <button type="button" class="btn btn-warning" onclick="document.getElementById('modalApproval').style.display='flex'">
+                                ⏱️ Onaya Gönder...
+                            </button>
+                        @endif
+                    @endcan
+
+                    <a href="{{ route('kanban.index', ['project_id' => $project->id]) }}" class="btn btn-secondary">
+                        📌 Kanban Pano
+                    </a>
+                    <a href="{{ route('gantt.index', ['project_id' => $project->id]) }}" class="btn btn-secondary">
+                        📈 Gantt Çizelge
+                    </a>
+                
+                    @if($canManage)
+                        <a href="{{ route('projects.edit', $project->id) }}" class="btn btn-outline-secondary" style="background: #ffffff; font-weight: 600;" title="Proje bilgilerini güncelle">
+                            ✏️ Projeyi Düzenle
+                        </a>
+                    @endif
+
+                    @if(auth()->user()->isSuperAdmin() || auth()->user()->isAdmin() || auth()->user()->isDeveloper() || auth()->user()->hasPermission('proje.delete'))
+                        <form action="{{ route('projects.destroy', $project->id) }}" method="POST" style="display: inline;">
+                            @csrf
+                            @method('DELETE')
+                            <button type="button" class="btn btn-outline-danger" style="background: #ffffff; font-weight: 600;" title="Projeyi Sil (Yalnızca Admin/Developer)" onclick="confirmProjectDelete(this, '{{ addslashes($project->title) }}', '{{ $project->code }}')">
+                                🗑️ Projeyi Sil
+                            </button>
+                        </form>
+                    @endif
+</div>
+            </div>
+
+            <!-- "KİMDE BEKLİYOR?" UYARI ALANI -->
+            @if($project->current_waiting_role_id)
+                <div style="background: #fef2f2; border: 1px solid #f87171; padding: 12px 18px; border-radius: 8px; margin-top: 18px; display: flex; align-items: center; justify-content: space-between;">
+                    <div style="font-size: 13px; color: #991b1b; font-weight: 600;">
+                        ⏱️ Bu proje şu anda <strong>{{ $project->waiting_duration }}</strong> 
+                        <strong>{{ $project->waitingRole?->name }}</strong> onayında beklemektedir. (Aşama: <strong>{{ $project->waiting_step_name }}</strong>)
+                    </div>
+                    <span style="font-size: 12px; background: #dc2626; color: #fff; padding: 3px 8px; border-radius: 4px; font-weight: 700;">SLA DARBOĞAZI</span>
+                </div>
+            @endif
+
+            <!-- METRİK ÖZET ÇİZELGESİ -->
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--border-color);">
+                <div>
+                    <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;">İlerleme Oranı</span>
+                    <div style="font-size: 18px; font-weight: 800; color: var(--navy); margin-top: 2px;">%{{ $project->progress_percentage }}</div>
+                    <div style="background: #e2e8f0; height: 6px; border-radius: 3px; overflow: hidden; margin-top: 4px;">
+                        <div style="background: var(--primary); width: {{ $project->progress_percentage }}%; height: 100%;"></div>
+                    </div>
+                </div>
+
+                <div>
+                    <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;">Planlanan Bütçe</span>
+                    <div style="font-size: 18px; font-weight: 800; color: var(--navy); margin-top: 2px;">
+                        {{ ($project->currency === 'USD' ? '$' : ($project->currency === 'EUR' ? '€' : '₺')) }}{{ number_format($project->planned_budget, 2, ',', '.') }}
+                    </div>
+                    <span style="font-size: 11px; color: var(--text-muted);">Fiili Harcama: ₺{{ number_format($project->actual_spent, 0, ',', '.') }}</span>
+                </div>
+
+                <div>
+                    <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;">Proje Yöneticisi</span>
+                    <div style="font-size: 14px; font-weight: 700; color: var(--navy); margin-top: 4px;">
+                        {{ $project->manager?->name ?? 'Atanmamış' }}
+                    </div>
+                    <span style="font-size: 11px; color: var(--text-muted);">Sponsor: {{ $project->sponsor?->name ?? '-' }}</span>
+                </div>
+
+                <div>
+                    <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;">Zaman Planı</span>
+                    <div style="font-size: 13px; font-weight: 700; color: var(--navy); margin-top: 4px;">
+                        {{ $project->start_date ? $project->start_date->format('d.m.Y') : '-' }} ➔ {{ $project->target_end_date ? $project->target_end_date->format('d.m.Y') : '-' }}
+                    </div>
+                    <span style="font-size: 11px; color: var(--text-muted);">Lokasyon: {{ $project->location ?? '-' }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+            <!-- =========================================================================
+         KURUMSAL KİLOMETRE TAŞLARI & FAZ YOL HARİTASI (MILESTONE ROAD-MAP / STEPPER)
+         ========================================================================= -->
+    <div class="card mb-4" style="border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 2px 10px rgba(15,23,42,0.04); overflow: hidden; margin-bottom: 20px;">
+        <div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; color: #ffffff;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <div style="width: 34px; height: 34px; border-radius: 8px; background: rgba(56, 189, 248, 0.2); border: 1px solid rgba(56, 189, 248, 0.4); display: flex; align-items: center; justify-content: center; font-size: 18px;">
+                    🚩
+                </div>
+                <div>
+                    <h3 style="margin: 0; font-size: 14.5px; font-weight: 800; color: #ffffff; display: flex; align-items: center; gap: 8px;">
+                        Kurumsal Kilometre Taşları & Faz Yol Haritası
+                        <span class="badge" style="background: rgba(255,255,255,0.15); color: #93c5fd; font-size: 11px; font-weight: 700;">
+                            {{ $project->phases->count() }} Kilometre Taşı
+                        </span>
+                    </h3>
+                    <p style="margin: 2px 0 0; font-size: 11.5px; color: #94a3b8;">
+                        Projenin ana aşamaları, hedeflenen termin tarihleri ve tamamlanma kriterleri
+                    </p>
+                </div>
+            </div>
+            @if($project->isDraft())
+                <button type="button" class="btn btn-sm btn-outline-info" onclick="openAddSuggestionModal('milestones', 'Kilometre Taşları ve Faz Planı')" style="border-radius: 6px; font-size: 12px; font-weight: 700; color: #38bdf8; border-color: rgba(56,189,248,0.5); background: rgba(15,23,42,0.5); display: inline-flex; align-items: center; gap: 6px;">
+                    <span>💬</span> Kilometre Taşlarına Öneri Ekle
+                </button>
+            @endif
+        </div>
+        <div class="card-body" style="padding: 20px; background: #f8fafc; overflow-x: auto;">
+            @if($project->phases->count() > 0)
+                <div class="milestones-stepper-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px;">
+                    @foreach($project->phases as $ph)
+                        @php
+                            $isDone = ($ph->status === 'completed' || $ph->status === 'done');
+                            $isInProgress = ($ph->status === 'in_progress');
+                            $hasEhs = (bool) $ph->requires_ehs_approval;
+                            $cardBorder = $isDone ? '#86efac' : ($isInProgress ? '#93c5fd' : '#e2e8f0');
+                            $headerBg = $isDone ? '#f0fdf4' : ($isInProgress ? '#eff6ff' : '#ffffff');
+                            $numBg = $isDone ? '#22c55e' : ($isInProgress ? '#3b82f6' : '#64748b');
+                        @endphp
+                        <div class="milestone-card" style="background: #ffffff; border: 1.5px solid {{ $cardBorder }}; border-radius: 10px; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 1px 4px rgba(0,0,0,0.03); transition: transform 0.15s, box-shadow 0.15s;">
+                            <!-- Header -->
+                            <div style="background: {{ $headerBg }}; padding: 10px 14px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <div style="width: 24px; height: 24px; border-radius: 50%; background: {{ $numBg }}; color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800;">
+                                        {{ $isDone ? '✓' : $loop->iteration }}
+                                    </div>
+                                    <span style="font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase;">
+                                        Faz {{ $loop->iteration }}
+                                    </span>
+                                </div>
+                                <span class="badge" style="font-size: 10px; font-weight: 700; {{ $isDone ? 'background: #dcfce7; color: #166534;' : ($isInProgress ? 'background: #dbeafe; color: #1e40af;' : 'background: #f1f5f9; color: #475569;') }}">
+                                    {{ $isDone ? 'Tamamlandı' : ($isInProgress ? 'Devam Ediyor' : 'Beklemede') }}
+                                </span>
+                            </div>
+                            <!-- Body -->
+                            <div style="padding: 12px 14px; flex: 1; display: flex; flex-direction: column; justify-content: space-between; gap: 8px;">
+                                <div>
+                                    <div style="font-size: 13px; font-weight: 800; color: #0f172a; margin-bottom: 6px; line-height: 1.35;">
+                                        {{ $ph->name }}
+                                    </div>
+                                    
+                                    <!-- Hedef Tarih -->
+                                    <div style="display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: #475569; margin-bottom: 6px;">
+                                        <span style="color: #0284c7; font-weight: 700;">📅 Hedef:</span>
+                                        <span style="font-weight: 600; background: #f1f5f9; padding: 1px 6px; border-radius: 4px;">
+                                            {{ $ph->end_date ? $ph->end_date->format('d.m.Y') : 'Belirtilmedi' }}
+                                        </span>
+                                    </div>
+
+                                    <!-- Tamamlanma Kriteri -->
+                                    @if($ph->description)
+                                        <div style="font-size: 11.5px; color: #334155; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 6px 8px; line-height: 1.4;">
+                                            <strong style="color: #64748b; font-size: 10.5px; display: block; text-transform: uppercase;">🎯 Tamamlanma Kriteri:</strong>
+                                            {{ $ph->description }}
+                                        </div>
+                                    @endif
+                                </div>
+
+                                @if($hasEhs)
+                                    <div style="font-size: 10.5px; background: #fff7ed; color: #c2410c; border: 1px solid #ffedd5; padding: 4px 6px; border-radius: 4px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; margin-top: 4px;">
+                                        <span>🦺</span> İSG / Performans Gate Onayı Gerekir
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            @else
+                <div style="text-align: center; padding: 24px; color: #64748b;">
+                    <span>ℹ️</span> Henüz tanımlanmış kilometre taşı bulunmamaktadır.
+                </div>
+            @endif
+        </div>
+    </div>
+    <!-- PROJE DETAY SEKME MENÜSÜ (TABS - Monday.com & Hub Modeli) -->
+    <div style="display: flex; gap: 6px; border-bottom: 2px solid var(--border-color); margin-bottom: 20px; flex-wrap: wrap;">
+        <button class="tab-btn active" onclick="switchTab('phases')">📊 1. Ana Tablo & Fazlar ({{ $project->phases->count() }})</button>
+        <button class="tab-btn" onclick="switchTab('tasks')">📋 2. Kanban & Görevler ({{ $project->tasks->count() }})</button>
+        <button class="tab-btn" onclick="switchTab('discussions')">💬 3. Tartışmalar & Notlar ({{ $project->discussions->count() }})</button>
+        <button class="tab-btn" onclick="switchTab('raci')">👥 4. RACI Paydaşlar ({{ $project->stakeholders->count() }})</button>
+        <button class="tab-btn" onclick="switchTab('risks')">⚠️ 5. 5x5 Risk Matrisi ({{ $project->risks->count() }})</button>
+        <button class="tab-btn" onclick="switchTab('bom')">💰 6. Yatırım Bütçesi & Kalem Kırılımı ({{ $project->budgetItems->count() > 0 ? $project->budgetItems->count() : $project->boms->count() }})</button>
+        <button class="tab-btn" onclick="switchTab('meetings')">📅 7. Toplantılar ({{ $project->meetings->count() }})</button>
+        <button class="tab-btn" onclick="switchTab('files')">📁 8. Dosya & Envanter Kasası ({{ $project->files->count() }})</button>
+        <button class="tab-btn" onclick="switchTab('logs')">📜 9. Denetim İzi (Loglar)</button>
+    </div>
+
+    <!-- TAB 1: FAZLAR & MONDAY.COM TARZI KATLANABİLİR WBS TABLOSU (Görsel 4) -->
+    <div id="tab-phases" class="tab-content" style="display: block;">
+
+        <!-- =========================================================================
+             DİNAMİK PROJE İŞ AKIŞI TUVÂLİ (INTERACTIVE WORKFLOW CANVAS & PULSING NODES)
+             ========================================================================= -->
+        <div class="workflow-canvas-card" id="projectWorkflowCanvasCard">
+            <div class="workflow-canvas-header">
+                <div class="workflow-header-title">
+                    <span style="font-size: 18px;">🌐</span>
+                    <span>Canlı Süreç & Görev İş Akışı (Live Workflow Pipeline)</span>
+                    <span class="badge" style="background: rgba(34, 197, 94, 0.2); color: #86efac; border: 1px solid rgba(134, 239, 172, 0.4); font-size: 11px;">⚡ Otomatik Çizilen Akış</span>
+                </div>
+                <div class="workflow-header-actions">
+                    @if($canManage)
+<button type="button" class="btn btn-sm btn-success" onclick="openCreateTaskModal()" style="font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 6px; box-shadow: 0 2px 4px rgba(22, 163, 74, 0.3);">
+                        <span>➕</span> Yeni Görev Ekle
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-light" onclick="toggleWorkflowCanvas()" id="btnToggleWorkflow" style="font-size: 11.5px; padding: 5px 12px; border-radius: 6px;">
+                        🔽 Daralt / Genişlet
+                    </button>
+@endif
+                </div>
+            </div>
+
+            <!-- LEJANT ŞERİDİ -->
+            <div class="workflow-legend-bar">
+                <div class="legend-item"><span class="legend-dot done"></span> <strong>Tamamlandı (Yeşil Düz Çizgi)</strong></div>
+                <div class="legend-item"><span class="legend-dot active"></span> <strong>Süreçte / Bekliyor (Pulsing Glow & Hareketli Çizgi)</strong></div>
+                <div class="legend-item"><span class="legend-dot ehs"></span> <strong>İSG İzin Kapısı (Denetim Kalkanı)</strong></div>
+                <div class="legend-item"><span class="legend-dot pending"></span> <strong>Sıradaki Adım (Planlanan)</strong></div>
+            </div>
+
+            <!-- TUVÂL VIEWPORT & SVG BAĞLANTI KATMANI -->
+            <div class="workflow-canvas-viewport" id="workflowCanvasViewport">
+                <svg class="workflow-svg-layer" id="workflowSvgLayer"></svg>
+                <div class="workflow-nodes-container" id="workflowNodesContainer">
+                    <!-- Dinamik JavaScript Akış Motoru -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- ÜST İSTATİSTİK & HIZLI AŞAMA EKLEME ŞERİDİ -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 15px; font-weight: 800; color: #0f172a;">📊 İnteraktif Proje Tablosu & Faz Grupları</span>
+                <span class="badge" style="background: #eff6ff; color: #1e40af; font-weight: 700;">{{ $project->phases->count() }} Faz Grubu</span>
+                <span class="badge" style="background: #f0fdf4; color: #15803d; font-weight: 700;">{{ $project->tasks->count() }} Toplam Görev</span>
+            </div>
+
+            <!-- YENİ AŞAMA / ADIM EKLEME AÇILIR PANELİ -->
+            <div>
+                <button type="button" class="btn btn-sm btn-primary" onclick="document.getElementById('addPhaseModalBlock').style.display = document.getElementById('addPhaseModalBlock').style.display === 'none' ? 'block' : 'none';" style="font-weight: 600; font-size: 12px; display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 6px;">
+                    <span>➕</span> Yeni Aşama / Faz Grubu Ekle
+                </button>
+            </div>
+        </div>
+
+        <!-- YENİ FAZ EKLEME FORMU KUTUSU (GİZLENEBİLİR) -->
+        <div id="addPhaseModalBlock" style="display: none; background: #ffffff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 18px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(37,99,235,0.06);">
+            <div style="font-size: 13.5px; font-weight: 700; color: #1e40af; margin-bottom: 12px; display: flex; justify-content: space-between;">
+                <span>➕ Yeni Aşama (Faz) Grubu Tanımla</span>
+                <button type="button" onclick="document.getElementById('addPhaseModalBlock').style.display = 'none';" style="border: none; background: none; cursor: pointer; color: #64748b; font-size: 16px;">✕</button>
+            </div>
+            <form action="{{ route('projects.add_phase', $project->id) }}" method="POST">
+                @csrf
+                <div class="grid-3" style="gap: 12px; margin-bottom: 12px;">
+                    <div>
+                        <label class="form-label" style="font-size: 11px; font-weight: 600;">Aşama / Faz Başlığı *</label>
+                        <input type="text" name="name" class="form-control" required placeholder="Örn: 3. Çelik Montaj & Mekanik Kurulum" style="font-size: 12.5px;">
+                    </div>
+                    <div>
+                        <label class="form-label" style="font-size: 11px; font-weight: 600;">Başlangıç Tarihi</label>
+                        <input type="date" name="start_date" class="form-control" style="font-size: 12.5px;">
+                    </div>
+                    <div>
+                        <label class="form-label" style="font-size: 11px; font-weight: 600;">Hedef Bitiş Tarihi</label>
+                        <input type="date" name="end_date" class="form-control" style="font-size: 12.5px;">
+                    </div>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <label style="font-size: 12px; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; color: #b45309; font-weight: 600;">
+                        <input type="checkbox" name="requires_ehs_approval" value="1">
+                        <span>🔒 Bu aşama İSG Güvenlik Kapı Kilidi (Saha İzin Onayı) gerektirsin</span>
+                    </label>
+                    <button type="submit" class="btn btn-primary btn-sm" style="font-size: 12px; font-weight: 600; padding: 6px 18px;">
+                        Aşamayı Kaydet ve Tabloya Ekle
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- MONDAY.COM KATLANABİLİR FAZ GRUPLARI LİSTESİ -->
+        @php
+            $phaseColors = [
+                0 => ['border' => '#3b82f6', 'bg' => '#eff6ff', 'text' => '#1e40af'],
+                1 => ['border' => '#10b981', 'bg' => '#ecfdf5', 'text' => '#065f46'],
+                2 => ['border' => '#f59e0b', 'bg' => '#fffbeb', 'text' => '#92400e'],
+                3 => ['border' => '#8b5cf6', 'bg' => '#f5f3ff', 'text' => '#5b21b6'],
+                4 => ['border' => '#ec4899', 'bg' => '#fdf2f8', 'text' => '#9d174d'],
+            ];
+        @endphp
+
+        @forelse($project->phases as $pIndex => $ph)
+            @php
+                $color = $phaseColors[$pIndex % 5];
+                $phaseTasks = $ph->tasks;
+                $completedTasksCount = $phaseTasks->where('status', 'done')->count();
+                $totalTasksCount = $phaseTasks->count();
+                $calculatedProgress = $totalTasksCount > 0 ? round(($completedTasksCount / $totalTasksCount) * 100) : $ph->progress_percentage;
+            @endphp
+
+            <div class="monday-phase-group" style="margin-bottom: 24px; border: 1px solid #e2e8f0; border-radius: 10px; background: #ffffff; box-shadow: 0 1px 4px rgba(15,23,42,0.04); overflow: hidden;">
+                
+                <!-- FAZ GRUBU BAŞLIĞI (AKORDEON & HIZLI KONTROL) -->
+                <div style="background: #ffffff; border-left: 6px solid {{ $color['border'] }}; border-bottom: 1px solid #e2e8f0; padding: 12px 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; cursor: pointer;" onclick="togglePhaseCollapse({{ $ph->id }})">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <span id="arrow-phase-{{ $ph->id }}" style="font-size: 14px; font-weight: 800; color: #64748b; transition: transform 0.2s;">▼</span>
+                        <h4 style="margin: 0; font-size: 15px; font-weight: 800; color: #0f172a;">
+                            {{ $ph->name }}
+                        </h4>
+                        <span class="badge" style="background: {{ $color['bg'] }}; color: {{ $color['text'] }}; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 4px;">
+                            {{ $totalTasksCount }} Görev
+                        </span>
+                        @if($ph->status === 'completed')
+                            <span class="badge" style="background: #dcfce7; color: #166534; font-size: 11px; font-weight: 700;">
+                                ✅ Tamamlandı
+                            </span>
+                        @endif
+                    </div>
+
+                    <!-- SAĞ TARAF: İLERLEME, İSG KİLİDİ VE AKSİYONLAR -->
+                    <div style="display: flex; align-items: center; gap: 14px;" onclick="event.stopPropagation();">
+                        <!-- İlerleme Çubuğu -->
+                        <div style="display: flex; align-items: center; gap: 8px; width: 140px;">
+                            <div style="background: #e2e8f0; height: 6px; border-radius: 3px; flex: 1; overflow: hidden;">
+                                <div style="background: {{ $color['border'] }}; width: {{ $calculatedProgress }}%; height: 100%;"></div>
+                            </div>
+                            <span style="font-size: 11px; font-weight: 700; color: #334155;">%{{ $calculatedProgress }}</span>
+                        </div>
+
+                        <!-- İSG Kapı Kilidi Durumu -->
+                        @if($ph->requires_ehs_approval)
+                            @if($ph->ehs_approved_at)
+                                <span style="font-size: 11px; font-weight: 700; color: #059669; background: #ecfdf5; border: 1px solid #a7f3d0; padding: 3px 8px; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px;">
+                                    ✓ İSG Açık
+                                </span>
+                            @else
+                                <span style="font-size: 11px; font-weight: 700; color: #dc2626; background: #fef2f2; border: 1px solid #fecaca; padding: 3px 8px; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px;">
+                                    🔒 İSG Kilitli
+                                </span>
+                            @endif
+                        @endif
+
+                        <!-- Adımı Tamamla / Geri Al Butonları -->
+                        @if($ph->status !== 'completed' && $canManage)
+                            <form action="{{ route('projects.complete_phase', [$project->id, $ph->id]) }}" method="POST" style="margin: 0;">
+                                @csrf
+                                <button type="submit" class="btn btn-sm btn-outline" style="font-size: 11px; padding: 4px 10px; border-radius: 4px; border: 1px solid #86efac; color: #15803d; background: #f0fdf4; font-weight: 700; cursor: pointer;" onclick="return confirm('Bu adımı/fazı başarıyla tamamlandı olarak işaretlemek istediğinize emin misiniz?');">
+                                    ✓ Adımı Tamamla
+                                </button>
+                            </form>
+                        @else
+                            @php
+                                $canRevertPhase = auth()->user()->isSuperAdmin() 
+                                    || auth()->user()->isAdmin() 
+                                    || ($ph->completed_by && $ph->completed_by === auth()->id())
+                                    || ($project->manager_id === auth()->id());
+                                $completedByName = $ph->completedBy?->name ?? 'İlgili Personel';
+                                $isActingOnBehalf = ($ph->completed_by && $ph->completed_by !== auth()->id());
+                            @endphp
+                            @if($canRevertPhase)
+                                <form action="{{ route('projects.revert_phase', [$project->id, $ph->id]) }}" method="POST" style="margin: 0;">
+                                    @csrf
+                                    <button type="submit" class="btn btn-sm btn-outline" style="font-size: 11px; padding: 3px 8px; border-radius: 4px; border: 1px solid #fecaca; background: #fff5f5; color: #dc2626; font-weight: 700; cursor: pointer;"
+                                        onclick="return confirm('{{ $isActingOnBehalf ? '⚠️ DİKKAT: Bu işlem ' . $completedByName . ' tarafından tamamlanmıştır.\n\n[' . $completedByName . '] ADINA BU ADIMI GERİ ALIYORSUNUZ!\n\nProje durumu eksiksiz olarak bir önceki haline döndürülecek ve kullanıcıya bildirim gönderilecektir.\n\nOnaylıyor musunuz?' : 'Bu adımı geri almak istediğinize emin misiniz? Proje durumu bir önceki haline döndürülecektir.' }}');"
+                                        title="{{ $isActingOnBehalf ? $completedByName . ' adına adımı geri al' : 'Adımı geri al' }}">
+                                        ↩️ Geri Al
+                                    </button>
+                                </form>
+                            @endif
+                        @endif
+                    </div>
+                </div>
+
+                <!-- FAZIN İÇİNDEKİ MONDAY.COM GÖREVLER TABLOSU -->
+                <div id="content-phase-{{ $ph->id }}" style="display: block;">
+                    @if($phaseTasks->count() > 0)
+                        <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: left;">
+                            <thead>
+                                <tr style="background: #f8fafc; border-bottom: 1px solid #e2e8f0; font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase;">
+                                    <th style="padding: 10px 16px; width: 35%;">Görev / İş Paketi</th>
+                                    <th style="padding: 10px 14px; width: 22%;">Sorumlu (SAP Modeli)</th>
+                                    <th style="padding: 10px 14px; width: 14%; text-align: center;">Durum</th>
+                                    <th style="padding: 10px 14px; width: 12%; text-align: center;">Öncelik</th>
+                                    <th style="padding: 10px 14px; width: 17%;">Termin & Zaman Çizelgesi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($phaseTasks as $task)
+                                    <tr style="border-bottom: 1px solid #f1f5f9; transition: background 0.15s;" onmouseover="this.style.background='#fbfcfe'" onmouseout="this.style.background='#ffffff'">
+                                        <!-- GÖREV ADI -->
+                                        <td style="padding: 12px 16px;">
+                                            <div style="font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 6px;">
+                                                <span>{{ $task->title }}</span>
+                                                @if($task->tag)
+                                                    <span style="font-size: 10px; font-weight: 600; color: #2563eb; background: #eff6ff; padding: 1px 6px; border-radius: 4px;">
+                                                        {{ $task->tag }}
+                                                    </span>
+                                                @endif
+                                            </div>
+                                            @if($task->description)
+                                                <div style="font-size: 11px; color: #64748b; margin-top: 2px;">
+                                                    {{ Str::limit($task->description, 55) }}
+                                                </div>
+                                            @endif
+                                        </td>
+
+                                        <!-- SORUMLU KİŞİ (SAP EKİP MODELİ AVATARI) -->
+                                        <td style="padding: 12px 14px;">
+                                            @if($task->assigned_to && $task->assignee)
+                                                <div style="display: flex; align-items: center; gap: 8px;">
+                                                    <div style="width: 26px; height: 26px; border-radius: 50%; background: #3b82f6; color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700;">
+                                                        {{ mb_substr($task->assignee->name, 0, 1) }}
+                                                    </div>
+                                                    <div>
+                                                        <div style="font-weight: 600; color: #1e293b; font-size: 12px;">{{ $task->assignee->name }}</div>
+                                                        <div style="font-size: 10px; color: #64748b;">{{ $task->assignee->unvan ?? 'Uzman' }}</div>
+                                                    </div>
+                                                </div>
+                                            @else
+                                                <div style="display: inline-flex; align-items: center; gap: 5px; background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700;">
+                                                    <span>👥</span> Tüm Proje Ekibi (Ortak)
+                                                </div>
+                                            @endif
+                                        </td>
+
+                                        <!-- DURUM (Standart Sistem Rozeti) -->
+                                        <td style="padding: 12px 14px; text-align: center;">
+                                            <x-status-badge :status="$task->status" />
+                                        </td>
+
+                                        <!-- ÖNCELİK (Standart Sistem Rozeti) -->
+                                        <td style="padding: 12px 14px; text-align: center;">
+                                            <x-priority-badge :priority="$task->priority" />
+                                        </td>
+
+                                        <!-- TERMİN & ZAMAN ÇİZELGESİ -->
+                                        <td style="padding: 12px 14px;">
+                                            <div style="font-size: 12px; font-weight: 600; color: {{ $task->due_date && $task->due_date->isPast() && $task->status !== 'done' ? '#dc2626' : '#334155' }};">
+                                                📅 {{ $task->due_date ? $task->due_date->format('d M Y') : 'Tarih Yok' }}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    @else
+                        <!-- Görev Yoksa Bilgi ve Hızlı Ekleme -->
+                        <div style="padding: 20px; text-align: center; color: #64748b; font-size: 12.5px; background: #fafafa;">
+                            Bu aşama için henüz görev oluşturulmamış. Üstteki <strong>"Kanban & Görevler"</strong> sekmesinden bu aşamaya görev bağlayabilirsiniz.
+                        </div>
+                    @endif
+
+                    <!-- FAZ DİP TOPLAM ÇUBUĞU (MONDAY.COM SUMMARY ROW) -->
+                    <div style="background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 10px 18px; display: flex; justify-content: space-between; align-items: center; font-size: 11.5px; color: #475569;">
+                        <div>
+                            <span>Tamamlanma Oranı: <strong>%{{ $calculatedProgress }}</strong> ({{ $completedTasksCount }}/{{ $totalTasksCount }} Görev Tamamlandı)</span>
+                        </div>
+                        <div>
+                            <span style="color: #64748b;">Tarih Aralığı: <strong>{{ $ph->start_date ? $ph->start_date->format('d.m.Y') : '-' }} ➔ {{ $ph->end_date ? $ph->end_date->format('d.m.Y') : '-' }}</strong></span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        @empty
+            <div style="text-align: center; padding: 60px; color: #64748b; background: #ffffff; border-radius: 12px; border: 1px dashed #cbd5e1;">
+                <div style="font-size: 36px; margin-bottom: 10px;">📋</div>
+                <div style="font-size: 16px; font-weight: 700; color: #0f172a; margin-bottom: 6px;">Projeye Ait Aşama (Faz) Bulunamadı</div>
+                <div style="font-size: 13px; margin-bottom: 14px;">Yukarıdaki "Yeni Aşama Ekle" butonuna tıklayarak projenize adımlar tanımlayabilirsiniz.</div>
+            </div>
+        @endforelse
+
+    </div>
+
+    <!-- TAB 2: GÖREVLER & WBS -->
+    <div id="tab-tasks" class="tab-content" style="display: none;">
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">Proje Görevleri (WBS Hiyerarşisi)</span>
+            </div>
+            <div class="card-body" style="padding: 0;">
+                <table class="app-table">
+                    <thead>
+                        <tr>
+                            <th>Görev Başlığı</th>
+                            <th>Faz</th>
+                            <th>Etiket</th>
+                            <th>Sorumlu</th>
+                            <th>Efor (Tahmini / Harcanan)</th>
+                            <th>Termin</th>
+                            <th>Durum</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($project->tasks as $t)
+                            <tr>
+                                <td>
+                                    <strong style="color: var(--navy);">{{ $t->title }}</strong>
+                                    @if($t->is_milestone)
+                                        <span style="font-size: 10px; background: #fef08a; color: #854d0e; padding: 2px 6px; border-radius: 4px; font-weight: 700; margin-left: 6px;">💎 Kilometre Taşı</span>
+                                    @endif
+                                </td>
+                                <td style="font-size: 12px; color: var(--text-muted);">{{ $t->phase?->name ?? '-' }}</td>
+                                <td>
+                                    @if($t->tag)
+                                        <span style="font-size: 11px; background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-weight: 600;">{{ $t->tag }}</span>
+                                    @endif
+                                </td>
+                                <td>{{ $t->assignee?->name ?? 'Atanmamış' }}</td>
+                                <td style="font-size: 12px;">
+                                    <strong>{{ $t->spent_hours }}s</strong> / {{ $t->estimated_hours }}s
+                                </td>
+                                <td style="font-size: 12px; font-weight: 600;">{{ $t->due_date ? $t->due_date->format('d.m.Y') : '-' }}</td>
+                                <td><x-status-badge :status="$t->status" /></td>
+                            </tr>
+                        @empty
+                            <tr><td colspan="7" style="text-align: center; padding: 24px;">Henüz görev açılmadı.</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+        <!-- TAB 3: PROJE İÇİ CANLI TARTIŞMALAR & NOTLAR (DISCUSSIONS) -->
+    <div id="tab-discussions" class="tab-content" style="display: none;">
+        <div class="card" style="margin-bottom: 20px;">
+            <div class="card-header" style="background: #ffffff; border-bottom: 1px solid #e2e8f0; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center;">
+                <span class="card-title" style="font-size: 15px; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 8px;">
+                    <span>💬</span> Proje Ekip Tartışmaları, Saha Notları & Koordinasyon
+                </span>
+                <span class="badge" style="background: #eff6ff; color: #1e40af; font-weight: 700;">
+                    {{ $project->discussions->count() }} Mesaj & Not
+                </span>
+            </div>
+
+            <div class="card-body" style="padding: 20px;">
+                <!-- YENİ MESAJ / YORUM PAYLAŞMA FORMU -->
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 18px; margin-bottom: 24px;">
+                    <h4 style="margin: 0 0 10px 0; font-size: 13.5px; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 6px;">
+                        <span>✍️</span> Projeye Yeni Tartışma Notu / Görüş Bırak
+                    </h4>
+                    <form action="{{ route('projects.discussions.store', $project->id) }}" method="POST" enctype="multipart/form-data">
+                        @csrf
+                        <div class="form-group" style="margin-bottom: 12px;">
+                            <textarea name="message" rows="3" class="form-control" required placeholder="Proje ile ilgili saha tespiti, teknik soru, tedarik notu veya koordinasyon mesajınızı yazınız..." style="font-size: 13px; line-height: 1.5; background: #ffffff;"></textarea>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <label style="font-size: 12px; color: #64748b; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
+                                    <span>📎 Belge/Fotoğraf İliştir (Opsiyonel):</span>
+                                    <input type="file" name="attachment" style="font-size: 11px;">
+                                </label>
+                            </div>
+                            <button type="submit" class="btn btn-primary" style="font-size: 13px; font-weight: 600; padding: 8px 20px; display: inline-flex; align-items: center; gap: 6px;">
+                                <span>🚀</span> Paylaş ve Paydaşlara Bildir
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- TARTIŞMALAR & YORUMLAR AKIŞI -->
+                @forelse($project->discussions as $disc)
+                    @php
+                        $canModifyDisc = (auth()->id() === $disc->user_id) 
+                            || auth()->user()->isSuperAdmin() 
+                            || auth()->user()->isAdmin() 
+                            || ($project->manager_id === auth()->id());
+                        $isEdited = $disc->updated_at && $disc->updated_at->diffInSeconds($disc->created_at) > 10;
+                    @endphp
+                    <div style="border-bottom: 1px solid #f1f5f9; padding-bottom: 16px; margin-bottom: 16px; display: flex; gap: 14px;" id="discussion-row-{{ $disc->id }}">
+                        <div style="width: 38px; height: 38px; border-radius: 50%; background: #3b82f6; color: #ffffff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; flex-shrink: 0;">
+                            {{ mb_substr($disc->user->name ?? 'U', 0, 1) }}
+                        </div>
+                        <div style="flex: 1;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; flex-wrap: wrap; gap: 6px;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <strong style="color: #0f172a; font-size: 13.5px;">{{ $disc->user->name ?? 'Kullanıcı' }}</strong>
+                                    <span style="font-size: 11px; color: #64748b; background: #f1f5f9; padding: 2px 6px; border-radius: 4px;">
+                                        {{ $disc->user->bolum?->name ?? 'Merkez' }} • {{ $disc->user->unvan ?? 'Ekip Üyesi' }}
+                                    </span>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    @if($isEdited)
+                                        <span style="font-size: 10.5px; color: #0284c7; background: #e0f2fe; padding: 2px 6px; border-radius: 4px; font-weight: 600;" title="Düzenlenme Tarihi: {{ $disc->updated_at->format('d.m.Y H:i') }}">
+                                            ✎ Düzenlendi
+                                        </span>
+                                    @endif
+                                    <span style="font-size: 11px; color: #94a3b8;">
+                                        {{ $disc->created_at->diffForHumans() }} ({{ $disc->created_at->format('d.m.Y H:i') }})
+                                    </span>
+
+                                    @if($canModifyDisc)
+                                        <div style="display: inline-flex; align-items: center; gap: 4px; margin-left: 6px;">
+                                            <button type="button" onclick="toggleEditDiscussion({{ $disc->id }})" class="btn btn-xs btn-outline-secondary" style="padding: 2px 8px; font-size: 11px; border-radius: 4px; display: inline-flex; align-items: center; gap: 3px;" title="Mesajı Düzenle">
+                                                <span>✏️</span> Düzenle
+                                            </button>
+                                            <form action="{{ route('projects.discussions.delete', [$project->id, $disc->id]) }}" method="POST" style="display: inline;" onsubmit="return confirm('Bu tartışma mesajını silmek istediğinize emin misiniz? Bu işlem tüm içeriğiyle Denetim Kütüğüne (Audit Log) kaydedilecektir.');">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-xs btn-outline-danger" style="padding: 2px 8px; font-size: 11px; border-radius: 4px; display: inline-flex; align-items: center; gap: 3px;" title="Mesajı Sil">
+                                                    <span>🗑️</span> Sil
+                                                </button>
+                                            </form>
+                                        </div>
+                                    @endif
+                                </div>
+                            </div>
+
+                            <!-- NORMAL MESAJ GÖRÜNÜMÜ -->
+                            <div id="disc-content-{{ $disc->id }}" style="font-size: 13px; color: #1e293b; line-height: 1.6; white-space: pre-line; background: #f8fafc; padding: 12px 14px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                                {{ $disc->message }}
+                            </div>
+
+                            <!-- INLINE DÜZENLEME FORMU -->
+                            @if($canModifyDisc)
+                                <div id="disc-edit-box-{{ $disc->id }}" style="display: none; background: #f0fdf4; padding: 14px; border-radius: 8px; border: 1px solid #86efac; margin-top: 6px;">
+                                    <form action="{{ route('projects.discussions.update', [$project->id, $disc->id]) }}" method="POST">
+                                        @csrf
+                                        @method('PUT')
+                                        <div style="font-size: 12px; font-weight: 700; color: #166534; margin-bottom: 6px; display: flex; align-items: center; gap: 5px;">
+                                            <span>✏️</span> Mesajı Düzenle (Yapılan değişiklik denetim kütüğüne kaydedilecektir)
+                                        </div>
+                                        <textarea name="message" rows="3" class="form-control mb-2" required style="font-size: 13px; line-height: 1.5; background: #ffffff;">{{ $disc->message }}</textarea>
+                                        <div style="display: flex; justify-content: flex-end; gap: 8px;">
+                                            <button type="button" onclick="toggleEditDiscussion({{ $disc->id }})" class="btn btn-secondary btn-sm" style="font-size: 11.5px; padding: 4px 12px;">Vazgeç</button>
+                                            <button type="submit" class="btn btn-success btn-sm" style="font-size: 11.5px; padding: 4px 14px; font-weight: 600;">✓ Değişiklikleri Kaydet</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            @endif
+
+                            @if($disc->attachment_path)
+                                <div style="margin-top: 6px;">
+                                    <a href="{{ asset('storage/' . $disc->attachment_path) }}" target="_blank" style="font-size: 11.5px; font-weight: 600; color: #2563eb; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
+                                        <span>📎</span> İliştirilmiş Belgeyi İncele ↗
+                                    </a>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                @empty
+                    <div style="text-align: center; padding: 40px; color: #64748b; font-size: 13px;">
+                        <div style="font-size: 32px; margin-bottom: 8px;">💬</div>
+                        <div style="font-weight: 700; color: #0f172a; margin-bottom: 4px;">Henüz Tartışma Mesajı Eklenmedi</div>
+                        <div>Proje paydaşlarıyla fikir alışverişi yapmak ve saha notu bırakmak için yukarıdaki formu kullanabilirsiniz.</div>
+                    </div>
+                @endforelse
+
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 3: RACI PAYDAŞLAR -->
+        <div id="tab-raci" class="tab-content" style="display: none;">
+        @php
+            $canManageObservers = auth()->user()->isSuperAdmin() 
+                || auth()->user()->isAdmin() 
+                || $project->manager_id === auth()->id() 
+                || $project->sponsor_id === auth()->id() 
+                || $project->created_by === auth()->id();
+        @endphp
+
+        <!-- PROJE EKİBİ & RACI TABLOSU -->
+        <div class="card mb-4" style="border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
+            <div class="card-header" style="background: #f8fafc; border-bottom: 1px solid #e2e8f0; padding: 16px 20px;">
+                <span class="card-title" style="margin: 0; font-size: 15px; font-weight: 700; color: #0f172a;">Proje Paydaşları ve RACI Sorumluluk Modeli</span>
+            </div>
+            <div class="card-body" style="padding: 0;">
+                <table class="app-table">
+                    <thead>
+                        <tr>
+                            <th>Paydaş Adı</th>
+                            <th>Proje Rolü</th>
+                            <th>RACI Seviyesi</th>
+                            <th>Sorumluluk Açıklaması</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($project->stakeholders as $stk)
+                            <tr>
+                                <td>
+                                    <strong>{{ $stk->user->name }}</strong>
+                                    <div style="font-size: 11px; color: var(--text-muted);">{{ $stk->user->unvan ?? 'Uzman' }}</div>
+                                </td>
+                                <td>
+                                    <span style="font-weight: 700; color: var(--primary);">{{ strtoupper($stk->role_type) }}</span>
+                                </td>
+                                <td>
+                                    @php
+                                        $raciDesc = [
+                                            'R' => ['text' => 'R (Responsible - İcracı)', 'color' => '#16a34a'],
+                                            'A' => ['text' => 'A (Accountable - Karar Verici)', 'color' => '#2563eb'],
+                                            'C' => ['text' => 'C (Consulted - Denetleyici)', 'color' => '#dc2626'],
+                                            'I' => ['text' => 'I (Informed - Bilgilendirilen)', 'color' => '#64748b'],
+                                        ];
+                                    @endphp
+                                    <span style="font-weight: 700; color: {{ $raciDesc[$stk->raci_role]['color'] ?? '#333' }};">
+                                        {{ $raciDesc[$stk->raci_role]['text'] ?? $stk->raci_role }}
+                                    </span>
+                                </td>
+                                <td style="font-size: 12px;">{{ $stk->notes ?? 'Standart rol sorumluluğu.' }}</td>
+                            </tr>
+                        @empty
+                            <tr><td colspan="4" style="text-align: center; padding: 24px;">Henüz paydaş atanmadı.</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- PROJE GÖZLEMCİLERİ & DIŞ PAYDAŞLAR YÖNETİMİ -->
+        <div class="card" style="border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; margin-top: 24px;">
+            <div class="card-header" style="background: #f8fafc; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; padding: 16px 20px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 18px;">👁️</span>
+                    <div>
+                        <span class="card-title" style="margin: 0; font-size: 15px; font-weight: 700; color: #0f172a;">
+                            Proje Gözlemcileri (İzleyiciler & Dış Paydaşlar)
+                        </span>
+                        <div class="text-xs text-muted">Salt okunur takipçiler, dış denetçiler ve paydaşların anlık erişim kontrolü.</div>
+                    </div>
+                </div>
+                @if($canManageObservers)
+                    <button type="button" class="btn btn-primary btn-sm" onclick="toggleAddObserverModal()" style="font-weight: 600; padding: 6px 14px; border-radius: 6px;">
+                        + Yeni Gözlemci Ekle
+                    </button>
+                @endif
+            </div>
+            
+            <div class="card-body" style="padding: 20px;">
+                <div class="pastel-blue-helper-box mb-3">
+                    <span class="helper-box-icon">ℹ️</span>
+                    <div class="helper-box-content">
+                        <strong>Erişim ve İzolasyon Kuralı:</strong> Harici gözlemciler yalnızca bu projeye erişebilir. Proje yöneticisi, sponsor veya başlatan kişi gözlemciyi listeden çıkardığı anda kullanıcının sistem oturumu sonlandırılır, şifre sıfırlama ve oturum açma yetkisi derhal engellenir.
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="app-table">
+                        <thead>
+                            <tr>
+                                <th>Gözlemci Adı & E-Posta</th>
+                                <th>Tür</th>
+                                <th>Bağlı Kurum / Not</th>
+                                <th>Erişim Durumu</th>
+                                @if($canManageObservers)
+                                    <th style="text-align: right;">İşlem</th>
+                                @endif
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @php
+                                $observerStakeholders = $project->stakeholders->where('role_type', 'observer');
+                            @endphp
+                            @forelse($observerStakeholders as $stk)
+                                <tr>
+                                    <td>
+                                        <div style="font-weight: 700; color: #1e293b;">{{ $stk->user->name }}</div>
+                                        <div style="font-size: 11.5px; color: #64748b;">{{ $stk->user->email }}</div>
+                                    </td>
+                                    <td>
+                                        @if($stk->user->isExternal())
+                                            <span class="badge-observer-external">🌐 Harici Gözlemci</span>
+                                        @else
+                                            <span class="badge-observer-internal">🏢 Kurum İçi Personel</span>
+                                        @endif
+                                    </td>
+                                    <td style="font-size: 12px; color: #475569;">
+                                        {{ $stk->notes ?? ($stk->user->unvan ?? 'Gözlemci') }}
+                                    </td>
+                                    <td>
+                                        @if($stk->user->is_active)
+                                            <span class="badge" style="background: #dcfce7; color: #166534; font-size: 11px; padding: 3px 8px; border-radius: 4px;">
+                                                ✓ Aktif İzleme
+                                            </span>
+                                        @else
+                                            <span class="badge" style="background: #fee2e2; color: #991b1b; font-size: 11px; padding: 3px 8px; border-radius: 4px;">
+                                                ⛔ Erişimi Askıda
+                                            </span>
+                                        @endif
+                                    </td>
+                                    @if($canManageObservers)
+                                        <td style="text-align: right;">
+                                            <form action="{{ route('projects.remove_observer', [$project->id, $stk->id]) }}" method="POST" onsubmit="return confirm('Bu kullanıcıyı gözlemcilikten çıkarmak istediğinize emin misiniz?\nHarici kullanıcı ise sistem erişimi ve giriş yetkisi tamamen engellenecektir.')" style="display: inline-block;">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-outline-danger btn-xs" style="padding: 4px 10px; font-size: 11.5px; font-weight: 600; border-radius: 6px;">
+                                                    🚫 Erişimi Kaldır
+                                                </button>
+                                            </form>
+                                        </td>
+                                    @endif
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="{{ $canManageObservers ? 5 : 4 }}" style="text-align: center; padding: 20px; color: #64748b; font-size: 13px;">
+                                        Henüz bu projeye eklenmiş bir gözlemci bulunmamaktadır.
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- YENİ GÖZLEMCİ EKLEME FORMU (COLLAPSIBLE) -->
+                @if($canManageObservers)
+                    <div id="addObserverCollapse" style="display: none; margin-top: 20px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 10px; padding: 18px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">
+                            <strong style="color: #0f172a; font-size: 13.5px;">➕ Projeye Yeni Gözlemci Ekle</strong>
+                            <button type="button" class="btn btn-link btn-xs text-muted" onclick="toggleAddObserverModal()">✕ Kapat</button>
+                        </div>
+
+                        <form action="{{ route('projects.add_observer', $project->id) }}" method="POST">
+                            @csrf
+                            <div class="mb-3">
+                                <label class="form-label font-weight-600 mb-1">Gözlemci Kaynak Tipi</label>
+                                <div style="display: flex; gap: 20px;">
+                                    <label style="font-size: 13px; color: #1e293b; display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                                        <input type="radio" name="observer_type" value="internal" checked onchange="toggleObsType('internal')">
+                                        <span>🏢 Kurum İçi Personel</span>
+                                    </label>
+                                    <label style="font-size: 13px; color: #1e293b; display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                                        <input type="radio" name="observer_type" value="external" onchange="toggleObsType('external')">
+                                        <span>🌐 Harici E-Posta ile (Dış Paydaş)</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Kurum İçi Seçim Alanı -->
+                            <div id="internalObsFields">
+                                <div class="form-group mb-3">
+                                    <label class="form-label font-weight-600">Personel Seçiniz</label>
+                                    <select name="user_id" class="form-control" id="internalObsUserSelect">
+                                        <option value="">-- Personel Seçiniz --</option>
+                                        @foreach($users as $u)
+                                            <option value="{{ $u->id }}">{{ $u->name }} ({{ $u->bolum?->name ?? 'Merkez' }} - {{ $u->unvan ?? 'Personel' }})</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Harici E-posta Seçim Alanı -->
+                            <div id="externalObsFields" style="display: none;">
+                                <div class="grid-3 mb-3">
+                                    <div class="form-group mb-0">
+                                        <label class="form-label font-weight-600">E-Posta Adresi <span class="text-danger">*</span></label>
+                                        <input type="email" name="email" id="externalObsEmail" class="form-control" placeholder="ornek@dispaydas.com">
+                                    </div>
+                                    <div class="form-group mb-0">
+                                        <label class="form-label font-weight-600">Ad Soyad (Opsiyonel)</label>
+                                        <input type="text" name="name" class="form-control" placeholder="Örn: Mehmet Can">
+                                    </div>
+                                    <div class="form-group mb-0">
+                                        <label class="form-label font-weight-600">Kurum / Unvan / Not</label>
+                                        <input type="text" name="company" class="form-control" placeholder="Örn: Denetim Firması">
+                                    </div>
+                                </div>
+                                <div class="pastel-blue-helper-box subtle mb-3" style="font-size: 12px;">
+                                    <span class="helper-box-icon">💡</span>
+                                    <div class="helper-box-content">
+                                        Bu kişiye sistem otomatik güvenli şifre atayacak ve eklendiğinde ekranda şifresi size gösterilecektir.
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="toggleAddObserverModal()">İptal</button>
+                                <button type="submit" class="btn btn-primary btn-sm" style="font-weight: 600;">Kaydet ve Gözlemci Ekle</button>
+                            </div>
+                        </form>
+                    </div>
+                @endif
+            </div>
+        </div>
+    </div>
+<!-- TAB 4: 5x5 RİSK MATRİSİ -->
+    <div id="tab-risks" class="tab-content" style="display: none;">
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">5x5 Risk Değerlendirme ve Azaltma Stratejisi</span>
+            </div>
+            <div class="card-body" style="padding: 0;">
+                <table class="app-table">
+                    <thead>
+                        <tr>
+                            <th>Risk Tanımı</th>
+                            <th>Kategori</th>
+                            <th>Olasılık (1-5)</th>
+                            <th>Etki (1-5)</th>
+                            <th>Risk Skoru</th>
+                            <th>Ciddiyet</th>
+                            <th>Sorumlu</th>
+                            <th>Durum</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($project->risks as $r)
+                            <tr>
+                                <td><strong>{{ $r->title }}</strong></td>
+                                <td style="font-size: 12px; color: var(--text-muted);">{{ ucfirst($r->category) }}</td>
+                                <td style="text-align: center; font-weight: 700;">{{ $r->probability }}</td>
+                                <td style="text-align: center; font-weight: 700;">{{ $r->impact }}</td>
+                                <td style="text-align: center; font-weight: 800; font-size: 15px; color: {{ $r->risk_score >= 15 ? 'var(--danger)' : ($r->risk_score >= 8 ? 'var(--warning)' : 'var(--success)') }};">
+                                    {{ $r->risk_score }}
+                                </td>
+                                <td>
+                                    <span class="status-badge {{ $r->severity === 'critical' || $r->severity === 'high' ? 'badge-danger' : ($r->severity === 'medium' ? 'badge-warning' : 'badge-success') }}">
+                                        {{ strtoupper($r->severity) }}
+                                    </span>
+                                </td>
+                                <td>{{ $r->owner?->name ?? 'Belirlenmedi' }}</td>
+                                <td><x-status-badge :status="$r->status" /></td>
+                            </tr>
+                        @empty
+                            <tr><td colspan="8" style="text-align: center; padding: 24px;">Tanımlı risk bulunmuyor.</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 5: YATIRIM BÜTÇESİ & KALEM KALEM MALİYET KIRILIMI -->
+    <div id="tab-bom" class="tab-content" style="display: none;">
+        @php
+            $items = $project->budgetItems;
+            $itemsSum = $items->sum('planned_amount');
+            $effectiveBudget = $itemsSum > 0 ? $itemsSum : $project->planned_budget;
+            $totalActual = $items->sum('actual_spent');
+            $remainingBudget = $effectiveBudget - $totalActual;
+            $spendRatio = $effectiveBudget > 0 ? round(($totalActual / $effectiveBudget) * 100, 1) : 0;
+            $currSymbol = ($project->currency === 'USD') ? '$' : (($project->currency === 'EUR') ? '€' : '₺');
+            $byCategory = $items->groupBy('category');
+        @endphp
+
+        <!-- 1. BÜTÇE & MALİYET ÖZET KARTLARI -->
+        <div class="grid-4 mb-4" style="gap: 14px;">
+            <div class="stat-card" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px; border-left: 4px solid #0284c7;">
+                <div class="stat-card-title" style="font-size: 11.5px; color: #64748b; font-weight: 600; text-transform: uppercase;">Toplam Planlanan Bütçe</div>
+                <div class="stat-card-value" style="font-size: 20px; font-weight: 800; color: #0284c7; margin-top: 4px;">
+                    {{ $currSymbol }} {{ number_format($effectiveBudget, 2, ',', '.') }}
+                </div>
+                <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">
+                    @if($items->count() > 0)
+                        {{ $items->count() }} alt yatırım kaleminden oluşuyor
+                    @else
+                        Tek kalem genel bütçe girişi
+                    @endif
+                </div>
+            </div>
+
+            <div class="stat-card" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px; border-left: 4px solid #f59e0b;">
+                <div class="stat-card-title" style="font-size: 11.5px; color: #64748b; font-weight: 600; text-transform: uppercase;">Fiili Harcanan Tutar</div>
+                <div class="stat-card-value" style="font-size: 20px; font-weight: 800; color: #d97706; margin-top: 4px;">
+                    {{ $currSymbol }} {{ number_format($totalActual, 2, ',', '.') }}
+                </div>
+                <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">
+                    Gerçekleşen harcama toplamı
+                </div>
+            </div>
+
+            <div class="stat-card" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px; border-left: 4px solid {{ $remainingBudget >= 0 ? '#10b981' : '#ef4444' }};">
+                <div class="stat-card-title" style="font-size: 11.5px; color: #64748b; font-weight: 600; text-transform: uppercase;">Kalan Kullanılabilir Bütçe</div>
+                <div class="stat-card-value" style="font-size: 20px; font-weight: 800; color: {{ $remainingBudget >= 0 ? '#15803d' : '#b91c1c' }}; margin-top: 4px;">
+                    {{ $currSymbol }} {{ number_format($remainingBudget, 2, ',', '.') }}
+                </div>
+                <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">
+                    {{ $remainingBudget >= 0 ? 'Bütçe limitleri dahilinde' : 'Bütçe aşımı riski!' }}
+                </div>
+            </div>
+
+            <div class="stat-card" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px; border-left: 4px solid #6366f1;">
+                <div class="stat-card-title" style="font-size: 11.5px; color: #64748b; font-weight: 600; text-transform: uppercase;">Harcama & Gerçekleşme Oranı</div>
+                <div class="stat-card-value" style="font-size: 20px; font-weight: 800; color: #4f46e5; margin-top: 4px;">
+                    %{{ $spendRatio }}
+                </div>
+                <div style="height: 6px; background: #e2e8f0; border-radius: 3px; margin-top: 8px; overflow: hidden;">
+                    <div style="width: {{ min(100, $spendRatio) }}%; height: 100%; background: {{ $spendRatio > 100 ? '#ef4444' : '#6366f1' }}; border-radius: 3px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. KATEGORİ BAZLI HARCAMA ÖZETLERİ (KATEGORİ KATEGORİ KIRILIM) -->
+        @if($byCategory->count() > 0)
+            <div class="card mb-4" style="border: 1px solid #e2e8f0; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+                <div class="card-header" style="background: #f8fafc; border-bottom: 1px solid #e2e8f0; padding: 12px 18px; display: flex; justify-content: space-between; align-items: center;">
+                    <span class="card-title" style="font-size: 13.5px; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 8px;">
+                        <span>📊</span> Yatırım Harcama Kategorileri Kırılımı (KPI Radar Beslemesi)
+                    </span>
+                    <span class="badge" style="background: #e0f2fe; color: #0369a1; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 6px;">
+                        {{ $byCategory->count() }} Harcama Kategorisi
+                    </span>
+                </div>
+                <div class="card-body" style="padding: 16px;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px;">
+                        @foreach($byCategory as $catName => $catItems)
+                            @php
+                                $catPlanned = $catItems->sum('planned_amount');
+                                $catActual = $catItems->sum('actual_spent');
+                                $catRatio = $catPlanned > 0 ? round(($catActual / $catPlanned) * 100, 1) : 0;
+                            @endphp
+                            <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                    <strong style="font-size: 12.5px; color: #0f172a;">{{ $catName }}</strong>
+                                    <span class="badge" style="background: #f1f5f9; color: #475569; font-size: 10.5px;">{{ $catItems->count() }} Kalem</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px;">
+                                    <span style="color: #64748b;">Planlanan:</span>
+                                    <strong style="color: #0284c7;">{{ $currSymbol }} {{ number_format($catPlanned, 2, ',', '.') }}</strong>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 6px;">
+                                    <span style="color: #64748b;">Harcanan:</span>
+                                    <strong style="color: {{ $catActual > $catPlanned ? '#b91c1c' : '#15803d' }};">{{ $currSymbol }} {{ number_format($catActual, 2, ',', '.') }} (%{{ $catRatio }})</strong>
+                                </div>
+                                <div style="height: 5px; background: #e2e8f0; border-radius: 3px; overflow: hidden;">
+                                    <div style="width: {{ min(100, $catRatio) }}%; height: 100%; background: #0284c7; border-radius: 3px;"></div>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            </div>
+        @endif
+
+        <!-- 3. KALEM KALEM YATIRIM BÜTÇESİ LİSTESİ TABLOSU -->
+        <div class="card mb-4" style="border: 1px solid #e2e8f0; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+            <div class="card-header" style="background: #f8fafc; border-bottom: 1px solid #e2e8f0; padding: 12px 18px; display: flex; justify-content: space-between; align-items: center;">
+                <span class="card-title" style="font-size: 13.5px; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 8px;">
+                    <span>📑</span> Kalem Kalem Bütçe Dağılım Listesi
+                </span>
+                <span style="font-size: 11.5px; color: #64748b;">Raporlanabilir Maliyet Kalemleri</span>
+            </div>
+            <div class="card-body" style="padding: 0;">
+                <table class="app-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 22%;">Harcama Kategorisi</th>
+                            <th style="width: 32%;">Bütçe Kalemi & Açıklaması</th>
+                            <th style="width: 16%; text-align: right;">Planlanan Tutar</th>
+                            <th style="width: 16%; text-align: right;">Fiili Harcama</th>
+                            <th style="width: 14%; text-align: right;">Kalan Bakiye</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($project->budgetItems as $item)
+                            @php
+                                $itemDiff = $item->planned_amount - $item->actual_spent;
+                            @endphp
+                            <tr>
+                                <td>
+                                    <span class="badge" style="background: #eff6ff; color: #1e40af; font-size: 11px; padding: 3px 8px; border-radius: 6px; font-weight: 600;">
+                                        {{ $item->category }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <strong style="color: #0f172a; font-size: 12.5px;">{{ $item->title }}</strong>
+                                </td>
+                                <td style="text-align: right; font-weight: 700; color: #0284c7;">
+                                    {{ $currSymbol }} {{ number_format($item->planned_amount, 2, ',', '.') }}
+                                </td>
+                                <td style="text-align: right; font-weight: 600; color: #d97706;">
+                                    {{ $currSymbol }} {{ number_format($item->actual_spent, 2, ',', '.') }}
+                                </td>
+                                <td style="text-align: right; font-weight: 700; color: {{ $itemDiff >= 0 ? '#15803d' : '#b91c1c' }};">
+                                    {{ $currSymbol }} {{ number_format($itemDiff, 2, ',', '.') }}
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="5" style="text-align: center; padding: 24px; color: #64748b;">
+                                    Bu projede kalem kalem bütçe kırılımı girilmemiştir. Genel planlanan yatırım bütçesi: <strong>{{ $currSymbol }} {{ number_format($project->planned_budget, 2, ',', '.') }}</strong>
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                    @if($project->budgetItems->count() > 0)
+                        <tfoot>
+                            <tr style="background: #f8fafc; font-weight: 800;">
+                                <td colspan="2" style="padding: 12px 16px; font-size: 13px; color: #0f172a;">KÜMÜLATİF TOPLAM:</td>
+                                <td style="text-align: right; padding: 12px 16px; font-size: 13.5px; color: #0284c7;">
+                                    {{ $currSymbol }} {{ number_format($itemsSum, 2, ',', '.') }}
+                                </td>
+                                <td style="text-align: right; padding: 12px 16px; font-size: 13.5px; color: #d97706;">
+                                    {{ $currSymbol }} {{ number_format($totalActual, 2, ',', '.') }}
+                                </td>
+                                <td style="text-align: right; padding: 12px 16px; font-size: 13.5px; color: {{ $remainingBudget >= 0 ? '#15803d' : '#b91c1c' }};">
+                                    {{ $currSymbol }} {{ number_format($remainingBudget, 2, ',', '.') }}
+                                </td>
+                            </tr>
+                        </tfoot>
+                    @endif
+                </table>
+            </div>
+        </div>
+
+        <!-- 4. BOM (ENDÜSTRİYEL MALZEME LİSTESİ) KARTI -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">BOM (Endüstriyel Malzeme Listesi) ve Harcama Kalemleri</span>
+            </div>
+            <div class="card-body" style="padding: 0;">
+                <table class="app-table">
+                    <thead>
+                        <tr>
+                            <th>Kalem Adı</th>
+                            <th>Kod</th>
+                            <th>Kategori</th>
+                            <th>Miktar</th>
+                            <th>Birim Fiyat</th>
+                            <th>Toplam Fiyat</th>
+                            <th>Tedarikçi</th>
+                            <th>Durum</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($project->boms as $b)
+                            <tr>
+                                <td><strong>{{ $b->item_name }}</strong></td>
+                                <td style="font-size: 11px; color: var(--text-muted);">{{ $b->item_code ?? '-' }}</td>
+                                <td>
+                                    @php $catMeta = $b->getCategoryMeta(); @endphp
+                                    <span class="badge" style="background: {{ $catMeta['bg'] }}; color: {{ $catMeta['color'] }}; border: 1px solid {{ $catMeta['border'] }}; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 5px; display: inline-flex; align-items: center; gap: 4px;">
+                                        <span>{{ $catMeta['icon'] }}</span>
+                                        <span>{{ $catMeta['name'] }}</span>
+                                    </span>
+                                </td>
+                                <td>{{ number_format($b->quantity, 0) }} {{ $b->unit }}</td>
+                                <td>₺{{ number_format($b->unit_price, 2) }}</td>
+                                <td style="font-weight: 700; color: var(--navy);">₺{{ number_format($b->total_price, 2) }}</td>
+                                <td>{{ $b->supplier ?? '-' }}</td>
+                                <td><x-status-badge :status="$b->status" /></td>
+                            </tr>
+                        @empty
+                            <tr><td colspan="8" style="text-align: center; padding: 24px;">BOM kalemi eklenmedi.</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 6: TOPLANTILAR -->
+    <div id="tab-meetings" class="tab-content" style="display: none;">
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">Projeye Bağlı Toplantılar ve Alınan Kararlar</span>
+            </div>
+            <div class="card-body">
+                @forelse($project->meetings as $m)
+                    <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; margin-bottom: 14px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <h4 style="font-size: 15px; font-weight: 700; color: var(--navy);">{{ $m->title }}</h4>
+                            <span style="font-size: 12px; font-weight: 600; color: var(--primary);">
+                                📅 {{ $m->meeting_date->format('d.m.Y H:i') }} • {{ $m->location ?? 'Online' }}
+                            </span>
+                        </div>
+                        <p style="font-size: 13px; color: var(--text-main); margin-bottom: 12px; white-space: pre-line;">{{ $m->agenda }}</p>
+
+                        <!-- KARARDAN GÖREVE DÖNÜŞTÜRME ALANI -->
+                        <div style="background: #fff; border: 1px solid var(--border-color); border-radius: 6px; padding: 12px;">
+                            <div style="font-size: 12px; font-weight: 700; color: var(--navy); margin-bottom: 6px;">⚡ Alınan Kararı Proje Görevine Dönüştür:</div>
+                            <form action="{{ route('meetings.convert_task', $m->id) }}" method="POST" style="display: flex; gap: 10px;">
+                                @csrf
+                                <input type="text" name="decision_text" class="form-control" placeholder="Karar metnini yazınız..." required style="flex: 2;">
+                                <select name="assigned_to" class="form-control" style="flex: 1;">
+                                    <option value="">-- Sorumlu Ata --</option>
+                                    @foreach($users as $u)
+                                        <option value="{{ $u->id }}">{{ $u->name }}</option>
+                                    @endforeach
+                                </select>
+                                <button type="submit" class="btn btn-primary" style="white-space: nowrap;">
+                                    + Göreve Dönüştür
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                @empty
+                    <div style="text-align: center; padding: 30px; color: var(--text-muted);">
+                        Bu projeye bağlı henüz toplantı kaydedilmemiş.
+                    </div>
+                @endforelse
+            </div>
+        </div>
+    </div>
+
+        <!-- TAB 8: DOSYA & ENVANTER KASASI (FILES) -->
+    <div id="tab-files" class="tab-content" style="display: none;">
+        <div class="card" style="margin-bottom: 20px;">
+            <div class="card-header" style="background: #ffffff; border-bottom: 1px solid #e2e8f0; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center;">
+                <span class="card-title" style="font-size: 15px; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 8px;">
+                    <span>📁</span> Proje Dosya, Belge & Envanter Kasası
+                </span>
+                <span class="badge" style="background: #eff6ff; color: #1e40af; font-weight: 700;">
+                    {{ $project->files->count() }} Belge / Dosya
+                </span>
+            </div>
+
+            <div class="card-body" style="padding: 20px;">
+                <!-- YENİ DOSYA YÜKLEME FORMU -->
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 18px; margin-bottom: 24px;">
+                    <h4 style="margin: 0 0 12px 0; font-size: 13.5px; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 6px;">
+                        <span>📤</span> Yeni Belge / Envanter Yükle ve Paydaşlara Bildir
+                    </h4>
+                    <form action="{{ route('projects.upload_file', $project->id) }}" method="POST" enctype="multipart/form-data">
+                        @csrf
+                        <div class="grid-3" style="gap: 14px; margin-bottom: 12px;">
+                            <div>
+                                <label class="form-label" style="font-size: 11.5px; font-weight: 600;">Dosya Seç (Maks. 20 MB) *</label>
+                                <input type="file" name="file" class="form-control" required style="font-size: 12px; background: #fff;">
+                            </div>
+                            <div>
+                                <label class="form-label" style="font-size: 11.5px; font-weight: 600;">Belge Kategorisi *</label>
+                                <select name="category" class="form-control" required style="font-size: 12px; background: #fff;">
+                                    <option value="Teknik Şartname">Teknik Şartname</option>
+                                    <option value="İSG Saha İzin Belgesi">İSG Saha İzin Belgesi</option>
+                                    <option value="BOM / Malzeme Listesi">BOM / Malzeme Listesi</option>
+                                    <option value="Test & Devreye Alma Raporu">Test & Devreye Alma Raporu</option>
+                                    <option value="Sözleşme & Hukuki">Sözleşme & Hukuki Belge</option>
+                                    <option value="Saha Fotoğrafı & Tutanak">Saha Fotoğrafı & Tutanak</option>
+                                    <option value="Diğer">Diğer</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="form-label" style="font-size: 11.5px; font-weight: 600;">İlgili Görev / Adım (Opsiyonel)</label>
+                                <select name="task_id" class="form-control" style="font-size: 12px; background: #fff;">
+                                    <option value="">-- Proje Geneli (Bağlantısız) --</option>
+                                    @foreach($project->tasks as $ptask)
+                                        <option value="{{ $ptask->id }}">{{ $ptask->title }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                            <div style="display: flex; align-items: center; gap: 14px;">
+                                <label style="font-size: 12px; color: #475569; display: inline-flex; align-items: center; gap: 6px; cursor: pointer;">
+                                    <input type="radio" name="notify_scope" value="all" checked>
+                                    <span>Tüm Proje Paydaşlarına & Gözlemcilere Bildir</span>
+                                </label>
+                            </div>
+                            <button type="submit" class="btn btn-primary" style="font-size: 12.5px; font-weight: 600; padding: 7px 18px; display: inline-flex; align-items: center; gap: 6px;">
+                                <span>🚀</span> Belgeyi Yükle & Kaydet
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- YÜKLENEN DOSYALAR TABLOSU -->
+                @if($project->files->count() > 0)
+                    <table class="app-table" style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                        <thead>
+                            <tr style="background: #f8fafc; border-bottom: 1px solid #e2e8f0; font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase;">
+                                <th style="padding: 10px 14px;">Dosya Adı</th>
+                                <th style="padding: 10px 14px;">Kategori</th>
+                                <th style="padding: 10px 14px;">Boyut</th>
+                                <th style="padding: 10px 14px;">Revizyon</th>
+                                <th style="padding: 10px 14px;">İlişkili Görev</th>
+                                <th style="padding: 10px 14px;">Yükleyen</th>
+                                <th style="padding: 10px 14px;">Tarih</th>
+                                <th style="padding: 10px 14px; text-align: center;">İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($project->files as $file)
+                                <tr style="border-bottom: 1px solid #f1f5f9;">
+                                    <td style="padding: 12px 14px;">
+                                        <div style="font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 8px;">
+                                            <span>📄</span>
+                                            <span>{{ $file->original_name }}</span>
+                                        </div>
+                                    </td>
+                                    <td style="padding: 12px 14px;">
+                                        <span class="badge" style="background: #eff6ff; color: #1e40af; font-size: 11px; font-weight: 700;">
+                                            {{ $file->category }}
+                                        </span>
+                                    </td>
+                                    <td style="padding: 12px 14px; font-size: 12px; color: #64748b;">
+                                        {{ number_format($file->file_size / 1024, 1) }} KB
+                                    </td>
+                                    <td style="padding: 12px 14px; font-size: 11.5px; font-weight: 600; color: #475569;">
+                                        Rev {{ $file->revision }}
+                                    </td>
+                                    <td style="padding: 12px 14px; font-size: 12px; color: #64748b;">
+                                        {{ $file->task?->title ?? '-' }}
+                                    </td>
+                                    <td style="padding: 12px 14px;">
+                                        <span style="font-weight: 600; font-size: 12px; color: #334155;">
+                                            {{ $file->uploader?->name ?? 'Sistem' }}
+                                        </span>
+                                    </td>
+                                    <td style="padding: 12px 14px; font-size: 11.5px; color: #64748b;">
+                                        {{ $file->created_at->format('d.m.Y H:i') }}
+                                    </td>
+                                    <td style="padding: 12px 14px; text-align: center;">
+                                        <div style="display: inline-flex; align-items: center; gap: 6px;">
+                                            <a href="{{ asset('storage/' . $file->storage_path) }}" target="_blank" download="{{ $file->original_name }}" class="btn btn-sm btn-outline" style="font-size: 11px; padding: 4px 8px; border-radius: 4px; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
+                                                <span>⬇️</span> İndir
+                                            </a>
+                                            @php
+                                                $canDeleteFile = auth()->user()->isSuperAdmin() 
+                                                    || auth()->user()->isAdmin() 
+                                                    || ($file->uploaded_by === auth()->id()) 
+                                                    || ($project->manager_id === auth()->id());
+                                            @endphp
+                                            @if($canDeleteFile)
+                                                <form action="{{ route('projects.delete_file', [$project->id, $file->id]) }}" method="POST" style="margin: 0;" onsubmit="return confirm('Bu belgeyi silmek istediğinize emin misiniz?');">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="btn btn-sm btn-outline" style="font-size: 11px; padding: 4px 8px; border-radius: 4px; border-color: #fecaca; color: #dc2626; background: #fff5f5; cursor: pointer;">
+                                                        <span>🗑️</span>
+                                                    </button>
+                                                </form>
+                                            @endif
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                @else
+                    <div style="text-align: center; padding: 40px; color: #64748b; font-size: 13px;">
+                        <div style="font-size: 32px; margin-bottom: 8px;">📁</div>
+                        <div style="font-weight: 700; color: #0f172a; margin-bottom: 4px;">Henüz Belge / Envanter Yüklenmedi</div>
+                        <div>Proje paydaşları için teknik çizim, İSG çalışma izni veya malzeme listesi yüklemek için yukarıdaki formu kullanabilirsiniz.</div>
+                    </div>
+                @endif
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 9: DENETİM İZİ (AUDIT LOGS) -->
+    <div id="tab-logs" class="tab-content" style="display: none;">
+        <div class="card" style="border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+            <div class="card-header" style="background: #ffffff; border-bottom: 1px solid #e2e8f0; padding: 18px 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 14px;">
+                    <div>
+                        <h4 style="margin: 0; font-size: 15px; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 8px;">
+                            <span>📜</span> Detaylı Değişiklik ve İşlem Tarihçesi (Audit Trail)
+                        </h4>
+                        <span style="font-size: 12px; color: #64748b; margin-top: 2px; display: block;">
+                            Tüm kullanıcı işlemleri, durum geçişleri ve yetki eylemleri denetim amacıyla şeffaf olarak listelenir.
+                        </span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span class="badge" style="background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; font-size: 12px; padding: 6px 12px; font-weight: 700;" id="auditStatsBadge">
+                            Gösterilen: <span id="auditVisibleCount">{{ $project->auditLogs->count() }}</span> / {{ $project->auditLogs->count() }} Kayıt
+                        </span>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="resetAuditFilters()" style="padding: 5px 12px; font-size: 12px; font-weight: 600; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;">
+                            <span>🔄</span> Filtreleri Sıfırla
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ÜST HIZLI ARAMA & FİLTRE ÇUBUĞU -->
+                <div style="display: grid; grid-template-columns: 2.2fr 1.2fr 1.2fr; gap: 12px; background: #f8fafc; padding: 14px; border-radius: 10px; border: 1px solid #e2e8f0;">
+                    <div>
+                        <label style="font-size: 11.5px; font-weight: 700; color: #334155; display: block; margin-bottom: 4px;">🔍 Genel Arama (Tüm Sütunlarda):</label>
+                        <input type="text" id="auditGlobalSearch" onkeyup="filterAuditLogs()" placeholder="Tarih, kişi, eylem veya açıklama içinde ara..." class="form-control" style="font-size: 12.5px; height: 38px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px;">
+                    </div>
+                    <div>
+                        <label style="font-size: 11.5px; font-weight: 700; color: #334155; display: block; margin-bottom: 4px;">📌 Eyleme Göre Filtrele:</label>
+                        <select id="auditActionFilter" onchange="filterAuditLogs()" class="form-control" style="font-size: 12.5px; height: 38px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px;">
+                            <option value="">-- Tüm Eylemler --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size: 11.5px; font-weight: 700; color: #334155; display: block; margin-bottom: 4px;">👤 İşlemi Yapana Göre:</label>
+                        <select id="auditUserFilter" onchange="filterAuditLogs()" class="form-control" style="font-size: 12.5px; height: 38px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px;">
+                            <option value="">-- Tüm Kullanıcılar --</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-body" style="padding: 0; overflow-x: auto;">
+                <table class="app-table" id="auditLogTable" style="margin: 0; width: 100%;">
+                    <thead>
+                        <tr style="background: #f8fafc; border-bottom: 1px solid #e2e8f0;">
+                            <th style="width: 170px; padding: 12px 14px; font-size: 12.5px; font-weight: 700; color: #1e293b;">Tarih & Saat</th>
+                            <th style="width: 220px; padding: 12px 14px; font-size: 12.5px; font-weight: 700; color: #1e293b;">İşlemi Yapan</th>
+                            <th style="width: 200px; padding: 12px 14px; font-size: 12.5px; font-weight: 700; color: #1e293b;">Eylem (İşlem Türü)</th>
+                            <th style="padding: 12px 14px; font-size: 12.5px; font-weight: 700; color: #1e293b;">Açıklama & Detay</th>
+                        </tr>
+                        <!-- HER SÜTUNA ÖZEL ANLIK FİLTRELEME SATIRI -->
+                        <tr style="background: #f1f5f9; border-bottom: 2px solid #e2e8f0;">
+                            <th style="padding: 6px 10px;">
+                                <input type="text" id="filterColDate" onkeyup="filterAuditLogs()" placeholder="Tarih ara..." class="form-control" style="font-size: 11.5px; height: 30px; padding: 4px 8px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 4px;">
+                            </th>
+                            <th style="padding: 6px 10px;">
+                                <input type="text" id="filterColUser" onkeyup="filterAuditLogs()" placeholder="Kullanıcı ara..." class="form-control" style="font-size: 11.5px; height: 30px; padding: 4px 8px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 4px;">
+                            </th>
+                            <th style="padding: 6px 10px;">
+                                <input type="text" id="filterColAction" onkeyup="filterAuditLogs()" placeholder="Eylem ara..." class="form-control" style="font-size: 11.5px; height: 30px; padding: 4px 8px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 4px;">
+                            </th>
+                            <th style="padding: 6px 10px;">
+                                <input type="text" id="filterColDesc" onkeyup="filterAuditLogs()" placeholder="Açıklamada ara..." class="form-control" style="font-size: 11.5px; height: 30px; padding: 4px 8px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 4px;">
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody id="auditLogTbody">
+                        @forelse($project->auditLogs as $log)
+                            @php
+                                $meta = $log->action_meta;
+                            @endphp
+                            <tr class="audit-row"
+                                data-date="{{ $log->created_at->format('d.m.Y H:i:s') }}"
+                                data-actor="{{ $log->actor_name }}"
+                                data-action-slug="{{ strtolower($log->action) }}"
+                                data-action-label="{{ $meta['label'] }}"
+                                data-desc="{{ strip_tags($log->description) }}"
+                                style="border-bottom: 1px solid #f1f5f9;">
+                                <td style="font-size: 12px; color: #64748b; font-weight: 500; width: 170px; padding: 12px 14px;">
+                                    {{ $log->created_at->format('d.m.Y H:i:s') }}
+                                </td>
+                                <td style="font-weight: 600; font-size: 13px; color: #1e293b; width: 220px; padding: 12px 14px;">
+                                    {{ $log->actor_name }}
+                                </td>
+                                <td style="width: 200px; padding: 12px 14px;">
+                                    <span class="audit-action-badge" style="background: {{ $meta['bg'] }}; color: {{ $meta['color'] }}; border: 1px solid {{ $meta['border'] }}; padding: 3px 10px; border-radius: 6px; font-size: 11.5px; font-weight: 700; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;">
+                                        <span>{{ $meta['icon'] }}</span>
+                                        <span>{{ $meta['label'] }}</span>
+                                    </span>
+                                </td>
+                                <td style="font-size: 12.5px; color: #334155; line-height: 1.5; padding: 12px 14px;">
+                                    {!! $log->description !!}
+                                </td>
+                            </tr>
+                        @empty
+                            <tr id="auditEmptyInitialRow">
+                                <td colspan="4" style="text-align: center; padding: 32px; color: #64748b; font-size: 13px;">
+                                    <div style="font-size: 28px; margin-bottom: 6px;">📜</div>
+                                    <strong>Henüz kayıtlı bir denetim izi bulunmuyor.</strong>
+                                </td>
+                            </tr>
+                        @endforelse
+                        <!-- FİLTRELEME SONUCU BOŞSA GÖSTERİLECEK SATIR -->
+                        <tr id="auditNoResultsRow" style="display: none;">
+                            <td colspan="4" style="text-align: center; padding: 36px 20px; color: #64748b; background: #fafafa;">
+                                <div style="font-size: 32px; margin-bottom: 8px;">🔍</div>
+                                <strong style="color: #0f172a; font-size: 14px; display: block; margin-bottom: 4px;">Arama kriterlerine uygun log kaydı bulunamadı.</strong>
+                                <span style="font-size: 12px;">Lütfen arama terimini değiştirin veya filtreleri sıfırlayın.</span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+        <!-- TASLAĞI PAYLAŞ MODALI -->
+    <div id="modalShareDraft" style="display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.65); align-items: center; justify-content: center; z-index: 10000; backdrop-filter: blur(4px);">
+        <div style="background: #ffffff; width: 520px; max-width: 92vw; border-radius: 14px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.35); overflow: hidden;">
+            <div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #ffffff; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 18px;">👥</span>
+                    <h3 style="margin: 0; font-size: 15px; font-weight: 700; color: #ffffff;">Taslak Projeyi İncelemeye Paylaş</h3>
+                </div>
+                <button type="button" onclick="closeShareDraftModal()" style="background: transparent; border: none; color: #ffffff; font-size: 18px; cursor: pointer;">✕</button>
+            </div>
+            <form action="{{ route('projects.share_draft', $project->id) }}" method="POST" style="padding: 20px;">
+                @csrf
+                <div class="form-group mb-3">
+                    <label class="form-label" style="font-weight: 700; font-size: 13px; color: #334155;">İnceleyecek Paydaşlar (Kullanıcı Seçimi) <span class="text-danger">*</span></label>
+                    <select name="reviewer_ids[]" id="draftReviewerSelect" class="form-control" multiple required style="height: 120px; font-size: 13px;">
+                        @foreach($users as $u)
+                            @if($u->id !== auth()->id())
+                                <option value="{{ $u->id }}">{{ $u->name }} ({{ $u->unvan ?? $u->email }})</option>
+                            @endif
+                        @endforeach
+                    </select>
+                    <div style="font-size: 11px; color: #64748b; margin-top: 4px;">💡 Birden fazla kullanıcı seçmek için Ctrl tuşuna basılı tutarak tıklayabilirsiniz.</div>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label class="form-label" style="font-weight: 700; font-size: 13px; color: #334155;">İnceleme Notu / Talebiniz</label>
+                    <textarea name="note" class="form-control" rows="3" style="font-size: 13px;" placeholder="Lütfen proje hedefleri ve bütçe planını inceleyerek görüş ve önerilerinizi iletiniz...">Lütfen taslak proje detaylarını inceleyerek görüş ve önerilerinizi iletiniz.</textarea>
+                </div>
+
+                <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 10px 12px; font-size: 11.5px; color: #166534; margin-bottom: 16px;">
+                    🔔 Seçilen kullanıcılara hem <strong>Zil Bildirimi</strong> hem de <strong>E-Posta</strong> ile inceleme daveti iletilecek, projeye Salt Okunur (Öneri Ekleme) yetkisiyle erişebileceklerdir.
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeShareDraftModal()" style="font-size: 13px;">Vazgeç</button>
+                    <button type="submit" class="btn btn-primary" style="font-weight: 700; font-size: 13px; display: inline-flex; align-items: center; gap: 6px;">
+                        <span>🚀</span> Taslağı Paylaş ve Bildirim Gönder
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ALAN BAZLI ÖNERİ EKLEME MODALI -->
+    <div id="modalAddSuggestion" style="display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.65); align-items: center; justify-content: center; z-index: 10000; backdrop-filter: blur(4px);">
+        <div style="background: #ffffff; width: 480px; max-width: 92vw; border-radius: 14px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.35); overflow: hidden;">
+            <div style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: #ffffff; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 18px;">💬</span>
+                    <h3 style="margin: 0; font-size: 15px; font-weight: 700; color: #ffffff;">Taslak İçin Öneri / Görüş Ekle</h3>
+                </div>
+                <button type="button" onclick="closeAddSuggestionModal()" style="background: transparent; border: none; color: #ffffff; font-size: 18px; cursor: pointer;">✕</button>
+            </div>
+            <form action="{{ route('projects.store_draft_suggestion', $project->id) }}" method="POST" style="padding: 20px;">
+                @csrf
+                <input type="hidden" name="field_key" id="suggestionFieldKey" value="general">
+                <input type="hidden" name="field_label" id="suggestionFieldLabel" value="Genel Görüş">
+
+                <div style="background: #e0f2fe; border: 1px solid #bae6fd; border-radius: 8px; padding: 8px 12px; margin-bottom: 14px; font-size: 12.5px; color: #0369a1; font-weight: 600;">
+                    İlgili Alan: <span id="suggestionFieldDisplay" style="font-weight: 800; color: #0284c7;">-</span>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label class="form-label" style="font-weight: 700; font-size: 13px; color: #334155;">Öneriniz / Değerlendirmeniz <span class="text-danger">*</span></label>
+                    <textarea name="suggestion_text" id="suggestionTextInput" class="form-control" rows="4" required style="font-size: 13px;" placeholder="Bu alan hakkında düşüncenizi, önerilen revizyonu veya ilave edilmesini istediğiniz detayları belirtiniz..."></textarea>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeAddSuggestionModal()" style="font-size: 13px;">Vazgeç</button>
+                    <button type="submit" class="btn btn-primary" style="font-weight: 700; font-size: 13px;">
+                        ✓ Öneriyi İlet
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- GELEN ÖNERİLERİ GÖR LİSTESİ MODALI -->
+    <div id="modalViewSuggestions" style="display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.65); align-items: center; justify-content: center; z-index: 10000; backdrop-filter: blur(4px);">
+        <div style="background: #ffffff; width: 680px; max-width: 94vw; max-height: 85vh; border-radius: 14px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.35); overflow: hidden; display: flex; flex-direction: column;">
+            <div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #ffffff; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 18px;">💡</span>
+                    <h3 style="margin: 0; font-size: 15px; font-weight: 700; color: #ffffff;">Paydaş Önerileri & Görüş Listesi ({{ $project->draftSuggestions->count() }})</h3>
+                </div>
+                <button type="button" onclick="closeViewSuggestionsModal()" style="background: transparent; border: none; color: #ffffff; font-size: 18px; cursor: pointer;">✕</button>
+            </div>
+            <div style="padding: 20px; overflow-y: auto; flex: 1;">
+                @forelse($project->draftSuggestions->sortByDesc('created_at') as $sug)
+                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px; margin-bottom: 12px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 6px;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <div style="width: 28px; height: 28px; border-radius: 50%; background: #e0f2fe; color: #0284c7; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700;">
+                                    {{ mb_substr($sug->user->name ?? 'K', 0, 1) }}
+                                </div>
+                                <strong style="font-size: 13px; color: #0f172a;">{{ $sug->user->name ?? 'Kullanıcı' }}</strong>
+                                <span class="badge" style="background: #e0f2fe; color: #0369a1; font-size: 11px; font-weight: 700;">
+                                    📍 {{ $sug->field_label }}
+                                </span>
+                            </div>
+                            <span style="font-size: 11px; color: #64748b;">
+                                📅 {{ $sug->created_at ? $sug->created_at->translatedFormat('d F Y, H:i') : '-' }}
+                            </span>
+                        </div>
+                        <div style="font-size: 13px; color: #334155; line-height: 1.5; background: #ffffff; border: 1px solid #edf2f7; border-radius: 6px; padding: 10px 12px;">
+                            {{ $sug->suggestion_text }}
+                        </div>
+                    </div>
+                @empty
+                    <div style="text-align: center; padding: 36px 20px; color: #64748b;">
+                        <span style="font-size: 32px; display: block; margin-bottom: 8px;">💭</span>
+                        <strong style="display: block; font-size: 14px; color: #0f172a; margin-bottom: 4px;">Henüz paydaş önerisi bulunmuyor</strong>
+                        <span style="font-size: 12px;">"Taslağı Paylaş" butonu ile paydaşlarınızı incelemeye davet edebilirsiniz.</span>
+                    </div>
+                @endforelse
+            </div>
+            <div style="padding: 12px 20px; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end;">
+                <button type="button" class="btn btn-secondary" onclick="closeViewSuggestionsModal()" style="font-size: 13px;">Kapat</button>
+            </div>
+        </div>
+    </div>
+    <!-- ONAYA GÖNDERME MODALI -->
+    <div id="modalApproval" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 9999;">
+        <div style="background: #fff; width: 440px; border-radius: var(--radius-md); padding: 24px; box-shadow: var(--shadow-lg);">
+            <h3 style="font-size: 16px; font-weight: 700; color: var(--navy); margin-bottom: 14px;">Projeyi Onaya Gönder</h3>
+            <form action="{{ route('projects.submit_approval', $project->id) }}" method="POST">
+                @csrf
+                <div class="form-group">
+                    <label class="form-label">Onay Aşaması Adı *</label>
+                    <input type="text" name="step_name" class="form-control" required value="Direktör Fizibilite Onayı">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Onay Verecek Rol *</label>
+                    <select name="role_id" class="form-control" required>
+                        @foreach($roles as $r)
+                            <option value="{{ $r->id }}" {{ $r->slug == 'direktor' ? 'selected' : '' }}>{{ $r->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Belirli Bir Kişiye Ata (İsteğe Bağlı)</label>
+                    <select name="user_id" class="form-control">
+                        <option value="">-- Roldeki Herhangi Biri --</option>
+                        @foreach($users as $u)
+                            <option value="{{ $u->id }}">{{ $u->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px;">
+                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('modalApproval').style.display='none'">Vazgeç</button>
+                    <button type="submit" class="btn btn-warning">Onaya İlet</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    @push('styles')
+    <style>
+        .tab-btn {
+            background: none;
+            border: none;
+            padding: 10px 16px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+            transition: all 0.15s ease;
+        }
+        .tab-btn:hover { color: var(--navy); }
+        .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 700; }
+    </style>
+    
+<!-- YENİ GÖREV EKLEME MODALI -->
+<div id="createTaskModal" class="custom-modal-backdrop" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.65); z-index: 9999; backdrop-filter: blur(4px); align-items: center; justify-content: center;">
+    <div style="background: #ffffff; width: 100%; max-width: 580px; border-radius: 14px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.25); overflow: hidden; margin: 20px; animation: modalFadeIn 0.2s ease;">
+        <div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #ffffff; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 700;">
+                <span>➕</span> Yeni Proje Görevi Tanımla & Akışa Bağla
+            </div>
+            <button type="button" onclick="closeCreateTaskModal()" style="background: none; border: none; color: #94a3b8; font-size: 20px; cursor: pointer;">&times;</button>
+        </div>
+        <form action="{{ route('projects.add_task', $project->id) }}" method="POST" id="createTaskForm" style="padding: 20px;">
+            @csrf
+            <div class="form-group mb-3">
+                <label style="font-size: 12.5px; font-weight: 700; color: #334155; margin-bottom: 5px; display: block;">
+                    Görev Başlığı <span class="text-danger">*</span>
+                </label>
+                <input type="text" name="title" id="taskTitleInput" class="form-control" required placeholder="Örn: Mekanik Sac Kaynağı & Montajı" style="height: 40px; font-size: 13.5px;">
+            </div>
+
+            <div class="grid-2 mb-3">
+                <div class="form-group mb-0">
+                    <label style="font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 4px; display: block;">
+                        Bağlı Olduğu Aşama / Faz <span class="text-danger">*</span>
+                    </label>
+                    <select name="phase_id" id="taskPhaseSelect" class="form-control" required style="height: 40px; font-size: 13px;">
+                        @foreach($project->phases as $phase)
+                            <option value="{{ $phase->id }}">{{ $phase->sort_order ?? $loop->iteration }}. {{ $phase->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div class="form-group mb-0">
+                    <label style="font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 4px; display: block;">
+                        Öncül Görev (Akış Bağıntısı) <span class="text-muted" style="font-weight: 400;">(Opsiyonel)</span>
+                    </label>
+                    <select name="parent_id" id="taskParentSelect" class="form-control" style="height: 40px; font-size: 13px;">
+                        <option value="">-- Doğrudan Faz Başlangıcına Bağla --</option>
+                        @foreach($project->tasks as $pt)
+                            <option value="{{ $pt->id }}">{{ $pt->title }} ({{ $pt->phase?->name ?? 'Faz' }})</option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid-2 mb-3">
+                <div class="form-group mb-0">
+                    <label style="font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 4px; display: block;">
+                        Atanan Sorumlu Personel
+                    </label>
+                    <select name="assigned_to" id="taskAssigneeSelect" class="form-control" style="height: 40px; font-size: 13px;">
+                        <option value="">-- Atanmamış (Boş) --</option>
+                        @foreach($users as $u)
+                            <option value="{{ $u->id }}">{{ $u->name }} ({{ $u->unvan ?? ($u->roles->first()?->name ?? 'Personel') }})</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div class="form-group mb-0">
+                    <label style="font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 4px; display: block;">
+                        Öncelik Seviyesi <span class="text-danger">*</span>
+                    </label>
+                    <select name="priority" class="form-control" required style="height: 40px; font-size: 13px;">
+                        <option value="low">Düşük</option>
+                        <option value="medium" selected>Orta</option>
+                        <option value="high">Yüksek</option>
+                        <option value="critical">Kritik / Acil</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid-3 mb-3">
+                <div class="form-group mb-0">
+                    <label style="font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 4px; display: block;">
+                        Etiket / Kategori
+                    </label>
+                    <input type="text" name="tag" class="form-control" placeholder="#İSG, #Mekanik vb." value="#Mekanik" style="height: 38px; font-size: 12.5px;">
+                </div>
+
+                <div class="form-group mb-0">
+                    <label style="font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 4px; display: block;">
+                        Tahmini Efor (Saat)
+                    </label>
+                    <input type="number" step="0.5" name="estimated_hours" class="form-control" placeholder="16.0" value="16.0" style="height: 38px; font-size: 12.5px;">
+                </div>
+
+                <div class="form-group mb-0">
+                    <label style="font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 4px; display: block;">
+                        Hedef Bitiş Tarihi
+                    </label>
+                    <input type="date" name="due_date" class="form-control" style="height: 38px; font-size: 12.5px;">
+                </div>
+            </div>
+
+            <div class="form-group mb-3">
+                <label style="font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 4px; display: block;">
+                    Açıklama ve Talimatlar <span class="text-muted" style="font-weight: 400;">(Opsiyonel)</span>
+                </label>
+                <textarea name="description" rows="2" class="form-control" placeholder="Görev detayları, teknik şartname veya güvenlik notları..."></textarea>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 10px; padding-top: 10px; border-top: 1px solid #f1f5f9;">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="closeCreateTaskModal()" style="padding: 8px 16px;">İptal</button>
+                <button type="submit" class="btn btn-success btn-sm" style="padding: 8px 20px; font-weight: 700;">⚡ Görevi Oluştur & Akışa Ekle</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- GÖREV HIZLI DURUM GÜNCELLEME MODALI -->
+<div id="quickTaskStatusModal" class="custom-modal-backdrop" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.65); z-index: 9999; backdrop-filter: blur(4px); align-items: center; justify-content: center;">
+    <div style="background: #ffffff; width: 100%; max-width: 440px; border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.25); overflow: hidden; margin: 20px;">
+        <div style="background: #0f172a; color: #fff; padding: 14px 18px; display: flex; justify-content: space-between; align-items: center;">
+            <div style="font-size: 14px; font-weight: 700;" id="quickTaskModalTitle">Görev Durumu Güncelle</div>
+            <button type="button" onclick="closeQuickTaskModal()" style="background: none; border: none; color: #94a3b8; font-size: 18px; cursor: pointer;">&times;</button>
+        </div>
+        <div style="padding: 18px;">
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 16px;">
+                <div style="font-weight: 700; color: #1e293b; font-size: 13.5px;" id="quickTaskTitleText">--</div>
+                <div style="font-size: 12px; color: #64748b; margin-top: 4px;" id="quickTaskAssigneeText">Sorumlu: --</div>
+            </div>
+            <div style="font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 8px;">Durumu Seçiniz:</div>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+                <button type="button" class="btn btn-sm btn-outline-warning" onclick="submitQuickTaskStatus('in_progress')" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 14px; font-weight: 600;">
+                    <span>⏳ Süreçte / Çalışılıyor</span>
+                    <span class="badge" style="background: #fef3c7; color: #d97706;">Pulsing Yanıp Söner</span>
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-success" onclick="submitQuickTaskStatus('done')" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 14px; font-weight: 600;">
+                    <span>✅ Tamamlandı & Onaylandı</span>
+                    <span class="badge" style="background: #dcfce7; color: #15803d;">Yeşile Döner</span>
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="submitQuickTaskStatus('todo')" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 14px; font-weight: 500;">
+                    <span>📋 Yapılacak (Beklemede)</span>
+                    <span class="badge" style="background: #f1f5f9; color: #475569;">Planlanan</span>
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-danger" onclick="submitQuickTaskStatus('blocked')" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 14px; font-weight: 500;">
+                    <span>⛔ Tıkandı / Engel Var</span>
+                    <span class="badge" style="background: #fee2e2; color: #b91c1c;">Kırmızı Pulsing</span>
+                </button>
+            </div>
+        </div>
+        <div style="background: #f8fafc; padding: 10px 18px; display: flex; justify-content: flex-end; border-top: 1px solid #e2e8f0;">
+            <button type="button" class="btn btn-sm btn-secondary" onclick="closeQuickTaskModal()">Kapat</button>
+        </div>
+    </div>
+</div>
+
+@endpush
+
+    @push('scripts')
+    <script>
+window.CAN_MANAGE_PROJECT = {{ $canManage ? "true" : "false" }};
+
+window.PROJECT_WORKFLOW_DATA = {
+    projectId: {{ $project->id }},
+    projectStatus: "{{ $project->status }}",
+    phases: @json($workflowPhasesData ?? [])
+};
+
+
+// =========================================================================
+// İNTERAKTİF SÜREÇ & GÖREV İŞ AKIŞI MOTORU (DYNAMIC WORKFLOW ENGINE)
+// =========================================================================
+let currentActiveTaskId = null;
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function openCreateTaskModal(phaseId = null) {
+    const modal = document.getElementById('createTaskModal');
+    if (!modal) return;
+    if (phaseId) {
+        const select = document.getElementById('taskPhaseSelect');
+        if (select) select.value = phaseId;
+    }
+    modal.style.display = 'flex';
+}
+
+function closeCreateTaskModal() {
+    const modal = document.getElementById('createTaskModal');
+    if (modal) modal.style.display = 'none';
+}
+
+function openQuickTaskModal(taskId, title, assigneeName) {
+    currentActiveTaskId = taskId;
+    document.getElementById('quickTaskTitleText').textContent = title;
+    document.getElementById('quickTaskAssigneeText').textContent = 'Sorumlu: ' + (assigneeName || 'Atanmamış');
+    document.getElementById('quickTaskStatusModal').style.display = 'flex';
+}
+
+function closeQuickTaskModal() {
+    document.getElementById('quickTaskStatusModal').style.display = 'none';
+    currentActiveTaskId = null;
+}
+
+function toggleWorkflowCanvas() {
+    const card = document.getElementById('projectWorkflowCanvasCard');
+    const btn = document.getElementById('btnToggleWorkflow');
+    if (!card) return;
+    card.classList.toggle('collapsed');
+    if (btn) {
+        btn.textContent = card.classList.contains('collapsed') ? '▶️ Genişlet' : '🔽 Daralt';
+    }
+    if (!card.classList.contains('collapsed')) {
+        setTimeout(drawWorkflowConnectors, 250);
+    }
+}
+
+function updateLocalTaskStatus(taskId, newStatus) {
+    if (!window.PROJECT_WORKFLOW_DATA || !window.PROJECT_WORKFLOW_DATA.phases) return;
+    window.PROJECT_WORKFLOW_DATA.phases.forEach(phase => {
+        if (phase.tasks) {
+            phase.tasks.forEach(t => {
+                if (String(t.id) === String(taskId)) {
+                    t.status = newStatus;
+                }
+            });
+        }
+    });
+    renderWorkflowCanvas();
+}
+
+function submitQuickTaskStatus(newStatus) {
+    if (!currentActiveTaskId) return;
+    const projectId = window.PROJECT_WORKFLOW_DATA ? window.PROJECT_WORKFLOW_DATA.projectId : null;
+    if (!projectId) return;
+
+    const url = `/projects/${projectId}/tasks/${currentActiveTaskId}/status`;
+    
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify({ status: newStatus })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            closeQuickTaskModal();
+            updateLocalTaskStatus(currentActiveTaskId, newStatus);
+            if (typeof showToast === 'function') {
+                showToast(`✓ Görev durumu güncellendi: ${newStatus}`);
+            }
+        } else {
+            alert('Durum güncellenemedi: ' + (data.message || 'Hata'));
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        alert('Sunucu iletişim hatası oluştu!');
+    });
+}
+
+function renderWorkflowCanvas() {
+    const container = document.getElementById('workflowNodesContainer');
+    if (!container || !window.PROJECT_WORKFLOW_DATA) return;
+
+    const phases = window.PROJECT_WORKFLOW_DATA.phases || [];
+    let html = '';
+
+    // 1. START NODE
+    html += `
+        <div class="wf-node wf-node-start" id="wf-node-start">
+            <span style="font-size: 16px;">🚀</span>
+            <div>
+                <div>Proje Başlangıcı</div>
+                <span class="text-xs" style="color: #166534; font-weight: 500;">Onaylandı</span>
+            </div>
+        </div>
+    `;
+
+    // 2. PHASE CLUSTERS & TASKS
+    let foundFirstActive = false;
+
+    phases.forEach((phase, pIdx) => {
+        const pNum = pIdx + 1;
+        const tasks = phase.tasks || [];
+        const hasEhs = phase.requires_ehs_approval;
+        const isEhsDone = !!phase.ehs_approved_at;
+
+        // Check if this cluster contains the active task
+        const isClusterActive = tasks.some(t => t.status === 'in_progress');
+
+        html += `
+            <div class="wf-phase-cluster ${isClusterActive ? 'has-active' : ''}" id="wf-cluster-phase-${phase.id}">
+                <div class="wf-phase-header">
+                    <span>${pNum}. ${escapeHtml(phase.name)}</span>
+                    ${window.CAN_MANAGE_PROJECT ? `<button type="button" class="btn btn-xs btn-outline-primary" onclick="openCreateTaskModal(${phase.id})" title="Bu faza yeni görev ekle" style="padding: 1px 6px; font-size: 10px; border-radius: 4px;">+ Görev</button>` : ''}
+                </div>
+                <div class="wf-phase-tasks-stack">
+        `;
+
+        if (tasks.length === 0) {
+            html += `
+                <div class="wf-task-node" id="wf-node-empty-${phase.id}" style="border-style: dashed; text-align: center; padding: 12px 10px;">
+                    <div style="font-size: 11.5px; color: #64748b; margin-bottom: 6px;">Henüz görev yok</div>
+                    ${window.CAN_MANAGE_PROJECT ? `<button type="button" class="btn btn-xs btn-outline-success" onclick="openCreateTaskModal(${phase.id})" style="font-size: 10.5px; font-weight: 600;">+ Görev Tanımla</button>` : ''}
+                </div>
+            `;
+        } else {
+            tasks.forEach(task => {
+                let statusClass = 'pending';
+                let statusBadge = '<span class="badge" style="background: #f1f5f9; color: #475569;">Yapılacak</span>';
+
+                if (task.status === 'done') {
+                    statusClass = 'done';
+                    statusBadge = '<span class="badge" style="background: #dcfce7; color: #15803d;">✓ Tamamlandı</span>';
+                } else if (task.status === 'in_progress') {
+                    statusClass = 'active'; // PULSING GLOW
+                    statusBadge = '<span class="badge" style="background: #ffedd5; color: #ea580c; font-weight: 700;">⏳ Süreçte</span>';
+                    foundFirstActive = true;
+                } else if (task.status === 'blocked') {
+                    statusClass = 'blocked'; // RED PULSING
+                    statusBadge = '<span class="badge" style="background: #fee2e2; color: #b91c1c;">⛔ Tıkandı</span>';
+                    foundFirstActive = true;
+                } else if (!foundFirstActive) {
+                    // İlk sıradaki yapılacak görev aktif gibi parlasın
+                    statusClass = 'active';
+                    statusBadge = '<span class="badge" style="background: #ffedd5; color: #ea580c; font-weight: 700;">● Sıradaki Görev</span>';
+                    foundFirstActive = true;
+                }
+
+                const assigneeName = task.assignee ? task.assignee.name : 'Atanmamış';
+                const assigneeInitial = task.assignee ? task.assignee.name.charAt(0).toUpperCase() : '?';
+
+                html += `
+                    <div class="wf-node wf-task-node ${statusClass}" id="wf-node-task-${task.id}" onclick="openQuickTaskModal(${task.id}, '${escapeHtml(task.title)}', '${escapeHtml(assigneeName)}')">
+                        <div class="wf-task-title">
+                            <span>📌</span>
+                            <span>${escapeHtml(task.title)}</span>
+                        </div>
+                        <div class="wf-task-assignee-box">
+                            <span class="wf-task-assignee-avatar">${assigneeInitial}</span>
+                            <strong>${escapeHtml(assigneeName)}</strong>
+                            ${task.tag ? `<span class="badge badge-light" style="font-size: 9px; padding: 1px 4px; margin-left: auto;">${task.tag}</span>` : ''}
+                        </div>
+                        <div class="wf-task-footer">
+                            <span style="color: #64748b;">${task.estimated_hours ? task.estimated_hours + ' saat' : ''}</span>
+                            ${statusBadge}
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // If EHS gate exists in this phase
+        if (hasEhs) {
+            const ehsClass = isEhsDone ? 'done' : 'active';
+            html += `
+                <div class="wf-node wf-ehs-node ${ehsClass}" id="wf-node-ehs-${phase.id}">
+                    <div style="font-size: 11.5px; font-weight: 700; color: ${isEhsDone ? '#166534' : '#c2410c'}; display: flex; align-items: center; justify-content: center; gap: 5px;">
+                        <span>🛡️</span>
+                        <span>İSG İzin & Denetim Kapısı</span>
+                    </div>
+                    <div class="text-xs mt-1" style="color: #64748b;">
+                        ${isEhsDone ? '✓ İSG İzni Onaylandı' : '⏳ İSG Uzmanı Onayı Bekleniyor'}
+                    </div>
+                </div>
+            `;
+        }
+
+        html += `
+                </div>
+            </div>
+        `;
+    });
+
+    // 3. END NODE
+    html += `
+        <div class="wf-node wf-node-end" id="wf-node-end">
+            <span style="font-size: 16px;">🏁</span>
+            <div>
+                <div>Proje Bitişi</div>
+                <span class="text-xs" style="color: #64748b;">Devreye Alma & Kabul</span>
+            </div>
+        </div>
+    `;
+
+    container.innerHTML = html;
+
+    // Draw SVG connectors after DOM layout settles
+    requestAnimationFrame(() => {
+        setTimeout(drawWorkflowConnectors, 50);
+    });
+}
+
+function drawWorkflowConnectors() {
+    const svg = document.getElementById('workflowSvgLayer');
+    const viewport = document.getElementById('workflowCanvasViewport');
+    const container = document.getElementById('workflowNodesContainer');
+    if (!svg || !viewport || !container) return;
+
+    const viewportRect = viewport.getBoundingClientRect();
+    const scrollLeft = viewport.scrollLeft;
+
+    svg.setAttribute('width', Math.max(container.scrollWidth, viewport.clientWidth));
+    svg.setAttribute('height', Math.max(container.scrollHeight, viewport.clientHeight));
+
+    // Collect all primary sequential anchor nodes in order
+    const nodes = [];
+    
+    // Start node
+    const startNode = document.getElementById('wf-node-start');
+    if (startNode) nodes.push({ el: startNode, isDone: true, isActive: false });
+
+    // Task & EHS nodes inside clusters
+    const allTaskAndEhsNodes = container.querySelectorAll('.wf-task-node, .wf-ehs-node');
+    allTaskAndEhsNodes.forEach(node => {
+        nodes.push({
+            el: node,
+            isDone: node.classList.contains('done'),
+            isActive: node.classList.contains('active') || node.classList.contains('blocked')
+        });
+    });
+
+    // End node
+    const endNode = document.getElementById('wf-node-end');
+    if (endNode) {
+        const allDone = nodes.length > 1 && nodes.slice(1).every(n => n.isDone);
+        if (allDone) endNode.classList.add('completed');
+        nodes.push({ el: endNode, isDone: allDone, isActive: false });
+    }
+
+    // Generate SVG path connectors between adjacent anchors
+    let svgPaths = '';
+
+    for (let i = 0; i < nodes.length - 1; i++) {
+        const from = nodes[i];
+        const to = nodes[i + 1];
+
+        const r1 = from.el.getBoundingClientRect();
+        const r2 = to.el.getBoundingClientRect();
+
+        // Relative coordinates inside viewport accounting for scroll
+        const x1 = r1.right - viewportRect.left + scrollLeft;
+        const y1 = r1.top + r1.height / 2 - viewportRect.top;
+
+        const x2 = r2.left - viewportRect.left + scrollLeft;
+        const y2 = r2.top + r2.height / 2 - viewportRect.top;
+
+        if (x2 <= x1) continue; // Skip same-column elements
+
+        // Smooth Bezier Curve
+        const dx = (x2 - x1) * 0.45;
+        const pathData = `M ${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}`;
+
+        let lineClass = 'flow-line-pending';
+        if (from.isDone) {
+            lineClass = 'flow-line-completed';
+        } else if (from.isActive) {
+            lineClass = 'flow-line-active'; // PULSING / DASHED MOVING
+        }
+
+        svgPaths += `<path d="${pathData}" class="${lineClass}" />`;
+    }
+
+    svg.innerHTML = svgPaths;
+}
+
+// Window resize & scroll listeners
+window.addEventListener('resize', () => {
+    requestAnimationFrame(drawWorkflowConnectors);
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+    if (document.getElementById('workflowNodesContainer')) {
+        renderWorkflowCanvas();
+    }
+});
+
+
+                function toggleEditDiscussion(discId) {
+    const viewEl = document.getElementById('disc-content-' + discId);
+    const editEl = document.getElementById('disc-edit-box-' + discId);
+    if (!viewEl || !editEl) return;
+    const isEditing = editEl.style.display !== 'none';
+    editEl.style.display = isEditing ? 'none' : 'block';
+    viewEl.style.display = isEditing ? 'block' : 'none';
+}
+function togglePhaseCollapse(phaseId) {
+            const content = document.getElementById('content-phase-' + phaseId);
+            const arrow = document.getElementById('arrow-phase-' + phaseId);
+            if (content) {
+                const isHidden = content.style.display === 'none';
+                content.style.display = isHidden ? 'block' : 'none';
+                if (arrow) {
+                    arrow.textContent = isHidden ? '▼' : '►';
+                }
+            }
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(function(el) {
+                el.style.display = 'none';
+            });
+            document.querySelectorAll('.tab-btn').forEach(function(btn) {
+                btn.classList.remove('active');
+            });
+            document.getElementById('tab-' + tabName).style.display = 'block';
+            event.target.classList.add('active');
+        }
+    function toggleAddObserverModal() {
+    const el = document.getElementById('addObserverCollapse');
+    if (el) {
+        el.style.display = (el.style.display === 'none' || el.style.display === '') ? 'block' : 'none';
+    }
+}
+
+function toggleObsType(type) {
+    const internalFields = document.getElementById('internalObsFields');
+    const externalFields = document.getElementById('externalObsFields');
+    const userSelect = document.getElementById('internalObsUserSelect');
+    const emailInput = document.getElementById('externalObsEmail');
+
+    if (type === 'external') {
+        internalFields.style.display = 'none';
+        externalFields.style.display = 'block';
+        if (userSelect) userSelect.required = false;
+        if (emailInput) emailInput.required = true;
+    } else {
+        internalFields.style.display = 'block';
+        externalFields.style.display = 'none';
+        if (userSelect) userSelect.required = true;
+        if (emailInput) emailInput.required = false;
+    }
+}
+
+// =========================================================================
+// DENETİM İZİ (AUDIT LOGS) ANLIK VE SÜTUN BAZLI FİLTRELEME MOTORU
+// =========================================================================
+function normalizeTurkish(str) {
+    if (!str) return '';
+    return str.toString()
+        .replace(/İ/g, 'i')
+        .replace(/I/g, 'ı')
+        .replace(/Ğ/g, 'ğ')
+        .replace(/Ü/g, 'ü')
+        .replace(/Ş/g, 'ş')
+        .replace(/Ö/g, 'ö')
+        .replace(/Ç/g, 'ç')
+        .toLowerCase()
+        .trim();
+}
+
+function initAuditFilters() {
+    const actionSelect = document.getElementById('auditActionFilter');
+    const userSelect = document.getElementById('auditUserFilter');
+    if (!actionSelect || !userSelect) return;
+
+    const rows = document.querySelectorAll('.audit-row');
+    const actionsMap = new Map();
+    const usersSet = new Set();
+
+    rows.forEach(row => {
+        const actionSlug = row.dataset.actionSlug;
+        const actionLabel = row.dataset.actionLabel;
+        const actor = row.dataset.actor;
+
+        if (actionSlug && actionLabel && !actionsMap.has(actionSlug)) {
+            actionsMap.set(actionSlug, actionLabel);
+        }
+        if (actor) {
+            usersSet.add(actor);
+        }
+    });
+
+    // Populate Actions
+    actionsMap.forEach((label, slug) => {
+        const opt = document.createElement('option');
+        opt.value = slug;
+        opt.textContent = label;
+        actionSelect.appendChild(opt);
+    });
+
+    // Populate Users
+    usersSet.forEach(user => {
+        const opt = document.createElement('option');
+        opt.value = user;
+        opt.textContent = user;
+        userSelect.appendChild(opt);
+    });
+}
+
+function filterAuditLogs() {
+    const globalQ = normalizeTurkish(document.getElementById('auditGlobalSearch')?.value || '');
+    const actionFilter = normalizeTurkish(document.getElementById('auditActionFilter')?.value || '');
+    const userFilter = normalizeTurkish(document.getElementById('auditUserFilter')?.value || '');
+
+    const colDateQ = normalizeTurkish(document.getElementById('filterColDate')?.value || '');
+    const colUserQ = normalizeTurkish(document.getElementById('filterColUser')?.value || '');
+    const colActionQ = normalizeTurkish(document.getElementById('filterColAction')?.value || '');
+    const colDescQ = normalizeTurkish(document.getElementById('filterColDesc')?.value || '');
+
+    const rows = document.querySelectorAll('.audit-row');
+    let visibleCount = 0;
+
+    rows.forEach(row => {
+        const date = normalizeTurkish(row.dataset.date);
+        const actor = normalizeTurkish(row.dataset.actor);
+        const actionSlug = normalizeTurkish(row.dataset.actionSlug);
+        const actionLabel = normalizeTurkish(row.dataset.actionLabel);
+        const desc = normalizeTurkish(row.dataset.desc);
+
+        // Global search match (any column)
+        const matchGlobal = !globalQ || (
+            date.includes(globalQ) ||
+            actor.includes(globalQ) ||
+            actionSlug.includes(globalQ) ||
+            actionLabel.includes(globalQ) ||
+            desc.includes(globalQ)
+        );
+
+        // Dropdown filters
+        const matchAction = !actionFilter || actionSlug === actionFilter;
+        const matchUser = !userFilter || actor.includes(userFilter);
+
+        // Column inputs
+        const matchColDate = !colDateQ || date.includes(colDateQ);
+        const matchColUser = !colUserQ || actor.includes(colUserQ);
+        const matchColAction = !colActionQ || actionLabel.includes(colActionQ) || actionSlug.includes(colActionQ);
+        const matchColDesc = !colDescQ || desc.includes(colDescQ);
+
+        const isVisible = matchGlobal && matchAction && matchUser && matchColDate && matchColUser && matchColAction && matchColDesc;
+
+        if (isVisible) {
+            row.style.display = '';
+            visibleCount++;
+        } else {
+            row.style.display = 'none';
+        }
+    });
+
+    // Update counter
+    const counterEl = document.getElementById('auditVisibleCount');
+    if (counterEl) counterEl.textContent = visibleCount;
+
+    // Show/hide no results row
+    const noResultsRow = document.getElementById('auditNoResultsRow');
+    if (noResultsRow) {
+        noResultsRow.style.display = (visibleCount === 0 && rows.length > 0) ? '' : 'none';
+    }
+}
+
+function resetAuditFilters() {
+    if (document.getElementById('auditGlobalSearch')) document.getElementById('auditGlobalSearch').value = '';
+    if (document.getElementById('auditActionFilter')) document.getElementById('auditActionFilter').value = '';
+    if (document.getElementById('auditUserFilter')) document.getElementById('auditUserFilter').value = '';
+    if (document.getElementById('filterColDate')) document.getElementById('filterColDate').value = '';
+    if (document.getElementById('filterColUser')) document.getElementById('filterColUser').value = '';
+    if (document.getElementById('filterColAction')) document.getElementById('filterColAction').value = '';
+    if (document.getElementById('filterColDesc')) document.getElementById('filterColDesc').value = '';
+    filterAuditLogs();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    initAuditFilters();
+});
+
+</script>
+    
+<!-- YENİ GÖREV EKLEME MODALI -->
+<div id="createTaskModal" class="custom-modal-backdrop" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.65); z-index: 9999; backdrop-filter: blur(4px); align-items: center; justify-content: center;">
+    <div style="background: #ffffff; width: 100%; max-width: 580px; border-radius: 14px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.25); overflow: hidden; margin: 20px; animation: modalFadeIn 0.2s ease;">
+        <div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #ffffff; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 700;">
+                <span>➕</span> Yeni Proje Görevi Tanımla & Akışa Bağla
+            </div>
+            <button type="button" onclick="closeCreateTaskModal()" style="background: none; border: none; color: #94a3b8; font-size: 20px; cursor: pointer;">&times;</button>
+        </div>
+        <form action="{{ route('projects.add_task', $project->id) }}" method="POST" id="createTaskForm" style="padding: 20px;">
+            @csrf
+            <div class="form-group mb-3">
+                <label style="font-size: 12.5px; font-weight: 700; color: #334155; margin-bottom: 5px; display: block;">
+                    Görev Başlığı <span class="text-danger">*</span>
+                </label>
+                <input type="text" name="title" id="taskTitleInput" class="form-control" required placeholder="Örn: Mekanik Sac Kaynağı & Montajı" style="height: 40px; font-size: 13.5px;">
+            </div>
+
+            <div class="grid-2 mb-3">
+                <div class="form-group mb-0">
+                    <label style="font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 4px; display: block;">
+                        Bağlı Olduğu Aşama / Faz <span class="text-danger">*</span>
+                    </label>
+                    <select name="phase_id" id="taskPhaseSelect" class="form-control" required style="height: 40px; font-size: 13px;">
+                        @foreach($project->phases as $phase)
+                            <option value="{{ $phase->id }}">{{ $phase->sort_order ?? $loop->iteration }}. {{ $phase->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div class="form-group mb-0">
+                    <label style="font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 4px; display: block;">
+                        Öncül Görev (Akış Bağıntısı) <span class="text-muted" style="font-weight: 400;">(Opsiyonel)</span>
+                    </label>
+                    <select name="parent_id" id="taskParentSelect" class="form-control" style="height: 40px; font-size: 13px;">
+                        <option value="">-- Doğrudan Faz Başlangıcına Bağla --</option>
+                        @foreach($project->tasks as $pt)
+                            <option value="{{ $pt->id }}">{{ $pt->title }} ({{ $pt->phase?->name ?? 'Faz' }})</option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid-2 mb-3">
+                <div class="form-group mb-0">
+                    <label style="font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 4px; display: block;">
+                        Atanan Sorumlu Personel
+                    </label>
+                    <select name="assigned_to" id="taskAssigneeSelect" class="form-control" style="height: 40px; font-size: 13px;">
+                        <option value="">-- Atanmamış (Boş) --</option>
+                        @foreach($users as $u)
+                            <option value="{{ $u->id }}">{{ $u->name }} ({{ $u->unvan ?? ($u->roles->first()?->name ?? 'Personel') }})</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div class="form-group mb-0">
+                    <label style="font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 4px; display: block;">
+                        Öncelik Seviyesi <span class="text-danger">*</span>
+                    </label>
+                    <select name="priority" class="form-control" required style="height: 40px; font-size: 13px;">
+                        <option value="low">Düşük</option>
+                        <option value="medium" selected>Orta</option>
+                        <option value="high">Yüksek</option>
+                        <option value="critical">Kritik / Acil</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid-3 mb-3">
+                <div class="form-group mb-0">
+                    <label style="font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 4px; display: block;">
+                        Etiket / Kategori
+                    </label>
+                    <input type="text" name="tag" class="form-control" placeholder="#İSG, #Mekanik vb." value="#Mekanik" style="height: 38px; font-size: 12.5px;">
+                </div>
+
+                <div class="form-group mb-0">
+                    <label style="font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 4px; display: block;">
+                        Tahmini Efor (Saat)
+                    </label>
+                    <input type="number" step="0.5" name="estimated_hours" class="form-control" placeholder="16.0" value="16.0" style="height: 38px; font-size: 12.5px;">
+                </div>
+
+                <div class="form-group mb-0">
+                    <label style="font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 4px; display: block;">
+                        Hedef Bitiş Tarihi
+                    </label>
+                    <input type="date" name="due_date" class="form-control" style="height: 38px; font-size: 12.5px;">
+                </div>
+            </div>
+
+            <div class="form-group mb-3">
+                <label style="font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 4px; display: block;">
+                    Açıklama ve Talimatlar <span class="text-muted" style="font-weight: 400;">(Opsiyonel)</span>
+                </label>
+                <textarea name="description" rows="2" class="form-control" placeholder="Görev detayları, teknik şartname veya güvenlik notları..."></textarea>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 10px; padding-top: 10px; border-top: 1px solid #f1f5f9;">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="closeCreateTaskModal()" style="padding: 8px 16px;">İptal</button>
+                <button type="submit" class="btn btn-success btn-sm" style="padding: 8px 20px; font-weight: 700;">⚡ Görevi Oluştur & Akışa Ekle</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- GÖREV HIZLI DURUM GÜNCELLEME MODALI -->
+<div id="quickTaskStatusModal" class="custom-modal-backdrop" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.65); z-index: 9999; backdrop-filter: blur(4px); align-items: center; justify-content: center;">
+    <div style="background: #ffffff; width: 100%; max-width: 440px; border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.25); overflow: hidden; margin: 20px;">
+        <div style="background: #0f172a; color: #fff; padding: 14px 18px; display: flex; justify-content: space-between; align-items: center;">
+            <div style="font-size: 14px; font-weight: 700;" id="quickTaskModalTitle">Görev Durumu Güncelle</div>
+            <button type="button" onclick="closeQuickTaskModal()" style="background: none; border: none; color: #94a3b8; font-size: 18px; cursor: pointer;">&times;</button>
+        </div>
+        <div style="padding: 18px;">
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 16px;">
+                <div style="font-weight: 700; color: #1e293b; font-size: 13.5px;" id="quickTaskTitleText">--</div>
+                <div style="font-size: 12px; color: #64748b; margin-top: 4px;" id="quickTaskAssigneeText">Sorumlu: --</div>
+            </div>
+            <div style="font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 8px;">Durumu Seçiniz:</div>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+                <button type="button" class="btn btn-sm btn-outline-warning" onclick="submitQuickTaskStatus('in_progress')" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 14px; font-weight: 600;">
+                    <span>⏳ Süreçte / Çalışılıyor</span>
+                    <span class="badge" style="background: #fef3c7; color: #d97706;">Pulsing Yanıp Söner</span>
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-success" onclick="submitQuickTaskStatus('done')" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 14px; font-weight: 600;">
+                    <span>✅ Tamamlandı & Onaylandı</span>
+                    <span class="badge" style="background: #dcfce7; color: #15803d;">Yeşile Döner</span>
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="submitQuickTaskStatus('todo')" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 14px; font-weight: 500;">
+                    <span>📋 Yapılacak (Beklemede)</span>
+                    <span class="badge" style="background: #f1f5f9; color: #475569;">Planlanan</span>
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-danger" onclick="submitQuickTaskStatus('blocked')" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 14px; font-weight: 500;">
+                    <span>⛔ Tıkandı / Engel Var</span>
+                    <span class="badge" style="background: #fee2e2; color: #b91c1c;">Kırmızı Pulsing</span>
+                </button>
+            </div>
+        </div>
+        <div style="background: #f8fafc; padding: 10px 18px; display: flex; justify-content: flex-end; border-top: 1px solid #e2e8f0;">
+            <button type="button" class="btn btn-sm btn-secondary" onclick="closeQuickTaskModal()">Kapat</button>
+        </div>
+    </div>
+</div>
+
+
+<script>
+function toggleProjectPrivacy(projectId) {
+    if (!confirm('Projenin gizlilik seviyesini de?i?tirmek istedi?inize emin misiniz?')) return;
+    
+    fetch(`/projects/${projectId}/toggle-visibility`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            'Accept': 'application/json'
+        }
+    })
+    .then(r => r.json())
+    .then(res => {
+        if (res.success) {
+            const badge = document.getElementById('projectPrivacyBadge');
+            const icon = document.getElementById('projectPrivacyIcon');
+            const text = document.getElementById('projectPrivacyText');
+            if (res.visibility === 'private') {
+                if (badge) {
+                    badge.style.background = '#fef2f2';
+                    badge.style.color = '#991b1b';
+                    badge.style.borderColor = '#fecaca';
+                }
+                if (icon) icon.textContent = '??';
+                if (text) text.textContent = '?zel / Gizli Proje';
+            } else {
+                if (badge) {
+                    badge.style.background = '#e0f2fe';
+                    badge.style.color = '#0369a1';
+                    badge.style.borderColor = '#bae6fd';
+                }
+                if (icon) icon.textContent = '??';
+                if (text) text.textContent = 'Genel Proje';
+            }
+            alert(res.message);
+        } else {
+            alert(res.message || 'Gizlilik de?i?tirilemedi.');
+        }
+    })
+    .catch(err => {
+        alert('Sunucu hatas?: ' + err.message);
+    });
+}
+</script>
+@endpush
+@endsection

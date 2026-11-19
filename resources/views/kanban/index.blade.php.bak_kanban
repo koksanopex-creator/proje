@@ -1,0 +1,390 @@
+@extends('layouts.app')
+
+@section('title', 'Kanban Panosu')
+@section('page_title', 'İnteraktif Kanban Panosu')
+@section('page_subtitle', 'Görevleri görsel olarak organize edin ve aşamaları takip edin')
+
+@section('content')
+    <!-- PROJE SEÇİM ÜST BARI -->
+    <div class="card" style="margin-bottom: 16px;">
+        <div class="card-body" style="padding: 12px 20px; display: flex; align-items: center; justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <label style="font-size: 13px; font-weight: 700; color: var(--navy);">Proje Seçiniz:</label>
+                <select onchange="window.location.href='?project_id=' + this.value" class="form-control" style="width: 380px;">
+                    @foreach($projects as $p)
+                        <option value="{{ $p->id }}" {{ $selectedProject && $selectedProject->id == $p->id ? 'selected' : '' }}>
+                            {{ $p->code }} - {{ $p->title }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
+            @if($selectedProject)
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 12px; color: var(--text-muted);">Toplam Görev: <strong>{{ $tasks->count() }}</strong></span>
+                    <button type="button" class="btn btn-primary" onclick="openKanbanTaskModal('todo')" style="font-size: 11.5px; font-weight: 700; padding: 5px 14px; border-radius: 6px; box-shadow: 0 2px 6px rgba(2, 132, 199, 0.25);">
+                        ➕ Yeni Görev Ekle
+                    </button>
+                    <a href="{{ route('projects.show', $selectedProject->id) }}" class="btn btn-secondary" style="font-size: 11px; padding: 5px 12px;">Proje Detayı →</a>
+                </div>
+            @endif
+        </div>
+    </div>
+
+    <!-- KANBAN PANOSU SÜTUNLARI -->
+    <div class="kanban-board">
+        @foreach($columns as $colKey => $col)
+            @php
+                $colTasks = $tasks->where('status', $colKey);
+            @endphp
+            <div class="kanban-col" data-status="{{ $colKey }}">
+                <div class="kanban-col-header" style="border-top: 3px solid {{ $col['color'] }}; display: flex; justify-content: space-between; align-items: center;">
+                    <span style="color: var(--navy); font-weight: 700;">{{ $col['title'] }}</span>
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <span class="status-badge {{ $col['badge'] }}" style="padding: 2px 8px; font-size: 10px;">
+                            {{ $colTasks->count() }}
+                        </span>
+                        @if($selectedProject)
+                            <button type="button" onclick="openKanbanTaskModal('{{ $colKey }}')" title="Bu kolona hızlı görev ekle" style="height: 20px; width: 20px; line-height: 18px; font-size: 13px; font-weight: 800; color: #475569; background: #f1f5f9; border-radius: 4px; border: 1px solid #cbd5e1; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0;">
+                                +
+                            </button>
+                        @endif
+                    </div>
+                </div>
+
+                <div class="kanban-col-body" id="col-{{ $colKey }}" ondragover="allowDrop(event)" ondrop="drop(event, '{{ $colKey }}')">
+                    @forelse($colTasks as $task)
+                        <div class="kanban-card" draggable="true" ondragstart="drag(event, {{ $task->id }})" id="task-card-{{ $task->id }}">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
+                                <span style="font-size: 10px; font-weight: 700; background: #f1f5f9; padding: 2px 6px; border-radius: 4px; color: #475569;">
+                                    {{ $task->tag ?? '#Genel' }}
+                                </span>
+                                @if($task->priority === 'critical')
+                                    <span style="font-size: 10px; font-weight: 700; color: #dc2626;">🔥 Kritik</span>
+                                @elseif($task->priority === 'high')
+                                    <span style="font-size: 10px; font-weight: 700; color: #ea580c;">▲ Yüksek</span>
+                                @endif
+                            </div>
+
+                            <div class="kanban-card-title">{{ $task->title }}</div>
+
+                            <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 8px;">
+                                Faz: <strong>{{ $task->phase?->name ?? 'Genel' }}</strong>
+                            </div>
+
+                            <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-color); padding-top: 8px; font-size: 11px;">
+                                @php
+                            $taskAssignees = $task->assignees && $task->assignees->isNotEmpty() ? $task->assignees : ($task->assignee ? collect([$task->assignee]) : collect());
+                        @endphp
+                        @if($taskAssignees->isNotEmpty())
+                            @if($taskAssignees->count() == 1)
+                                <span style="color: var(--text-muted); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px; display: inline-flex; align-items: center; gap: 4px;" title="Sorumlu: {{ $taskAssignees->first()->name }}">
+                                    <span>👤</span> <span>{{ Str::limit($taskAssignees->first()->name, 16) }}</span>
+                                </span>
+                            @else
+                                <div style="display: flex; align-items: center; gap: 4px;" title="Sorumlular: {{ $taskAssignees->pluck('name')->implode(', ') }}">
+                                    <div style="display: flex; align-items: center; margin-right: 2px;">
+                                        @foreach($taskAssignees->take(3) as $idx => $asg)
+                                            <span style="width: 20px; height: 20px; border-radius: 50%; background: #0284c7; color: #ffffff; font-size: 9.5px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; border: 1.5px solid #ffffff; margin-left: {{ $idx > 0 ? '-6px' : '0' }}; box-shadow: 0 1px 2px rgba(0,0,0,0.1);" title="{{ $asg->name }}">
+                                                {{ mb_substr($asg->name, 0, 1) }}
+                                            </span>
+                                        @endforeach
+                                    </div>
+                                    <span style="font-size: 10.5px; font-weight: 700; color: #0284c7; background: #e0f2fe; padding: 1px 5px; border-radius: 4px;">
+                                        {{ $taskAssignees->count() }} Kişi
+                                    </span>
+                                </div>
+                            @endif
+                        @else
+                            <span style="color: var(--text-muted); font-size: 11px;">👤 Atanmamış</span>
+                        @endif
+                                <span style="font-weight: 600; color: {{ $task->due_date && $task->due_date < now() && $task->status !== 'done' ? 'var(--danger)' : 'var(--text-muted)' }};">
+                                    ⏱️ {{ $task->due_date ? $task->due_date->format('d M') : '-' }}
+                                </span>
+                            </div>
+                        </div>
+                    @empty
+                        <div style="text-align: center; color: var(--text-muted); font-size: 12px; padding: 20px;">
+                            Bu aşamada görev yok.
+                        </div>
+                    @endforelse
+                </div>
+            </div>
+        @endforeach
+    </div>
+
+    @push('scripts')
+    <script>
+        let draggedTaskId = null;
+
+        function drag(ev, taskId) {
+            draggedTaskId = taskId;
+            ev.dataTransfer.setData("text", taskId);
+        }
+
+        function allowDrop(ev) {
+            ev.preventDefault();
+        }
+
+        function drop(ev, targetStatus) {
+            ev.preventDefault();
+            if (!draggedTaskId) return;
+
+            // AJAX ile durumu sunucuya bildir
+            fetch("{{ route('kanban.update_status') }}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRF-TOKEN": "{{ csrf_token() }}"
+                },
+                body: JSON.stringify({
+                    task_id: draggedTaskId,
+                    status: targetStatus
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.reload();
+                }
+            });
+        }
+    </script>
+    @endpush
+@if($selectedProject)
+<!-- KANBAN YENİ GÖREV EKLEME MODALI -->
+<div id="kanbanTaskModal" class="custom-modal-backdrop" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.65); z-index: 9999; backdrop-filter: blur(4px); align-items: center; justify-content: center;">
+    <div style="background: #ffffff; width: 100%; max-width: 580px; border-radius: 14px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.25); overflow: hidden; margin: 20px; animation: modalFadeIn 0.2s ease;">
+        <div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #ffffff; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 8px; font-size: 14.5px; font-weight: 700;">
+                <span>📋</span> Kanban Görevi Oluştur: <span style="color: #38bdf8;">{{ $selectedProject->code }}</span>
+            </div>
+            <button type="button" onclick="closeKanbanTaskModal()" style="background: none; border: none; color: #94a3b8; font-size: 20px; cursor: pointer;">&times;</button>
+        </div>
+
+        <form action="{{ route('projects.add_task', $selectedProject->id) }}" method="POST" id="kanbanTaskForm" style="padding: 20px;">
+            @csrf
+            <input type="hidden" name="status" id="kanbanTaskStatus" value="todo">
+
+            <div class="form-group mb-3">
+                <label style="font-size: 12.5px; font-weight: 700; color: #334155; margin-bottom: 5px; display: block;">
+                    Görev Başlığı <span class="text-danger">*</span>
+                </label>
+                <input type="text" name="title" class="form-control" required placeholder="Örn: SCADA Arayüz Entegrasyonu & Testler" style="height: 40px; font-size: 13.5px;">
+            </div>
+
+            <div class="grid-2 mb-3">
+                <div class="form-group mb-0">
+                    <label style="font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 4px; display: block;">
+                        Bağlı Olduğu Aşama / Faz <span class="text-danger">*</span>
+                    </label>
+                    <select name="phase_id" class="form-control" required style="height: 40px; font-size: 13px;">
+                        @if($selectedProject->phases && $selectedProject->phases->count() > 0)
+                            @foreach($selectedProject->phases as $phase)
+                                <option value="{{ $phase->id }}">{{ $phase->name }}</option>
+                            @endforeach
+                        @else
+                            <option value="">Aşama bulunamadı</option>
+                        @endif
+                    </select>
+                </div>
+
+                <div class="form-group mb-0" style="position: relative;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                        <label style="font-size: 12px; font-weight: 700; color: #334155; margin: 0;">
+                            Sorumlu Personel / Personeller <span style="font-size: 10px; color: #0284c7;">(Çoklu Seçim)</span>
+                        </label>
+                    </div>
+
+                    <!-- Çoklu Seçim Tetikleyici Buton -->
+                    <div id="assigneeSelectTrigger" onclick="toggleAssigneeDropdown(event)" style="min-height: 40px; border: 1.5px solid #cbd5e1; border-radius: 8px; background: #ffffff; padding: 6px 10px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: all 0.15s ease; box-sizing: border-box;" title="Göreve bir veya birden fazla sorumlu personel atayın">
+                        <div id="assigneeTriggerSummary" style="font-size: 12px; color: #64748b; font-weight: 600; display: flex; align-items: center; gap: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                            <span>👥</span> <span>Personel Seçiniz (Çoklu)...</span>
+                        </div>
+                        <span style="font-size: 10px; color: #94a3b8; margin-left: 6px;">▼</span>
+                    </div>
+
+                    <!-- Açılır Menü (Arama + Checkbox Listesi) -->
+                    <div id="assigneeDropdownMenu" style="display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 10px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.18); z-index: 10000; max-height: 270px; overflow: hidden; flex-direction: column;">
+                        <!-- Arama Kutusu -->
+                        <div style="padding: 8px 10px; border-bottom: 1px solid #f1f5f9; background: #f8fafc; display: flex; align-items: center; gap: 6px;">
+                            <span style="font-size: 12px; color: #94a3b8;">🔍</span>
+                            <input type="text" id="assigneeSearchInput" onkeyup="filterAssigneeList()" placeholder="Personel ara..." style="width: 100%; border: none; background: transparent; font-size: 12px; outline: none; padding: 2px 4px;">
+                            <button type="button" onclick="clearAllAssignees()" style="background: none; border: none; font-size: 10.5px; font-weight: 700; color: #ef4444; cursor: pointer; white-space: nowrap; padding: 2px 4px;">Temizle</button>
+                        </div>
+
+                        <!-- Kullanıcı Listesi -->
+                        <div id="assigneeItemsList" style="max-height: 210px; overflow-y: auto; padding: 4px 0;">
+                            @foreach($allUsers as $u)
+                                @php
+                                    $userRole = $u->unvan ?? ($u->roles->first()?->name ?? 'Personel');
+                                    $userDept = $u->bolum?->name ?? '';
+                                @endphp
+                                <label class="assignee-item-row" data-name="{{ mb_strtolower($u->name . ' ' . $userRole . ' ' . $userDept) }}" style="display: flex; align-items: center; gap: 10px; padding: 7px 12px; cursor: pointer; transition: background 0.1s; margin: 0; user-select: none;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'">
+                                    <input type="checkbox" name="assigned_to[]" value="{{ $u->id }}" data-username="{{ $u->name }}" onchange="updateAssigneeSummary()" style="width: 16px; height: 16px; accent-color: #0284c7; cursor: pointer;">
+                                    <div style="width: 24px; height: 24px; border-radius: 50%; background: #e0f2fe; color: #0284c7; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0;">
+                                        {{ mb_substr($u->name, 0, 1) }}
+                                    </div>
+                                    <div style="flex: 1; min-width: 0;">
+                                        <div style="font-size: 12px; font-weight: 700; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ $u->name }}</div>
+                                        <div style="font-size: 10.5px; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                            {{ $userRole }}{{ $userDept ? ' • ' . $userDept : '' }}
+                                        </div>
+                                    </div>
+                                </label>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    <!-- Seçilen Personellerin Rozetleri (Chips) -->
+                    <div id="assigneeSelectedChips" style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px;"></div>
+                </div>
+            </div>
+
+            <div class="grid-3 mb-3">
+                <div class="form-group mb-0">
+                    <label style="font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 4px; display: block;">
+                        Öncelik
+                    </label>
+                    <select name="priority" class="form-control" style="height: 40px; font-size: 13px;">
+                        <option value="low">Düşük</option>
+                        <option value="medium" selected>Orta</option>
+                        <option value="high">Yüksek</option>
+                        <option value="critical">Kritik / Acil</option>
+                    </select>
+                </div>
+
+                <div class="form-group mb-0">
+                    <label style="font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 4px; display: block;">
+                        Hedef Bitiş Tarihi
+                    </label>
+                    <input type="date" name="due_date" class="form-control" style="height: 40px; font-size: 13px;">
+                </div>
+
+                <div class="form-group mb-0">
+                    <label style="font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 4px; display: block;">
+                        Tahmini Efor (Saat)
+                    </label>
+                    <input type="number" step="0.5" name="estimated_hours" class="form-control" placeholder="Örn: 16" style="height: 40px; font-size: 13px;">
+                </div>
+            </div>
+
+            <div class="form-group mb-3">
+                <label style="font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 4px; display: block;">
+                    Görev Açıklaması & Notlar
+                </label>
+                <textarea name="description" rows="2" class="form-control" placeholder="Görevin detayları, kabul kriterleri ve notlar..." style="font-size: 12.5px;"></textarea>
+            </div>
+
+            <div style="background: #f8fafc; border-top: 1px solid #e2e8f0; margin: 16px -20px -20px -20px; padding: 14px 20px; display: flex; justify-content: space-between; align-items: center;">
+                <button type="button" class="btn btn-secondary" onclick="closeKanbanTaskModal()">İptal</button>
+                <button type="submit" class="btn btn-primary" style="padding: 8px 22px; font-weight: 700; box-shadow: 0 4px 10px rgba(2, 132, 199, 0.25);">
+                    🚀 Görevi Oluştur & Panoya Ekle
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+
+function toggleAssigneeDropdown(e) {
+    if (e) e.stopPropagation();
+    const menu = document.getElementById('assigneeDropdownMenu');
+    const trigger = document.getElementById('assigneeSelectTrigger');
+    if (!menu) return;
+    const isShowing = menu.style.display === 'flex';
+    menu.style.display = isShowing ? 'none' : 'flex';
+    if (!isShowing) {
+        trigger.style.borderColor = '#0284c7';
+        trigger.style.boxShadow = '0 0 0 3px rgba(2, 132, 199, 0.15)';
+        const search = document.getElementById('assigneeSearchInput');
+        if (search) {
+            search.value = '';
+            filterAssigneeList();
+            setTimeout(() => search.focus(), 50);
+        }
+    } else {
+        trigger.style.borderColor = '#cbd5e1';
+        trigger.style.boxShadow = 'none';
+    }
+}
+
+function filterAssigneeList() {
+    const q = (document.getElementById('assigneeSearchInput')?.value || '').toLowerCase().trim();
+    document.querySelectorAll('.assignee-item-row').forEach(row => {
+        const text = row.getAttribute('data-name') || '';
+        row.style.display = (q === '' || text.includes(q)) ? 'flex' : 'none';
+    });
+}
+
+function updateAssigneeSummary() {
+    const checkedBoxes = Array.from(document.querySelectorAll('#assigneeItemsList input[type="checkbox"]:checked'));
+    const summary = document.getElementById('assigneeTriggerSummary');
+    const chipsContainer = document.getElementById('assigneeSelectedChips');
+
+    if (!summary || !chipsContainer) return;
+
+    if (checkedBoxes.length === 0) {
+        summary.innerHTML = '<span>👥</span> <span>Personel Seçiniz (Çoklu)...</span>';
+        summary.style.color = '#64748b';
+        chipsContainer.innerHTML = '';
+        return;
+    }
+
+    const names = checkedBoxes.map(cb => cb.getAttribute('data-username'));
+    summary.innerHTML = '<span>👥</span> <strong style="color: #0284c7;">' + checkedBoxes.length + ' Personel:</strong> <span style="color: #334155;">' + names.slice(0, 2).join(', ') + (names.length > 2 ? '...' : '') + '</span>';
+    summary.style.color = '#0284c7';
+
+    // Chips
+    chipsContainer.innerHTML = '';
+    checkedBoxes.forEach(cb => {
+        const uId = cb.value;
+        const uName = cb.getAttribute('data-username');
+        const pill = document.createElement('span');
+        pill.style.cssText = 'background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 5px;';
+        pill.innerHTML = '<span>' + uName + '</span><button type="button" onclick="removeAssigneeSelection(\'' + uId + '\', event)" style="border: none; background: none; color: #0284c7; cursor: pointer; padding: 0; font-size: 12px; font-weight: 800; line-height: 1;">✕</button>';
+        chipsContainer.appendChild(pill);
+    });
+}
+
+function removeAssigneeSelection(userId, e) {
+    if (e) e.stopPropagation();
+    const cb = document.querySelector('#assigneeItemsList input[type="checkbox"][value="' + userId + '"]');
+    if (cb) {
+        cb.checked = false;
+        updateAssigneeSummary();
+    }
+}
+
+function clearAllAssignees() {
+    document.querySelectorAll('#assigneeItemsList input[type="checkbox"]').forEach(cb => cb.checked = false);
+    updateAssigneeSummary();
+}
+
+document.addEventListener('click', function(e) {
+    const trigger = document.getElementById('assigneeSelectTrigger');
+    const menu = document.getElementById('assigneeDropdownMenu');
+    if (menu && menu.style.display === 'flex' && trigger && !trigger.contains(e.target) && !menu.contains(e.target)) {
+        menu.style.display = 'none';
+        trigger.style.borderColor = '#cbd5e1';
+        trigger.style.boxShadow = 'none';
+    }
+});
+
+
+function openKanbanTaskModal(status = 'todo') {
+    clearAllAssignees();
+    const statusInput = document.getElementById('kanbanTaskStatus');
+    if (statusInput) statusInput.value = status;
+    const modal = document.getElementById('kanbanTaskModal');
+    if (modal) modal.style.display = 'flex';
+}
+
+function closeKanbanTaskModal() {
+    const modal = document.getElementById('kanbanTaskModal');
+    if (modal) modal.style.display = 'none';
+}
+</script>
+@endif
+@endsection

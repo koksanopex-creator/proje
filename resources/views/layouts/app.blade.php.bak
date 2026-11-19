@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>@hasSection('title')@yield('title') • {{ \App\Models\SystemSetting::get('site_title', 'Köksan Enterprise PPM') }}@else{{ \App\Models\SystemSetting::get('site_title', 'Köksan Enterprise PPM') }}@endif</title>
+    
+    <!-- Google Fonts Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Özel Modern Vanilla CSS Tasarım Paketi -->
+    <link rel="stylesheet" href="{{ asset('css/koksan_pms.css') }}">
+    @stack('styles')
+<style>
+/* ==========================================================================
+   MASAÜSTÜ SIDEBAR DARALTMA / GENİŞLETME (GEMINI STİLİ)
+   ========================================================================== */
+.app-sidebar {
+    width: 270px;
+    min-width: 270px;
+    transition: margin-left 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+                opacity 0.22s ease,
+                visibility 0.28s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    will-change: margin-left, opacity;
+}
+
+.app-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    height: 100vh;
+    width: calc(100vw - 270px);
+    transition: width 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+                margin-left 0.28s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* Sidebar Gizlendiğinde (Collapsed) */
+.app-layout.sidebar-collapsed .app-sidebar {
+    margin-left: -270px !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+
+.app-layout.sidebar-collapsed .app-main {
+    width: 100vw !important;
+}
+
+/* Sidebar Brand Header ve Collapse Butonu */
+.sidebar-brand {
+    padding: 16px 14px 12px 14px !important;
+}
+.sidebar-brand-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+.sidebar-desktop-collapse-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    padding: 0;
+}
+.sidebar-desktop-collapse-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.35);
+    transform: scale(1.05);
+}
+
+/* Köksan Logosu Altı Kurumsal Sistem Başlığı */
+.brand-corporate-tag {
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px dashed rgba(255, 255, 255, 0.12);
+    text-align: center;
+}
+.brand-corporate-title {
+    font-size: 10.5px;
+    font-weight: 800;
+    letter-spacing: 0.07em;
+    color: #38bdf8;
+    text-transform: uppercase;
+    line-height: 1.3;
+}
+.brand-corporate-sub {
+    font-size: 9.5px;
+    color: #94a3b8;
+    letter-spacing: 0.03em;
+    margin-top: 2px;
+    font-weight: 500;
+}
+
+/* Sidebar Kullanıcı Profil Kartı */
+.sidebar-user-card {
+    padding: 14px 14px !important;
+    margin: 12px 14px !important;
+    display: flex !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+}
+.user-avatar-circle {
+    width: 38px !important;
+    height: 38px !important;
+    border-radius: 50% !important;
+    background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
+    color: #fff !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-weight: 800 !important;
+    font-size: 15px !important;
+    flex-shrink: 0 !important;
+    margin-top: 2px !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25) !important;
+}
+.user-info-text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+.user-name-title {
+    font-size: 13.5px;
+    font-weight: 800;
+    color: #ffffff;
+    letter-spacing: -0.01em;
+    line-height: 1.25;
+    word-break: break-word;
+}
+.user-dept-title {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #94a3b8;
+    margin-top: 2px;
+    line-height: 1.3;
+}
+.user-role-badge {
+    margin-top: 5px;
+}
+
+/* Topbar Masaüstü Sidebar Açma Butonu (Gemini Stili) */
+.desktop-sidebar-expand-btn {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: #ffffff;
+    border: 1.5px solid #cbd5e1;
+    color: #334155;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-right: 14px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    flex-shrink: 0;
+    padding: 0;
+}
+.desktop-sidebar-expand-btn:hover {
+    background: #f0f9ff;
+    border-color: #0284c7;
+    color: #0284c7;
+    box-shadow: 0 2px 6px rgba(2, 132, 199, 0.2);
+    transform: scale(1.04);
+}
+
+.app-layout.sidebar-collapsed .desktop-sidebar-expand-btn {
+    display: inline-flex !important;
+    animation: fadeInExpandBtn 0.25s ease;
+}
+
+@keyframes fadeInExpandBtn {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+@media (max-width: 768px) {
+    .sidebar-desktop-collapse-btn {
+        display: none !important;
+    }
+    .desktop-sidebar-expand-btn {
+        display: none !important;
+    }
+    .app-main {
+        width: 100% !important;
+    }
+}
+</style>
+</head>
+<body>
+    <div class="app-layout">
+        <!-- SOL SIDEBAR (KÖKSAN KURUMSAL MENÜ) -->
+        <aside class="app-sidebar" id="appSidebar">
+            <button type="button" class="sidebar-close-btn" id="sidebarCloseBtn" onclick="closeMobileSidebar()" aria-label="Menüyü Kapat" title="Kapat">✕</button>
+            <div class="sidebar-brand">
+                <div class="sidebar-brand-header">
+                    @php
+                        $siteLogo = \App\Models\SystemSetting::get('site_logo');
+                    @endphp
+                    @if($siteLogo && file_exists(public_path($siteLogo)))
+                        <a href="{{ route('dashboard') }}" class="brand-logo-link" style="display: flex; align-items: center; justify-content: center; background: #ffffff; padding: 6px 12px; border-radius: 10px; text-decoration: none; box-shadow: 0 4px 12px rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.2); transition: transform 0.2s; flex: 1;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+                            <img src="{{ asset($siteLogo) }}" alt="Köksan Logo" style="max-height: 36px; width: auto; max-width: 100%; object-fit: contain; display: block;">
+                        </a>
+                    @else
+                        <a href="{{ route('dashboard') }}" class="brand-logo-wrap" style="text-decoration: none; flex: 1;">
+                            <div class="brand-icon">🏢</div>
+                            <div class="brand-text">
+                                <span class="brand-title">KÖKSAN</span>
+                                <span class="brand-sub">ENTERPRISE PPM</span>
+                            </div>
+                        </a>
+                    @endif
+
+                    <!-- MASAÜSTÜ MENÜYÜ GİZLE / DARALT BUTONU (GEMINI STİLİ) -->
+                    <button type="button" class="sidebar-desktop-collapse-btn" id="sidebarCollapseBtn" onclick="toggleSidebarDesktop()" title="Menüyü Gizle (Geniş Ekran)" aria-label="Menüyü Gizle">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="9" y1="3" x2="9" y2="21"></line>
+                            <path d="M14 9l-3 3 3 3"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- KÖKSAN LOGOSU ALTINDA KURUMSAL SİSTEM İSMİ -->
+                <div class="brand-corporate-tag">
+                    <div class="brand-corporate-title">KURUMSAL PROJE YÖNETİM SİSTEMİ</div>
+                    <div class="brand-corporate-sub">Enterprise PPM & Operasyon Platformu</div>
+                </div>
+            </div>
+
+            <!-- AKTİF KULLANICI PROFİL KARTI -->
+            <div class="sidebar-user-card">
+                <div class="user-avatar-circle">
+                    {{ mb_substr(auth()->user()->name, 0, 1) }}
+                </div>
+                <div class="user-info-text">
+                    <!-- 1. İsim Üstte ve Büyük -->
+                    <div class="user-name-title" title="{{ auth()->user()->name }}">
+                        {{ auth()->user()->name }}
+                    </div>
+                    <!-- 2. Altında Yönetim / Departman Etiketi -->
+                    <div class="user-dept-title">
+                        @if(auth()->user()->isSuperAdmin())
+                            <span>Yönetim</span>
+                        @elseif(auth()->user()->department)
+                            <span>{{ auth()->user()->department }}</span>
+                        @else
+                            <span>{{ auth()->user()->roles->first()?->name ?? 'Kullanıcı' }}</span>
+                        @endif
+                    </div>
+                    <!-- 3. En Altta Developer / Rol Rozeti -->
+                    <div class="user-role-badge">
+                        @if(auth()->user()->isSuperAdmin())
+                            <span class="role-pill pill-superadmin">Developer</span>
+                        @elseif(auth()->user()->isYonetim())
+                            <span class="role-pill pill-yonetim">Yönetim (Read-Only)</span>
+                        @else
+                            <span class="role-pill pill-default">{{ auth()->user()->roles->first()?->name ?? 'Kullanıcı' }}</span>
+                        @endif
+                    </div>
+                </div>
+            </div>
+
+            <!-- NAVİGASYON MENÜSÜ -->
+            <nav class="sidebar-nav">
+                <div class="nav-section-title">ANA MODÜLLER</div>
+                
+                <a href="{{ route('dashboard') }}" class="nav-item {{ request()->routeIs('dashboard') ? 'active' : '' }}">
+                    <span class="nav-icon">📊</span>
+                    <span class="nav-label">Yönetici Paneli</span>
+                </a>
+
+                <a href="{{ route('projects.index') }}" class="nav-item {{ request()->routeIs('projects.*') ? 'active' : '' }}">
+                    <span class="nav-icon">📁</span>
+                    <span class="nav-label">Proje Portföyü</span>
+                </a>
+
+                <a href="{{ route('kanban.index') }}" class="nav-item {{ request()->routeIs('kanban.*') ? 'active' : '' }}">
+                    <span class="nav-icon">📌</span>
+                    <span class="nav-label">Kanban Panosu</span>
+                </a>
+
+                <a href="{{ route('gantt.index') }}" class="nav-item {{ request()->routeIs('gantt.*') ? 'active' : '' }}">
+                    <span class="nav-icon">📈</span>
+                    <span class="nav-label">Gantt Çizelgesi</span>
+                </a>
+
+                <div class="nav-section-title">KAPASİTE & RİSK & FİNANS</div>
+
+                <a href="{{ route('resources.index') }}" class="nav-item {{ request()->routeIs('resources.*') ? 'active' : '' }}">
+                    <span class="nav-icon">👥</span>
+                    <span class="nav-label">Kaynak Kapasitesi</span>
+                </a>
+
+                <a href="{{ route('risks.index') }}" class="nav-item {{ request()->routeIs('risks.*') ? 'active' : '' }}">
+                    <span class="nav-icon">🛡️</span>
+                    <span class="nav-label">5×5 Risk Matrisi</span>
+                </a>
+
+                <a href="{{ route('timesheets.index') }}" class="nav-item {{ request()->routeIs('timesheets.*') ? 'active' : '' }}">
+                    <span class="nav-icon">⏱️</span>
+                    <span class="nav-label">Zaman Takibi</span>
+                </a>
+
+                <a href="{{ route('boms.index') }}" class="nav-item {{ request()->routeIs('boms.*') ? 'active' : '' }}">
+                    <span class="nav-icon">📦</span>
+                    <span class="nav-label">BOM & Bütçe</span>
+                </a>
+
+                <a href="{{ route('meetings.index') }}" class="nav-item {{ request()->routeIs('meetings.*') ? 'active' : '' }}">
+                    <span class="nav-icon">📅</span>
+                    <span class="nav-label">Toplantılar</span>
+                </a>
+
+                <a href="{{ route('reports.index') }}" class="nav-item {{ request()->routeIs('reports.*') ? 'active' : '' }}">
+                    <span class="nav-icon">📑</span>
+                    <span class="nav-label">5 Rapor Tipi</span>
+                </a>
+
+                <!-- YÖNETİM & SİSTEMİK AYARLAR -->
+                @if(auth()->user()->isSuperAdmin() || auth()->user()->isAdmin())
+                    <div class="nav-section-title">SİSTEM & GÜVENLİK</div>
+
+                    <a href="{{ route('admin.permission_matrix') }}" class="nav-item {{ request()->routeIs('admin.permission_matrix*') ? 'active' : '' }}">
+                        <span class="nav-icon">🔐</span>
+                        <span class="nav-label">Dinamik Yetki Matrisi</span>
+                    </a>
+
+                    <a href="{{ route('admin.notification_matrix') }}" class="nav-item {{ request()->routeIs('admin.notification_matrix*') ? 'active' : '' }}">
+                        <span class="nav-icon">🔔</span>
+                        <span class="nav-label">Bildirim Matrisi</span>
+                    </a>
+
+                    <a href="{{ route('admin.system_health') }}" class="nav-item {{ request()->routeIs('admin.system_health*') ? 'active' : '' }}">
+                        <span class="nav-icon">🩺</span>
+                        <span class="nav-label">Sistem Sağlığı</span>
+                    </a>
+
+                    <a href="{{ route('admin.audit_logs') }}" class="nav-item {{ request()->routeIs('admin.audit_logs*') ? 'active' : '' }}">
+                        <span class="nav-icon">📜</span>
+                        <span class="nav-label">Denetim Logları</span>
+                    </a>
+
+                    @if(auth()->user()->isSuperAdmin())
+                        <a href="{{ route('admin.settings') }}" class="nav-item {{ request()->routeIs('admin.settings*') ? 'active' : '' }}">
+                            <span class="nav-icon">⚙️</span>
+                            <span class="nav-label">Sistem Ayarları</span>
+                        </a>
+                    @endif
+                @endif
+            </nav>
+
+            <div class="sidebar-footer">
+                <a href="{{ route('logout') }}" class="logout-link">
+                    <span>🚪 Güvenli Çıkış</span>
+                </a>
+            </div>
+        </aside>
+        <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="closeMobileSidebar()"></div>
+
+        <!-- SAĞ ANA ALAN -->
+        <div class="app-main">
+            <!-- ÜST TOPBAR (HIZLI ROL TESTİ / SİMÜLASYON & BİLDİRİMLER) -->
+            <header class="app-topbar">
+                <div class="topbar-left">
+                    <!-- Mobil Menü Çekmecesi Butonu -->
+                    <button type="button" class="mobile-sidebar-toggle" id="mobileSidebarToggle" onclick="toggleMobileSidebar()" aria-label="Menüyü Aç" title="Menü"><span></span><span></span><span></span></button>
+
+                    <!-- Masaüstü Sidebar Açma / Genişletme Butonu (Gemini Stili) -->
+                    <button type="button" class="desktop-sidebar-expand-btn" id="desktopSidebarExpandBtn" onclick="toggleSidebarDesktop()" aria-label="Kenar Çubuğunu Göster" title="Kenar Çubuğunu Göster (Menüyü Aç)">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="9" y1="3" x2="9" y2="21"></line>
+                            <path d="M12 9l3 3-3 3"></path>
+                        </svg>
+                    </button>
+                    <div>
+                        <h1 class="page-header-title">@yield('page_title', 'Gösterge Paneli')</h1>
+                    <span class="page-subtitle">@yield('page_subtitle', 'Köksan Proje ve Portföy Yönetim Portalı')</span>
+                    </div>
+                </div>
+
+                <div class="topbar-right">
+                    <!-- HIZLI ROL TEST SEÇİCİSİ -->
+                    <div class="role-switcher-wrap" title="Sistemdeki diğer kullanıcı rollerini anında simüle edin">
+                        <span class="switcher-label">🎭 Hızlı Rol Testi:</span>
+                        <select class="role-switcher-select" onchange="window.location.href=this.value;">
+                            @php
+                                $switchUsers = \App\Models\User::with('roles')->where('is_active', true)->get();
+                            @endphp
+                            @foreach($switchUsers as $su)
+                                <option value="{{ route('switch_user', $su->id) }}" {{ auth()->id() == $su->id ? 'selected' : '' }}>
+                                    {{ $su->name }} ({{ $su->roles->first()?->name ?? 'Kullanıcı' }})
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <!-- BİLDİRİM ZİLİ & AÇILIR PANEL -->
+                    <div class="notification-bell-wrap" style="position: relative;">
+                        <button class="bell-btn" id="bellBtn" title="Bildirimler" type="button">
+                            <span style="font-size: 18px;">🔔</span>
+                            @php
+                                $unreadCount = auth()->user()->inAppNotifications()->whereNull('read_at')->count();
+                            @endphp
+                            @if($unreadCount > 0)
+                                <span class="bell-badge" id="bellBadge">{{ $unreadCount }}</span>
+                            @endif
+                        </button>
+
+                        <!-- AÇILIR BİLDİRİM PENCERESİ -->
+                        <div class="notification-dropdown" id="notificationDropdown" style="display: none;">
+                            <div class="notif-dropdown-header">
+                                <div class="d-flex align-center gap-2">
+                                    <span class="font-weight-700 text-dark">🔔 Bildirimler</span>
+                                    @if($unreadCount > 0)
+                                        <span class="badge badge-primary text-xs" id="dropdownUnreadBadge">{{ $unreadCount }} Yeni</span>
+                                    @endif
+                                </div>
+                                <button type="button" class="btn-text-xs text-primary" id="markAllReadBtn" style="background: none; border: none; cursor: pointer; font-size: 11px; font-weight: 600;">
+                                    Tümünü Okundu Say
+                                </button>
+                            </div>
+                            <div class="notif-dropdown-body" id="notifList">
+                                @php
+                                    $notifications = auth()->user()->inAppNotifications()->latest()->take(8)->get();
+                                @endphp
+                                @forelse($notifications as $notif)
+                                    <a href="{{ $notif->action_url ?? '#' }}" class="notif-item {{ $notif->read_at ? 'is-read' : 'is-unread' }}">
+                                        <div class="notif-item-icon">📢</div>
+                                        <div class="notif-item-info">
+                                            <div class="notif-item-title">{{ $notif->title }}</div>
+                                            <div class="notif-item-text">{!! $notif->message !!}</div>
+                                            <div class="notif-item-time">{{ $notif->created_at->diffForHumans() }}</div>
+                                        </div>
+                                    </a>
+                                @empty
+                                    <div class="notif-empty-state">
+                                        <div style="font-size: 28px; margin-bottom: 6px;">🔕</div>
+                                        <div class="font-weight-600 text-dark text-sm">Yeni Bildirim Yok</div>
+                                        <div class="text-xs text-muted mt-1">Sistem ve projelerinizle ilgili tüm bildirimler burada listelenecektir.</div>
+                                    </div>
+                                @endforelse
+                            </div>
+                            <div class="notif-dropdown-footer">
+                                <a href="{{ route('admin.notification_matrix') }}" class="text-xs text-muted font-weight-500">
+                                    ⚙️ Bildirim Matrisi Ayarları
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- BİLDİRİM ALERT ALANI (KÖKSAN MODERN BİLDİRİM ÇUBUĞU) -->
+            @if(session('success'))
+                <div class="app-alert alert-success" style="margin: 14px 24px 18px; padding: 14px 20px; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; box-shadow: 0 4px 12px rgba(16,185,129,0.08);">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="font-size: 18px; font-weight: 800; color: #059669;">✓</span>
+                        <span style="font-size: 13.5px; font-weight: 600;">{!! session('success') !!}</span>
+                    </div>
+                    <button type="button" onclick="this.closest('.app-alert').remove()" style="border: none; background: none; cursor: pointer; color: #059669; font-size: 16px; font-weight: 700; padding: 4px 8px; border-radius: 4px;" title="Kapat">✕</button>
+                </div>
+            @endif
+            @if(session('error'))
+                <div class="app-alert alert-danger" style="margin: 14px 24px 18px; padding: 14px 20px; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; box-shadow: 0 4px 12px rgba(220,38,38,0.08);">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="font-size: 18px; font-weight: 800; color: #dc2626;">⚠️</span>
+                        <span style="font-size: 13.5px; font-weight: 600;">{!! session('error') !!}</span>
+                    </div>
+                    <button type="button" onclick="this.closest('.app-alert').remove()" style="border: none; background: none; cursor: pointer; color: #dc2626; font-size: 16px; font-weight: 700; padding: 4px 8px; border-radius: 4px;" title="Kapat">✕</button>
+                </div>
+            @endif
+
+            <!-- İÇERİK CONTAINER'I (İÇ SCROLL - DIŞ SCROLL YASAK) -->
+            <main class="app-content-body">
+                @yield('content')
+            </main>
+        </div>
+    </div>
+
+    <!-- EVRENSEL ÇİFT TIKLAMA KALKANI (DOUBLE-CLICK PREVENTION) -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Tüm form submitlerinde çift tıklama kilidi
+            document.querySelectorAll('form').forEach(function(form) {
+                form.addEventListener('submit', function(e) {
+                    const submitBtn = form.querySelector('button[type="submit"]');
+                    if (submitBtn && !submitBtn.hasAttribute('data-no-lock')) {
+                        submitBtn.disabled = true;
+                        submitBtn.classList.add('is-loading');
+                        const originalHtml = submitBtn.innerHTML;
+                        submitBtn.innerHTML = '<span class="btn-spinner"></span> İşleniyor...';
+                        setTimeout(function() {
+                            submitBtn.disabled = false;
+                            submitBtn.innerHTML = originalHtml;
+                        }, 8000);
+                    }
+                });
+            });
+
+            // Bildirim Zili Açma / Kapatma ve Dışına Tıklama
+            const bellBtn = document.getElementById('bellBtn');
+            const notifDropdown = document.getElementById('notificationDropdown');
+            if (bellBtn && notifDropdown) {
+                bellBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const isHidden = notifDropdown.style.display === 'none' || notifDropdown.style.display === '';
+                    notifDropdown.style.display = isHidden ? 'block' : 'none';
+                });
+
+                document.addEventListener('click', function(e) {
+                    if (!notifDropdown.contains(e.target) && e.target !== bellBtn && !bellBtn.contains(e.target)) {
+                        notifDropdown.style.display = 'none';
+                    }
+                });
+
+                // Tümünü Okundu Say AJAX
+                const markAllBtn = document.getElementById('markAllReadBtn');
+                if (markAllBtn) {
+                    markAllBtn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        fetch("{{ route('notifications.mark_all_read') }}", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                                "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                            }
+                        })
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.success) {
+                                const badge = document.getElementById('bellBadge');
+                                if (badge) badge.remove();
+                                const dropBadge = document.getElementById('dropdownUnreadBadge');
+                                if (dropBadge) dropBadge.remove();
+                                document.querySelectorAll('.notif-item.is-unread').forEach(item => {
+                                    item.classList.remove('is-unread');
+                                    item.classList.add('is-read');
+                                });
+                            }
+                        })
+                        .catch(console.error);
+                    });
+                }
+            }
+        });
+    
+    // Evrensel Mobil Sidebar Drawer Fonksiyonları
+    // Masaüstü Sidebar Gizleme / Gösterme (Gemini Stili)
+    function toggleSidebarDesktop() {
+        var layout = document.querySelector('.app-layout');
+        if (!layout) return;
+
+        var isCollapsed = layout.classList.toggle('sidebar-collapsed');
+        try {
+            localStorage.setItem('koksan_sidebar_collapsed', isCollapsed ? 'true' : 'false');
+        } catch (e) {}
+    }
+
+    // Sayfa yüklendiğinde kenar çubuğu varsayılan durumu (Varsayılan: AÇIK)
+    document.addEventListener('DOMContentLoaded', function() {
+        try {
+            var savedState = localStorage.getItem('koksan_sidebar_collapsed');
+            if (savedState === 'true' && window.innerWidth > 768) {
+                var layout = document.querySelector('.app-layout');
+                if (layout) layout.classList.add('sidebar-collapsed');
+            }
+        } catch (e) {}
+    });
+
+    // Klavye kısayolu (Ctrl + B) ile menüyü açma / kapatma
+    document.addEventListener('keydown', function(e) {
+        if ((e.ctrlKey || e.metaKey) && (e.key === 'b' || e.key === 'B')) {
+            e.preventDefault();
+            if (window.innerWidth > 768) {
+                toggleSidebarDesktop();
+            } else {
+                toggleMobileSidebar();
+            }
+        }
+    });
+
+    function openMobileSidebar() {
+        var s = document.getElementById('appSidebar');
+        var b = document.getElementById('sidebarBackdrop');
+        if (s) s.classList.add('show');
+        if (b) b.classList.add('show');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeMobileSidebar() {
+        var s = document.getElementById('appSidebar');
+        var b = document.getElementById('sidebarBackdrop');
+        if (s) s.classList.remove('show');
+        if (b) b.classList.remove('show');
+        document.body.style.overflow = '';
+    }
+
+    function toggleMobileSidebar() {
+        var s = document.getElementById('appSidebar');
+        if (s && s.classList.contains('show')) {
+            closeMobileSidebar();
+        } else {
+            openMobileSidebar();
+        }
+    }
+    </script>
+    @include('partials.modals.confirm_delete_modal')
+    <script>
+    function confirmProjectDelete(btn, projectTitle, projectCode) {
+        if (!btn) return;
+        const form = btn.closest('form');
+        if (!form) return;
+
+        const displayTitle = projectCode ? ('[' + projectCode + '] ' + projectTitle) : projectTitle;
+
+        if (typeof window.showAppConfirmModal === 'function') {
+            window.showAppConfirmModal({
+                title: 'Projeyi Silmeyi Onayla',
+                message: '"' + displayTitle + '" projesini silmek istediğinize emin misiniz?',
+                details: '⚠️ DİKKAT: Proje güvenli şekilde arşive alınacaktır (Soft Delete). İlgili görev, faz ve bütçe geçmişi korunacak fakat aktif listelerden kaldırılacaktır. Bu işlem sistem denetim loglarına kaydedilecektir.',
+                confirmButtonText: 'Evet, Projeyi Sil',
+                onConfirm: function() {
+                    form.submit();
+                }
+            });
+        } else {
+            if (confirm('"' + displayTitle + '" projesini silmek istediğinize emin misiniz?')) {
+                form.submit();
+            }
+        }
+    }
+    </script>
+    @stack('scripts')
+</body>
+</html>

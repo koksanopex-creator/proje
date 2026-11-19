@@ -1,0 +1,70 @@
+@extends('layouts.app')
+
+@section('title', 'Kaynak Kapasite Yönetimi')
+@section('page_title', 'Kaynak Kapasitesi & Çakışma Radarı')
+@section('page_subtitle', 'İnsan kaynakları ve ekipmanların haftalık/aylık doluluk analizi')
+
+@section('content')
+    @if($conflicts->count() > 0)
+        <div class="card" style="border-left: 4px solid var(--danger);">
+            <div class="card-header" style="background: #fef2f2;">
+                <span class="card-title" style="color: #991b1b;">⚠️ Tespit Edilen Kritik Kaynak Çakışmaları</span>
+            </div>
+            <div class="card-body">
+                @foreach($conflicts as $c)
+                    <div style="padding: 10px 14px; background: #fff; border: 1px solid #fecaca; border-radius: 6px; margin-bottom: 8px; font-size: 13px;">
+                        {!! $c['conflict_warning'] !!}
+                    </div>
+                @endforeach
+            </div>
+        </div>
+    @endif
+
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">Personel Kapasite ve İş Yükü Dağılımı (Haftalık 45 Saat Esası)</span>
+        </div>
+        <div class="card-body" style="padding: 0;">
+            <table class="app-table">
+                <thead>
+                    <tr>
+                        <th>Kaynak / Personel</th>
+                        <th>Unvan</th>
+                        <th>Aktif Görev Sayısı</th>
+                        <th>Toplam Tahmini Süre</th>
+                        <th>Kapasite Doluluk Oranı</th>
+                        <th>Durum</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($analysis as $row)
+                        <tr>
+                            <td><strong>{{ $row['name'] }}</strong></td>
+                            <td style="color: var(--text-muted); font-size: 12px;">{{ $row['unvan'] }}</td>
+                            <td>{{ $row['task_count'] }} Görev</td>
+                            <td><strong>{{ $row['total_hours'] }} Saat</strong></td>
+                            <td style="width: 220px;">
+                                <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: 700; margin-bottom: 4px;">
+                                    <span>%{{ $row['capacity_percentage'] }}</span>
+                                    <span>{{ $row['has_conflict'] ? 'AŞIRI YÜKLÜ' : 'UYGUN' }}</span>
+                                </div>
+                                <div style="background: #e2e8f0; height: 8px; border-radius: 4px; overflow: hidden;">
+                                    <div style="background: {{ $row['has_conflict'] ? 'var(--danger)' : ($row['capacity_percentage'] > 75 ? 'var(--warning)' : 'var(--success)') }}; width: {{ min($row['capacity_percentage'], 100) }}%; height: 100%;"></div>
+                                </div>
+                            </td>
+                            <td>
+                                @if($row['has_conflict'])
+                                    <span class="status-badge badge-danger">Çakışma Var</span>
+                                @elseif($row['capacity_percentage'] > 75)
+                                    <span class="status-badge badge-warning">Yüksek Yük</span>
+                                @else
+                                    <span class="status-badge badge-success">Dengeli</span>
+                                @endif
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    </div>
+@endsection

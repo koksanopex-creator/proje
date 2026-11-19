@@ -1,0 +1,117 @@
+@extends('layouts.app')
+
+@section('title', '5x5 Risk Matrisi')
+@section('page_title', 'Risk Yönetimi & 5x5 Likert Değerlendirme')
+@section('page_subtitle', 'Endüstriyel, İSG, teknik ve finansal risklerin analizi ve azaltma planları')
+
+@section('content')
+    <!-- 5x5 RİSK MATRİSİ ÖZET KUTUSU -->
+    <div class="card" style="margin-bottom: 20px;">
+        <div class="card-header">
+            <span class="card-title">📊 5x5 Olasılık x Etki Risk Dağılım Matrisi</span>
+        </div>
+        <div class="card-body">
+            <div style="display: flex; gap: 24px; align-items: center; justify-content: center; flex-wrap: wrap;">
+                <div style="background: #f8fafc; border: 1px solid var(--border-color); padding: 16px; border-radius: 8px; width: 440px;">
+                    <div style="font-weight: 700; font-size: 12px; color: var(--navy); margin-bottom: 8px; text-align: center;">ETKİ (1-5) ➔</div>
+                    <div class="risk-matrix-grid">
+                        <div class="risk-cell cell-low">1</div>
+                        <div class="risk-cell cell-low">2</div>
+                        <div class="risk-cell cell-low">3</div>
+                        <div class="risk-cell cell-medium">4</div>
+                        <div class="risk-cell cell-medium">5</div>
+
+                        <div class="risk-cell cell-low">2</div>
+                        <div class="risk-cell cell-low">4</div>
+                        <div class="risk-cell cell-medium">6</div>
+                        <div class="risk-cell cell-medium">8</div>
+                        <div class="risk-cell cell-high">10</div>
+
+                        <div class="risk-cell cell-low">3</div>
+                        <div class="risk-cell cell-medium">6</div>
+                        <div class="risk-cell cell-medium">9</div>
+                        <div class="risk-cell cell-high">12</div>
+                        <div class="risk-cell cell-critical">15</div>
+
+                        <div class="risk-cell cell-medium">4</div>
+                        <div class="risk-cell cell-medium">8</div>
+                        <div class="risk-cell cell-high">12</div>
+                        <div class="risk-cell cell-critical">16</div>
+                        <div class="risk-cell cell-critical">20</div>
+
+                        <div class="risk-cell cell-medium">5</div>
+                        <div class="risk-cell cell-high">10</div>
+                        <div class="risk-cell cell-critical">15</div>
+                        <div class="risk-cell cell-critical">20</div>
+                        <div class="risk-cell cell-critical">25</div>
+                    </div>
+                </div>
+
+                <div style="max-width: 320px;">
+                    <div style="font-size: 13px; font-weight: 700; color: var(--navy); margin-bottom: 8px;">Skor Değerlendirme Skalası:</div>
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 12px;">
+                        <span class="status-badge badge-success">1 - 6 Düşük</span> Kabul edilebilir risk
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 12px;">
+                        <span class="status-badge badge-warning">8 - 12 Orta</span> Eylem planı önerilir
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 12px;">
+                        <span class="status-badge badge-danger">15 - 25 Kritik / Yüksek</span> Acil hafifletme şart!
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- RİSK TANIMLAMA FORMU & LİSTESİ -->
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">Tanımlı Proje Riskleri ve Azaltma Eylemleri</span>
+        </div>
+        <div class="card-body" style="padding: 0;">
+            <table class="app-table">
+                <thead>
+                    <tr>
+                        <th>Risk Başlığı</th>
+                        <th>Proje</th>
+                        <th>Kategori</th>
+                        <th>Olasılık</th>
+                        <th>Etki</th>
+                        <th>Skor</th>
+                        <th>Ciddiyet</th>
+                        <th>Sorumlu</th>
+                        <th>Durum</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($risks as $r)
+                        <tr>
+                            <td>
+                                <strong>{{ $r->title }}</strong>
+                                @if($r->description)
+                                    <div style="font-size: 11px; color: var(--text-muted);">{{ $r->description }}</div>
+                                @endif
+                            </td>
+                            <td style="font-size: 12px;">{{ $r->project->title }}</td>
+                            <td><span style="font-size: 11px; background: #f1f5f9; padding: 2px 6px; border-radius: 4px;">{{ ucfirst($r->category) }}</span></td>
+                            <td style="text-align: center; font-weight: 700;">{{ $r->probability }}</td>
+                            <td style="text-align: center; font-weight: 700;">{{ $r->impact }}</td>
+                            <td style="text-align: center; font-weight: 800; font-size: 15px; color: {{ $r->risk_score >= 15 ? 'var(--danger)' : ($r->risk_score >= 8 ? 'var(--warning)' : 'var(--success)') }};">
+                                {{ $r->risk_score }}
+                            </td>
+                            <td>
+                                <span class="status-badge {{ $r->severity === 'critical' || $r->severity === 'high' ? 'badge-danger' : ($r->severity === 'medium' ? 'badge-warning' : 'badge-success') }}">
+                                    {{ strtoupper($r->severity) }}
+                                </span>
+                            </td>
+                            <td>{{ $r->owner?->name ?? 'Belirtilmedi' }}</td>
+                            <td><x-status-badge :status="$r->status" /></td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="9" style="text-align: center; padding: 24px;">Tanımlı risk bulunmuyor.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+@endsection

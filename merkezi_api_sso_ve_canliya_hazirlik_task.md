@@ -1,0 +1,22 @@
+# Görev Listesi: Merkezi API SSO Entegrasyonu ve Canlıya Hazırlık
+
+- [x] 1. Merkezi API Uygulama Kaydı <!-- id: 1 -->
+  - [x] Merkezi API veritabanında `applications` tablosuna `koksan-pms` uygulamasının eklenmesi <!-- id: 1.1 -->
+  - [x] Merkezi API'de ilgili migrasyon dosyasının hazırlanması (`2026_11_19_000001_register_koksan_pms_application.php`) <!-- id: 1.2 -->
+- [x] 2. Köksan PMS Model & Veritabanı Altyapısı <!-- id: 2 -->
+  - [x] Migration: `users` tablosuna `central_user_id` kolonunun eklenmesi <!-- id: 2.1 -->
+  - [x] `User` modelinde `$fillable` ve `casts` güncellenmesi <!-- id: 2.2 -->
+- [x] 3. SSO Controller & Rota Yapılandırması <!-- id: 3 -->
+  - [x] `config/services.php` ve `.env` yapılandırmalarının tanımlanması <!-- id: 3.1 -->
+  - [x] `App\Http\Controllers\Auth\SsoController` sınıfının oluşturulması (`redirectToCentral`, `login`, `logout`) <!-- id: 3.2 -->
+  - [x] `routes/web.php` üzerinde `/sso/login`, `/sso/redirect`, `/login`, `/logout` rotalarının bağlanması <!-- id: 3.3 -->
+  - [x] `AuthController::switchUser` metoduna canlı ortam güvenlik bariyeri (`APP_ENV=local` kontrolü) eklenmesi <!-- id: 3.4 -->
+- [x] 4. Arayüz & Ortam İzolasyonu (Local vs. Production) <!-- id: 4 -->
+  - [x] `resources/views/layouts/app.blade.php`: "Hızlı Rol Testi" dropdown'ının canlı ortamda gizlenmesi (`@if(app()->environment(...))`) <!-- id: 4.1 -->
+  - [x] `resources/views/auth/login.blade.php`: Merkezi Giriş (SSO) butonunun eklenmesi ve canlıda doğrudan yönlendirme <!-- id: 4.2 -->
+- [x] 5. Test ve Doğrulama <!-- id: 5 -->
+  - [x] Yerel SSO akışı testi (Port 8088 <-> Port 8001 token doğrulama testi ve session login başarılı) <!-- id: 5.1 -->
+  - [x] Kullanıcı verilerinin (central_user_id, avatar, sicil) otomatik eşitlendiğinin doğrulanması <!-- id: 5.2 -->
+- [ ] 6. GitHub ve Sunucu Kurulum Rehberi <!-- id: 6 -->
+  - [ ] GitHub remote yapılandırması ve push rehberi <!-- id: 6.1 -->
+  - [ ] Sunucu Nginx, dizin ve ortam değişkenleri rehberinin hazırlanması <!-- id: 6.2 -->
