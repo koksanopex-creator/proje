@@ -843,7 +843,7 @@
 
 <!-- SEKME 2: LOG GÖRÜNÜRLÜK MATRİSİ (YETKİ MATRİSİ İLE AYNI DİNAMİK ROL RENKLERİ) -->
 <div id="tab-visibility" class="tab-content-panel" style="display: none;">
-    <div class="card mb-4" style="border-radius: 12px; border: 1px solid #e2e8f0; overflow: visible !important; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+    <div class="card mb-4" style="border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden !important; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
         <div class="card-header" style="background: #ffffff; padding: 16px 20px; border-bottom: 1.5px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
             <div>
                 <h3 class="card-title" style="margin: 0; font-size: 15px; font-weight: 700; color: #0f172a;">
@@ -857,7 +857,7 @@
                 🎨 Rol & Renk Yönetimine Git
             </a>
         </div>
-        <div class="card-body p-0" style="overflow: visible !important;">
+        <div class="card-body p-0" style="overflow: hidden !important;">
             @php
                 $matrixCategories = [
                     'proje' => 'Proje Durum & Genel Loglar',
@@ -873,11 +873,11 @@
                     'sistem' => 'Sistem & Güvenlik Ayarları',
                 ];
             @endphp
-            <div class="table-responsive" style="overflow: visible !important;">
-                <table class="table table-hover matrix-table mb-0" style="width: 100%; border-collapse: separate; border-spacing: 0;">
+            <div class="table-responsive matrix-scroll-wrapper" style="overflow-x: auto !important; overflow-y: visible !important; width: 100% !important; max-width: 100% !important; box-sizing: border-box !important; -webkit-overflow-scrolling: touch !important;">
+                <table class="table table-hover matrix-table mb-0" style="width: max-content; min-width: 100%; border-collapse: separate; border-spacing: 0;">
                     <thead>
                         <tr style="background: #f8fafc; border-bottom: 2px solid #cbd5e1;">
-                            <th style="position: sticky; top: -24px; left: 0; z-index: 35; background: #f8fafc; width: 280px; min-width: 280px; padding: 12px 18px; font-size: 12px; font-weight: 700; color: #475569; text-transform: uppercase; border-bottom: 2px solid #cbd5e1; box-shadow: 0 2px 4px rgba(0,0,0,0.04);">Log Kategorisi</th>
+                            <th style="position: sticky; top: -24px; left: 0; z-index: 35; background: #f8fafc; width: 280px; min-width: 280px; padding: 12px 18px; font-size: 12px; font-weight: 700; color: #475569; text-transform: uppercase; border-right: 2px solid #cbd5e1; border-bottom: 2px solid #cbd5e1; box-shadow: 4px 0 8px -2px rgba(15, 23, 42, 0.08);">Log Kategorisi</th>
                             @foreach($roles as $role)
                                 <th class="text-center" style="position: sticky; top: -24px; z-index: 25; background: #f8fafc; min-width: 130px; padding: 12px 8px; vertical-align: middle; border-bottom: 2px solid #cbd5e1; box-shadow: 0 2px 4px rgba(0,0,0,0.04);">
                                     <div class="matrix-role-header-badge" 
@@ -892,7 +892,7 @@
                     <tbody>
                         @foreach($matrixCategories as $catKey => $catTitle)
                             <tr style="border-bottom: 1px solid #f1f5f9;">
-                                <td style="padding: 14px 18px; background: #ffffff;">
+                                <td style="position: sticky; left: 0; z-index: 20; background: #ffffff; width: 280px; min-width: 280px; padding: 14px 18px; border-right: 2px solid #cbd5e1; box-shadow: 4px 0 8px -2px rgba(15, 23, 42, 0.08);">
                                     <div style="font-weight: 700; color: #0f172a; font-size: 13px;">{{ $catTitle }}</div>
                                     <code class="code-pill text-xs" style="font-size: 11px; color: #0284c7; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; margin-top: 3px; display: inline-block;">{{ $catKey }}</code>
                                 </td>

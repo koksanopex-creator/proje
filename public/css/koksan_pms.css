@@ -1029,7 +1029,7 @@ body {
     border-radius: var(--radius-md);
     margin-bottom: 24px;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
-    overflow: visible !important;
+    overflow: hidden !important;
 }
 
 .matrix-group-header {
@@ -1075,9 +1075,12 @@ body {
 /* Dondurulmus Tablo Duzeni (Sticky Matrix Table) */
 .matrix-scroll-wrapper {
     position: relative;
-    overflow: visible !important;
-    width: 100%;
-    max-width: 100%;
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    -webkit-overflow-scrolling: touch !important;
     background: #ffffff;
 }
 
@@ -1092,6 +1095,10 @@ body {
 .matrix-scroll-wrapper::-webkit-scrollbar-thumb {
     background-color: #cbd5e1;
     border-radius: 4px;
+}
+
+.matrix-scroll-wrapper::-webkit-scrollbar-thumb:hover {
+    background-color: #94a3b8;
 }
 
 .matrix-modern-table {
@@ -1558,13 +1565,31 @@ body {
 }
 
 /* ==========================================================================
-   DENETIM LOGLARI TAB-VISIBILITY (GORUNURLUK MATRISI) STICKY HEADER
+   DENETIM LOGLARI TAB-VISIBILITY (GORUNURLUK MATRISI) STICKY HEADER & SCROLL
    ========================================================================== */
 #tab-visibility .card {
-    overflow: visible !important;
+    overflow: hidden !important;
 }
 #tab-visibility .table-responsive {
-    overflow: visible !important;
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    -webkit-overflow-scrolling: touch !important;
+}
+#tab-visibility .table-responsive::-webkit-scrollbar {
+    height: 8px;
+}
+#tab-visibility .table-responsive::-webkit-scrollbar-track {
+    background: #f1f5f9;
+}
+#tab-visibility .table-responsive::-webkit-scrollbar-thumb {
+    background-color: #cbd5e1;
+    border-radius: 4px;
+}
+#tab-visibility .table-responsive::-webkit-scrollbar-thumb:hover {
+    background-color: #94a3b8;
 }
 #tab-visibility .matrix-table thead th {
     position: sticky;
@@ -1580,13 +1605,20 @@ body {
     left: 0;
     z-index: 35;
     background: #f8fafc;
+    border-right: 2px solid #cbd5e1;
     border-bottom: 2px solid #cbd5e1;
+    box-shadow: 4px 0 8px -2px rgba(15, 23, 42, 0.08);
 }
 #tab-visibility .matrix-table tbody td:first-child {
     position: sticky;
     left: 0;
-    z-index: 15;
+    z-index: 20;
     background: #ffffff;
+    border-right: 2px solid #cbd5e1;
+    box-shadow: 4px 0 8px -2px rgba(15, 23, 42, 0.08);
+}
+#tab-visibility .matrix-table tbody tr:hover td:first-child {
+    background-color: #f1f5f9 !important;
 }
 
 .matrix-modern-table tbody tr:hover .sticky-col-event,

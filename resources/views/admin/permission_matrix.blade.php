@@ -10,16 +10,82 @@
    ========================================================================== */
 .matrix-scroll-wrapper {
     position: relative !important;
-    overflow: visible !important;
+    overflow-x: auto !important;
+    overflow-y: visible !important;
     width: 100% !important;
     max-width: 100% !important;
+    box-sizing: border-box !important;
+    -webkit-overflow-scrolling: touch !important;
 }
 
-@media (max-width: 991.98px) {
-    .matrix-scroll-wrapper {
-        overflow-x: auto !important;
-        -webkit-overflow-scrolling: touch !important;
-    }
+.matrix-scroll-wrapper::-webkit-scrollbar {
+    height: 8px;
+}
+.matrix-scroll-wrapper::-webkit-scrollbar-track {
+    background: #f1f5f9;
+}
+.matrix-scroll-wrapper::-webkit-scrollbar-thumb {
+    background-color: #cbd5e1;
+    border-radius: 4px;
+}
+.matrix-scroll-wrapper::-webkit-scrollbar-thumb:hover {
+    background-color: #94a3b8;
+}
+
+/* Masaüstü Sticky Kolon Stilleri (Kaydırmada Sola Sabit Kalır) */
+.matrix-modern-table .sticky-col-perm {
+    position: sticky !important;
+    left: 0 !important;
+    z-index: 22 !important;
+    background: #ffffff !important;
+    width: 290px !important;
+    min-width: 290px !important;
+    max-width: 290px !important;
+    border-right: 1px solid #e2e8f0 !important;
+}
+
+.matrix-modern-table thead th.sticky-col-perm {
+    position: sticky !important;
+    top: -24px !important;
+    left: 0 !important;
+    z-index: 35 !important;
+    background: #f8fafc !important;
+    width: 290px !important;
+    min-width: 290px !important;
+    max-width: 290px !important;
+    border-right: 1px solid #cbd5e1 !important;
+    border-bottom: 2px solid #cbd5e1 !important;
+}
+
+.matrix-modern-table .sticky-col-slug {
+    position: sticky !important;
+    left: 290px !important;
+    z-index: 21 !important;
+    background: #ffffff !important;
+    width: 220px !important;
+    min-width: 220px !important;
+    max-width: 220px !important;
+    border-right: 2px solid #cbd5e1 !important;
+    box-shadow: 4px 0 8px -2px rgba(15, 23, 42, 0.08) !important;
+}
+
+.matrix-modern-table thead th.sticky-col-slug {
+    position: sticky !important;
+    top: -24px !important;
+    left: 290px !important;
+    z-index: 34 !important;
+    background: #f8fafc !important;
+    width: 220px !important;
+    min-width: 220px !important;
+    max-width: 220px !important;
+    border-right: 2px solid #cbd5e1 !important;
+    border-bottom: 2px solid #cbd5e1 !important;
+    box-shadow: 4px 0 8px -2px rgba(15, 23, 42, 0.08) !important;
+}
+
+.matrix-modern-table tbody tr:hover .sticky-col-perm,
+.matrix-modern-table tbody tr:hover .sticky-col-slug {
+    background-color: #f1f5f9 !important;
 }
 
 @media (max-width: 768px) {
