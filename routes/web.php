@@ -137,8 +137,10 @@ Route::middleware('auth')->group(function () {
     // Toplantılar
     Route::get('/toplantilar', [MeetingController::class, 'index'])->name('meetings.index');
     Route::post('/toplantilar', [MeetingController::class, 'store'])->name('meetings.store');
+    Route::get('/toplantilar/search-users', [MeetingController::class, 'searchUsers'])->name('meetings.search_users');
     Route::get('/toplantilar/{id}', [MeetingController::class, 'show'])->name('meetings.show');
     Route::put('/toplantilar/{id}/status', [MeetingController::class, 'updateStatus'])->name('meetings.update_status');
+    Route::post('/toplantilar/{id}/postpone', [MeetingController::class, 'postpone'])->name('meetings.postpone');
     Route::put('/toplantilar/{id}/agenda', [MeetingController::class, 'updateAgenda'])->name('meetings.update_agenda');
     Route::post('/toplantilar/{id}/convert-task', [MeetingController::class, 'convertActionToTask'])->name('meetings.convert_task');
     Route::post('/toplantilar/{id}/participants', [MeetingController::class, 'addParticipant'])->name('meetings.add_participant');

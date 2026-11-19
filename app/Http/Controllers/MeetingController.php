@@ -20,26 +20,127 @@ class MeetingController extends Controller
 
         $projects = Project::where('is_template', false)->forUser($user)->orderBy('code')->get();
         $selectedProjectId = $request->get('project_id');
+        $statusFilter = $request->get('status');
+        $searchTerm = trim($request->get('search', ''));
 
-        $query = ProjectMeeting::with(['project', 'organizer', 'participants.user', 'actions.assignee'])
-            ->whereHas('project', function ($pq) use ($user) {
-                $pq->forUser($user);
-            });
+        // Yetki kapsamı: scopeForUser($user)
+        $baseQuery = ProjectMeeting::forUser($user);
+
+        // İstatistikler (Filtresiz genel sayılar)
+        $totalMeetings = (clone $baseQuery)->count();
+        $scheduledCount = (clone $baseQuery)->whereIn('status', ['scheduled', 'planned'])->count();
+        $postponedCount = (clone $baseQuery)->where('status', 'postponed')->count();
+        $completedCount = (clone $baseQuery)->where('status', 'completed')->count();
+
+        $stats = [
+            'total' => $totalMeetings,
+            'scheduled' => $scheduledCount,
+            'postponed' => $postponedCount,
+            'completed' => $completedCount,
+        ];
+
+        // Filtrelenmiş liste sorgusu
+        $query = ProjectMeeting::forUser($user)
+            ->with(['project', 'organizer', 'participants.user', 'actions.assignee']);
 
         if ($selectedProjectId) {
             $query->where('project_id', $selectedProjectId);
         }
 
-        $meetings = $query->orderBy('meeting_date', 'desc')->get();
-        $users = User::where('is_active', true)->orderBy('name')->get();
+        if ($statusFilter && $statusFilter !== 'all') {
+            if ($statusFilter === 'scheduled') {
+                $query->whereIn('status', ['scheduled', 'planned']);
+            } else {
+                $query->where('status', $statusFilter);
+            }
+        }
 
-        $stats = [
-            'total' => $meetings->count(),
-            'scheduled' => $meetings->whereIn('status', ['scheduled', 'planned'])->count(),
-            'completed' => $meetings->where('status', 'completed')->count(),
-        ];
+        if ($searchTerm !== '') {
+            $query->where(function ($q) use ($searchTerm) {
+                $q->where('title', 'like', "%{$searchTerm}%")
+                  ->orWhere('location', 'like', "%{$searchTerm}%")
+                  ->orWhere('agenda', 'like', "%{$searchTerm}%")
+                  ->orWhere('minutes', 'like', "%{$searchTerm}%")
+                  ->orWhereHas('project', function ($pq) use ($searchTerm) {
+                      $pq->where('code', 'like', "%{$searchTerm}%")
+                        ->orWhere('title', 'like', "%{$searchTerm}%");
+                  })
+                  ->orWhereHas('organizer', function ($oq) use ($searchTerm) {
+                      $oq->where('name', 'like', "%{$searchTerm}%");
+                  });
+            });
+        }
 
-        return view('meetings.index', compact('meetings', 'projects', 'selectedProjectId', 'users', 'stats'));
+        // En çok son 10 toplantı ve sayfalama
+        $meetings = $query->orderBy('meeting_date', 'desc')->paginate(10)->withQueryString();
+
+        // Başlangıç kullanıcıları (katılımcı seçimi için ilk 25 aktif kullanıcı)
+        $initialUsers = User::where('is_active', true)
+            ->with('bolum:id,ad')
+            ->orderBy('name')
+            ->take(25)
+            ->get();
+
+        return view('meetings.index', compact(
+            'meetings',
+            'projects',
+            'selectedProjectId',
+            'statusFilter',
+            'searchTerm',
+            'initialUsers',
+            'stats'
+        ));
+    }
+
+    public function searchUsers(Request $request)
+    {
+        $q = trim($request->get('q', ''));
+        $projectId = $request->get('project_id');
+
+        $query = User::where('is_active', true)->with('bolum:id,ad');
+
+        if ($q !== '') {
+            $query->where(function ($sq) use ($q) {
+                $sq->where('name', 'like', "%{$q}%")
+                   ->orWhere('email', 'like', "%{$q}%")
+                   ->orWhere('sicil_no', 'like', "%{$q}%")
+                   ->orWhere('unvan', 'like', "%{$q}%");
+            });
+        }
+
+        $projectMemberIds = [];
+        if ($projectId) {
+            $project = Project::with('stakeholders')->find($projectId);
+            if ($project) {
+                $projectMemberIds = array_unique(array_filter(array_merge(
+                    $project->stakeholders->pluck('user_id')->toArray(),
+                    [$project->manager_id, $project->sponsor_id]
+                )));
+            }
+        }
+
+        $users = $query->orderBy('name')->take(30)->get();
+
+        $result = $users->map(function ($u) use ($projectMemberIds) {
+            $deptName = $u->bolum?->ad ?? ($u->bolum?->name ?? '');
+            $title = $u->unvan ?? ($u->title ?? 'Personel');
+            $isProjectMember = in_array($u->id, $projectMemberIds);
+
+            return [
+                'id' => $u->id,
+                'name' => $u->name,
+                'email' => $u->email,
+                'title' => $title,
+                'department' => $deptName,
+                'is_project_member' => $isProjectMember,
+                'display' => $u->name . ($title ? " ({$title})" : '') . ($deptName ? " - {$deptName}" : ''),
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'users' => $result,
+        ]);
     }
 
     public function show($id)
@@ -135,7 +236,7 @@ class MeetingController extends Controller
         }
 
         $request->validate([
-            'status' => 'required|in:scheduled,in_progress,completed,cancelled',
+            'status' => 'required|in:scheduled,in_progress,completed,cancelled,postponed',
             'minutes' => 'nullable|string',
             'custom_note' => 'nullable|string|max:1000',
             'notify_bell' => 'nullable|array',
@@ -201,6 +302,67 @@ class MeetingController extends Controller
         );
 
         return back()->with('success', 'Toplantı gündem maddeleri başarıyla güncellendi.');
+    }
+
+    public function postpone(Request $request, int $meetingId)
+    {
+        $user = auth()->user();
+        if ($user->isYonetim()) {
+            abort(403, 'Yönetim rolü salt okunur yetkiye sahiptir, toplantı erteleyemez.');
+        }
+
+        $meeting = ProjectMeeting::with(['project.stakeholders.user', 'participants.user'])->findOrFail($meetingId);
+        if (!$user->canAccessProject($meeting->project)) {
+            abort(403, 'Bu toplantının projesine erişim yetkiniz bulunmamaktadır.');
+        }
+
+        // Toplantıyı planlayan kişi veya yetkili admin erteleyebilir
+        $canPostpone = $user->isSuperAdmin() 
+            || $user->isAdmin() 
+            || $user->hasPermission('meeting.manage') 
+            || $meeting->organizer_id === $user->id;
+
+        if (!$canPostpone) {
+            abort(403, 'Toplantıyı erteleme yetkiniz bulunmamaktadır. Sadece toplantıyı düzenleyen kişi veya sistem yöneticisi erteleyebilir.');
+        }
+
+        $request->validate([
+            'new_meeting_date' => 'required|date',
+            'location' => 'nullable|string|max:255',
+            'postpone_reason' => 'required|string|max:1000',
+            'notify_bell' => 'nullable|array',
+            'notify_bell.*' => 'exists:users,id',
+            'notify_mail' => 'nullable|array',
+            'notify_mail.*' => 'exists:users,id',
+        ]);
+
+        $oldDate = $meeting->meeting_date->format('d.m.Y H:i');
+
+        $meeting->update([
+            'status' => 'postponed',
+            'meeting_date' => $request->new_meeting_date,
+            'location' => $request->filled('location') ? $request->location : $meeting->location,
+            'postpone_reason' => $request->postpone_reason,
+        ]);
+
+        // Katılımcılara Bildirim Gönder (Zil ve E-Posta)
+        app(\App\Services\NotificationMatrixService::class)->dispatchMeetingPostponed(
+            $meeting,
+            $oldDate,
+            $request->postpone_reason,
+            $request->has('notify_bell') ? (array)$request->notify_bell : null,
+            $request->has('notify_mail') ? (array)$request->notify_mail : null
+        );
+
+        AuditLogService::log(
+            'postponed',
+            "Toplantı ertelendi: '**{$meeting->title}**' (Eski: {$oldDate} -> Yeni: " . $meeting->meeting_date->format('d.m.Y H:i') . ") - Gerekçe: " . e($request->postpone_reason),
+            'ProjectMeeting',
+            $meeting->id,
+            $meeting->project_id
+        );
+
+        return back()->with('success', "Toplantı başarıyla ertelendi (" . $meeting->meeting_date->format('d.m.Y H:i') . ") ve tüm katılımcılara bildirim iletildi.");
     }
 
     public function addParticipant(Request $request, int $meetingId)

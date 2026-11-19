@@ -1,0 +1,24 @@
+# GÖREV TAKİP: Toplantı Yönetimi Geliştirmeleri
+
+- [x] 1. Veritabanı ve Şablon Altyapısı <!-- id: 1 -->
+  - [x] Migration: `2026_11_19_000005_add_postpone_and_meeting_templates.php` oluştur ve çalıştır <!-- id: 1.1 -->
+  - [x] `ProjectMeeting.php` modeline `postpone_reason`, `postponed` rozet stili ve `scopeForUser` ekle <!-- id: 1.2 -->
+  - [x] `NotificationMatrixService.php` içerisine `toplanti_ertelendi` olayını ve bildirim değişkenlerini entegre et <!-- id: 1.3 -->
+- [x] 2. Backend & Controller Geliştirmeleri (`MeetingController`) <!-- id: 2 -->
+  - [x] `index()` metodunda `forUser` yetki filtresi, `search`, `status` filtreleri ve `paginate(10)` uygula <!-- id: 2.1 -->
+  - [x] `searchUsers(Request $request)` metodunu ekle (Katılımcı arama) <!-- id: 2.2 -->
+  - [x] `postpone(Request $request, $meetingId)` metodunu ekle (Erteleme ve bildirim dağıtımı) <!-- id: 2.3 -->
+  - [x] Rotaları `routes/web.php` içerisine ekle <!-- id: 2.4 -->
+- [x] 3. Arayüz Geliştirmeleri (`meetings/index.blade.php` & `meetings/show.blade.php`) <!-- id: 3 -->
+  - [x] Gündem alanı için Quill.js zengin metin editörünü entegre et <!-- id: 3.1 -->
+  - [x] Katılımcı daveti alanını arama kutulu, çoktan seçmeli modern UI'a dönüştür <!-- id: 3.2 -->
+  - [x] Toplantı listesi üstüne arama & filtre çubuğu ve 10'luk sayfalama ekle <!-- id: 3.3 -->
+  - [x] Toplantı erteleme modalını hem liste kartlarına hem detay sayfasına ekle <!-- id: 3.4 -->
+- [x] 4. Yerel Doğrulama ve Testler <!-- id: 4 -->
+  - [x] Yeni toplantı oluşturma, zengin metin gündem ve katılımcı arama testi <!-- id: 4.1 -->
+  - [x] Toplantı erteleme, bildirim gönderme ve `notification_logs` kaydını doğrulama <!-- id: 4.2 -->
+  - [x] Yetki filtresi ve 10'luk sayfalama testi <!-- id: 4.3 -->
+- [ ] 5. Canlı Sunucu Dağıtımı ve Doğrulama <!-- id: 5 -->
+  - [ ] Git commit ve push <!-- id: 5.1 -->
+  - [ ] Sunucuda `git pull`, migration çalıştırma ve cache temizleme <!-- id: 5.2 -->
+  - [ ] Sunucuda canlı test ve doğrulama <!-- id: 5.3 -->

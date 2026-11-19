@@ -15,6 +15,7 @@ class ProjectMeeting extends Model
         'minutes',
         'status',
         'organizer_id',
+        'postpone_reason',
     ];
 
     protected function casts(): array
@@ -40,6 +41,7 @@ class ProjectMeeting extends Model
             'completed' => 'Tamamlandı',
             'cancelled' => 'İptal Edildi',
             'in_progress' => 'Devam Ediyor',
+            'postponed' => 'Ertelendi',
             default => 'Planlandı',
         };
     }
@@ -50,8 +52,35 @@ class ProjectMeeting extends Model
             'completed' => 'background: #dcfce7; color: #166534; border: 1px solid #bbf7d0;',
             'cancelled' => 'background: #fee2e2; color: #991b1b; border: 1px solid #fecaca;',
             'in_progress' => 'background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd;',
+            'postponed' => 'background: #fffbeb; color: #b45309; border: 1px solid #fde68a;',
             default => 'background: #fef3c7; color: #92400e; border: 1px solid #fde68a;',
         };
+    }
+
+    public function scopeForUser($query, ?User $user = null)
+    {
+        $user = $user ?? auth()->user();
+        if (!$user) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        if ($user->isSuperAdmin() || $user->isAdmin() || $user->isYonetim() || $user->hasPermission('meeting.view_all')) {
+            return $query;
+        }
+
+        return $query->where(function ($q) use ($user) {
+            $q->where('organizer_id', $user->id)
+              ->orWhereHas('participants', function ($pq) use ($user) {
+                  $pq->where('user_id', $user->id);
+              })
+              ->orWhereHas('project', function ($pq) use ($user) {
+                  $pq->where('manager_id', $user->id)
+                    ->orWhere('sponsor_id', $user->id)
+                    ->orWhereHas('stakeholders', function ($sq) use ($user) {
+                        $sq->where('user_id', $user->id);
+                    });
+              });
+        });
     }
 
     /**

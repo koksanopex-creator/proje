@@ -85,6 +85,12 @@
                     👁️ Yönetim İzleme Modu (Salt Okunur)
                 </span>
             @else
+                @if($meeting->status !== 'completed' && $meeting->status !== 'cancelled')
+                    <button type="button" onclick="openPostponeModalShow()" class="btn btn-outline" style="font-size: 12px; padding: 7px 12px; border-radius: 6px; border: 1px solid #fde68a; background: #fffbeb; color: #b45309; font-weight: 700; cursor: pointer;">
+                        ⏱️ Toplantıyı Ertele
+                    </button>
+                @endif
+
                 @if($meeting->status !== 'in_progress')
                     <button type="button" onclick="openStatusActionModal('in_progress', 'Toplantıyı Başlat', 'Toplantıyı resmi olarak devam ediyor statüsüne almak ve paydaşlara bildirim göndermek üzeresiniz.', '#0284c7', '▶️ Toplantıyı Başlat')" class="btn btn-outline" style="font-size: 12px; padding: 7px 12px; border-radius: 6px; border: 1px solid #bae6fd; background: #f0f9ff; color: #0284c7; font-weight: 600; cursor: pointer;">
                         ▶️ Toplantıyı Başlat
@@ -128,6 +134,8 @@
                             ✅ Tamamlandı & Tutanak Bağlandı
                         @elseif($meeting->status === 'in_progress')
                             🔄 Toplantı Devam Ediyor
+                        @elseif($meeting->status === 'postponed')
+                            ⏳ Ertelendi
                         @elseif($meeting->status === 'cancelled')
                             ❌ İptal Edildi
                         @else
@@ -178,6 +186,24 @@
         </div>
     </div>
 
+    <!-- ERTELEME BİLGİLENDİRME BANNERI (TOPLANTI ERTELENMİŞSE) -->
+    @if($meeting->status === 'postponed')
+        <div style="background: #fffbeb; border: 1px solid #fde68a; border-left: 4px solid #f59e0b; border-radius: 10px; padding: 16px 20px; margin-bottom: 20px; display: flex; align-items: flex-start; gap: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+            <span style="font-size: 26px; line-height: 1;">⏱️</span>
+            <div style="flex: 1;">
+                <div style="font-size: 14.5px; font-weight: 750; color: #92400e; margin-bottom: 4px;">Bu Toplantı Ertelenmiştir</div>
+                @if($meeting->postpone_reason)
+                    <div style="font-size: 13px; color: #78350f; margin-bottom: 6px; line-height: 1.5; background: #ffffff; padding: 10px 14px; border-radius: 6px; border: 1px solid #fed7aa;">
+                        <strong>Erteleme Gerekçesi / Notu:</strong> {{ $meeting->postpone_reason }}
+                    </div>
+                @endif
+                <div style="font-size: 12.5px; color: #b45309;">
+                    📅 Yeni Planlanan Tarih & Saat: <strong style="color: #15803d; font-size: 13px;">{{ $meeting->meeting_date->format('d.m.Y H:i') }}</strong>
+                </div>
+            </div>
+        </div>
+    @endif
+
     <!-- 2 KOLONLU DÜZEN: İÇERİK & TUTANAK / PROJE VE KATILIMCILAR -->
     <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px; align-items: start;">
         
@@ -197,44 +223,9 @@
                     @endif
                 </div>
                 <div class="card-body" style="padding: 18px;">
-                    @php
-                        $agendaItems = $meeting->formatted_agenda_items;
-                    @endphp
-
-                    @if(!empty($agendaItems))
-                        <div style="display: flex; flex-direction: column; gap: 10px;">
-                            @foreach($agendaItems as $item)
-                                <div class="agenda-card" style="display: flex; gap: 14px; align-items: flex-start; padding: 12px 14px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
-                                    <!-- NUMARA ROZETİ -->
-                                    <div style="width: 28px; height: 28px; border-radius: 50%; background: #2563eb; color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; flex-shrink: 0;">
-                                        {{ $item['number'] }}
-                                    </div>
-                                    <div style="flex: 1;">
-                                        <!-- MADDE BAŞLIĞI -->
-                                        <div style="font-size: 13.5px; font-weight: 700; color: #0f172a; margin-bottom: 6px; line-height: 1.4;">
-                                            {{ $item['title'] }}
-                                        </div>
-                                        <!-- EK BİLGİ ROZETLERİ (TARİH, SORUMLU, NOT) -->
-                                        <div style="display: flex; flex-wrap: wrap; gap: 8px; font-size: 11px;">
-                                            @if(!empty($item['date']))
-                                                <span style="display: inline-flex; align-items: center; gap: 4px; background: #fef3c7; color: #92400e; border: 1px solid #fde68a; padding: 2px 8px; border-radius: 4px; font-weight: 600;">
-                                                    📅 Termin / Tarih: <strong>{{ $item['date'] }}</strong>
-                                                </span>
-                                            @endif
-                                            @if(!empty($item['responsible']))
-                                                <span style="display: inline-flex; align-items: center; gap: 4px; background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; padding: 2px 8px; border-radius: 4px; font-weight: 600;">
-                                                    👤 Sorumlu: <strong>{{ $item['responsible'] }}</strong>
-                                                </span>
-                                            @endif
-                                            @if(!empty($item['notes']))
-                                                <span style="display: inline-flex; align-items: center; gap: 4px; background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; padding: 2px 8px; border-radius: 4px;">
-                                                    ℹ️ Ek Bilgi: {{ $item['notes'] }}
-                                                </span>
-                                            @endif
-                                        </div>
-                                    </div>
-                                </div>
-                            @endforeach
+                    @if($meeting->agenda)
+                        <div class="meeting-rich-content" style="background: #ffffff; padding: 14px 16px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                            {!! $meeting->agenda !!}
                         </div>
                     @else
                         <div style="color: #64748b; font-size: 13px; font-style: italic; background: #f8fafc; padding: 14px; border-radius: 6px; border: 1px dashed #cbd5e1; text-align: center;">
@@ -769,28 +760,27 @@
     </div>
 
     <!-- ========================================================================= -->
-    <!-- MODAL 3: GÜNDEM MADDELERİNİ DÜZENLEME MODALI -->
+    <!-- MODAL 3: GÜNDEM MADDELERİNİ DÜZENLEME MODALI (QUILL.JS ZENGİN METİN) -->
     <!-- ========================================================================= -->
     <div id="editAgendaModal" style="display: none; position: fixed; inset: 0; z-index: 9999; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); align-items: center; justify-content: center; padding: 20px;">
-        <div style="background: #ffffff; border-radius: 12px; max-width: 600px; width: 100%; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2); border: 1px solid #e2e8f0;">
-            <form action="{{ route('meetings.update_agenda', $meeting->id) }}" method="POST">
+        <div style="background: #ffffff; border-radius: 12px; max-width: 650px; width: 100%; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2); border: 1px solid #e2e8f0; overflow: hidden;">
+            <form action="{{ route('meetings.update_agenda', $meeting->id) }}" method="POST" id="editAgendaForm" onsubmit="syncAgendaQuillBeforeSubmit()">
                 @csrf
                 @method('PUT')
                 <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid #e2e8f0; background: #f8fafc;">
                     <span style="font-size: 15px; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 8px;">
-                        <span>📋</span> Gündem Maddelerini Düzenle
+                        <span>📋</span> Gündem Maddelerini Düzenle (Zengin Metin)
                     </span>
                     <button type="button" onclick="closeEditAgendaModal()" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #64748b;">&times;</button>
                 </div>
                 <div style="padding: 20px;">
-                    <label class="form-label" style="font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 6px;">
-                        Maddeleri satır satır yazınız. Dilerseniz tarih ve sorumlu ekleyebilirsiniz:
+                    <label class="form-label" style="font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 6px; display: block;">
+                        Gündem maddelerini liste, kalın, italik ve bağlantılarla biçimlendirebilirsiniz:
                     </label>
-                    <textarea name="agenda" rows="6" class="form-control" style="font-size: 13px; line-height: 1.6;" placeholder="1. Trafo bağlantı ekipmanları satın alma onayı | Sorumlu: Celal Karaman | Termin: 20.10.2026&#10;2. Nakit akış projeksiyonu | Sorumlu: Finans Departmanı">{{ $meeting->agenda }}</textarea>
+                    <div id="quillEditAgendaContainer" style="min-height: 160px; background: #ffffff;"></div>
+                    <input type="hidden" name="agenda" id="editAgendaHiddenInput">
                     <div style="font-size: 11px; color: #64748b; margin-top: 8px; line-height: 1.4;">
-                        💡 Örnek Formatlar:<br>
-                        • <code>1. Trafo bağlantı ekipmanları | Sorumlu: Celal Karaman | Termin: 20.10.2026</code><br>
-                        • <code>2. Nakit akış projeksiyonu (Sorumlu: Erhan Cesur, Tarih: 18.10.2026)</code>
+                        💡 Madde işaretleri, numaralandırma ve vurgular aynen toplantı detayında ve bildirimlerde görüntülenecektir.
                     </div>
                 </div>
                 <div style="display: flex; justify-content: flex-end; gap: 10px; padding: 14px 20px; border-top: 1px solid #e2e8f0; background: #f8fafc;">
@@ -804,6 +794,78 @@
             </form>
         </div>
     </div>
+
+    <!-- ========================================================================= -->
+    <!-- MODAL 4: TOPLANTI ERTELEME MODALI (BİLDİRİM MATRİSİ VE KANALLAR) -->
+    <!-- ========================================================================= -->
+    <div id="postponeModalShowBackdrop" style="display: none; position: fixed; inset: 0; z-index: 9999; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); align-items: center; justify-content: center; padding: 20px;">
+        <div style="background: #ffffff; border-radius: 12px; max-width: 540px; width: 100%; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2); border: 1px solid #e2e8f0; overflow: hidden;">
+            <form action="{{ route('meetings.postpone', $meeting->id) }}" method="POST" id="postponeFormShow">
+                @csrf
+                <div style="padding: 18px 24px; border-bottom: 1px solid #e2e8f0; background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); display: flex; justify-content: space-between; align-items: center;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="font-size: 22px;">⏱️</span>
+                        <div>
+                            <h3 style="margin: 0; font-size: 16px; font-weight: 700; color: #92400e;">Toplantıyı Ertele</h3>
+                            <div style="font-size: 12px; color: #b45309;">Yeni tarih belirleyip katılımcılara bilgilendirme iletin</div>
+                        </div>
+                    </div>
+                    <button type="button" onclick="closePostponeModalShow()" style="background: none; border: none; font-size: 22px; cursor: pointer; color: #92400e; line-height: 1;">&times;</button>
+                </div>
+
+                <div style="padding: 22px 24px; display: flex; flex-direction: column; gap: 16px;">
+                    <div>
+                        <div style="font-size: 13px; font-weight: 700; color: #1e293b; margin-bottom: 2px;">{{ $meeting->title }}</div>
+                        <div style="font-size: 11.5px; color: #64748b;">Mevcut Tarih: {{ $meeting->meeting_date->format('d.m.Y H:i') }}</div>
+                    </div>
+
+                    <div>
+                        <label class="form-label" style="font-weight: 700; font-size: 12px; color: #334155; margin-bottom: 6px; display: block;">
+                            📅 Yeni Toplantı Tarihi & Saati <span style="color: #ef4444;">*</span>
+                        </label>
+                        <input type="datetime-local" name="new_meeting_date" value="{{ $meeting->meeting_date->format('Y-m-d\TH:i') }}" class="form-control" required style="border: 1px solid #cbd5e1; border-radius: 6px; padding: 9px 12px; font-size: 13px; width: 100%; box-sizing: border-box;">
+                    </div>
+
+                    <div>
+                        <label class="form-label" style="font-weight: 700; font-size: 12px; color: #334155; margin-bottom: 6px; display: block;">
+                            📍 Toplantı Yeri / Ortamı (İsteğe Bağlı)
+                        </label>
+                        <input type="text" name="location" value="{{ $meeting->location }}" class="form-control" placeholder="Örn: 2. OSB Şantiye Ofisi veya Teams Linki" style="border: 1px solid #cbd5e1; border-radius: 6px; padding: 9px 12px; font-size: 13px; width: 100%; box-sizing: border-box;">
+                    </div>
+
+                    <div>
+                        <label class="form-label" style="font-weight: 700; font-size: 12px; color: #334155; margin-bottom: 6px; display: block;">
+                            📝 Erteleme Nedeni / Açıklama Notu
+                        </label>
+                        <textarea name="postpone_reason" rows="3" class="form-control" placeholder="Örn: Saha şefinin acil beton döküm denetimi nedeniyle toplantı ertelenmiştir." style="border: 1px solid #cbd5e1; border-radius: 6px; padding: 9px 12px; font-size: 13px; width: 100%; box-sizing: border-box; line-height: 1.5;"></textarea>
+                    </div>
+
+                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px;">
+                        <div style="font-size: 12px; font-weight: 700; color: #475569; margin-bottom: 8px;">📢 Katılımcı Bilgilendirme Kanalları (Bildirim Matrisi):</div>
+                        <div style="display: flex; gap: 20px; font-size: 12.5px;">
+                            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                                <input type="checkbox" name="notify_bell" value="1" checked style="accent-color: #d97706;">
+                                🔔 Zil Bildirimi Gönder
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                                <input type="checkbox" name="notify_mail" value="1" checked style="accent-color: #d97706;">
+                                📧 E-Posta Gönder
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 10px; padding: 16px 24px; border-top: 1px solid #e2e8f0; background: #f8fafc;">
+                    <button type="button" onclick="closePostponeModalShow()" class="btn btn-outline" style="font-size: 12px; padding: 8px 16px; border-radius: 6px; border: 1px solid #cbd5e1; background: #ffffff; color: #475569; font-weight: 600;">
+                        Vazgeç
+                    </button>
+                    <button type="submit" class="btn btn-primary" style="font-size: 12px; padding: 8px 20px; border-radius: 6px; font-weight: 700; background: #d97706; border-color: #b45309; color: #ffffff;">
+                        ⏱️ Toplantıyı Ertele ve Bildir
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 @endsection
 
 @push('scripts')
@@ -811,9 +873,10 @@
     <script src="{{ asset('vendor/quill/quill.js') }}"></script>
     <script>
         let quillMinutes = null;
+        let quillEditAgenda = null;
 
         document.addEventListener('DOMContentLoaded', function () {
-            // 1. Quill Editor Başlatma
+            // 1. Tutanak Quill Editörü Başlatma
             const minutesContainer = document.getElementById('quillMinutesEditorContainer');
             if (minutesContainer && typeof Quill !== 'undefined') {
                 quillMinutes = new Quill(minutesContainer, {
@@ -845,6 +908,27 @@
                     }
                 });
             }
+
+            // 2. Gündem Düzenleme Quill Editörü Başlatma
+            const editAgendaContainer = document.getElementById('quillEditAgendaContainer');
+            if (editAgendaContainer && typeof Quill !== 'undefined') {
+                quillEditAgenda = new Quill(editAgendaContainer, {
+                    theme: 'snow',
+                    placeholder: '1. Temel beton kırım test sonuçlarının değerlendirilmesi\n2. Vinç kurulum sahası zemin sertleştirme kontrolü...',
+                    modules: {
+                        toolbar: [
+                            ['bold', 'italic', 'underline'],
+                            [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+                            ['link', 'clean']
+                        ]
+                    }
+                });
+
+                const initialAgenda = {!! json_encode($meeting->agenda ?? '') !!};
+                if (initialAgenda) {
+                    quillEditAgenda.root.innerHTML = initialAgenda;
+                }
+            }
         });
 
         function syncQuillBeforeSubmit() {
@@ -852,6 +936,16 @@
                 const hiddenInput = document.getElementById('minutesHiddenInput');
                 if (hiddenInput) {
                     hiddenInput.value = quillMinutes.root.innerHTML;
+                }
+            }
+            return true;
+        }
+
+        function syncAgendaQuillBeforeSubmit() {
+            if (quillEditAgenda) {
+                const hiddenInput = document.getElementById('editAgendaHiddenInput');
+                if (hiddenInput) {
+                    hiddenInput.value = (quillEditAgenda.getText().trim() === '') ? '' : quillEditAgenda.root.innerHTML;
                 }
             }
             return true;
@@ -902,6 +996,23 @@
             }
         }
 
+        // ==========================================
+        // TOPLANTI ERTELEME MODALI (SHOW VIEW)
+        // ==========================================
+        function openPostponeModalShow() {
+            const modal = document.getElementById('postponeModalShowBackdrop');
+            if (modal) {
+                modal.style.display = 'flex';
+            }
+        }
+
+        function closePostponeModalShow() {
+            const modal = document.getElementById('postponeModalShowBackdrop');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        }
+
         // Toplu Checkbox Seç/Kaldır
         let bellAllState = true;
         let mailAllState = true;
@@ -938,10 +1049,12 @@
             const previewModal = document.getElementById('projectPreviewModal');
             const statusModal = document.getElementById('statusActionModal');
             const agendaModal = document.getElementById('editAgendaModal');
+            const postponeModal = document.getElementById('postponeModalShowBackdrop');
 
             if (event.target === previewModal) closeProjectPreviewModal();
             if (event.target === statusModal) closeStatusActionModal();
             if (event.target === agendaModal) closeEditAgendaModal();
+            if (event.target === postponeModal) closePostponeModalShow();
         });
     </script>
 @endpush

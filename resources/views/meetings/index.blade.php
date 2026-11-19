@@ -4,16 +4,139 @@
 @section('page_title', 'Toplantı & Koordinasyon Yönetimi')
 @section('page_subtitle', 'Gündemler, katılımcı yoklaması, tutanaklar ve SAP ekip modeliyle karardan göreve dönüşüm')
 
+@push('styles')
+    <!-- Quill.js Zengin Metin Editörü Stilleri -->
+    <link rel="stylesheet" href="{{ asset('vendor/quill/quill.snow.css') }}">
+    <style>
+        .ql-toolbar.ql-snow {
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
+            border-color: #cbd5e1;
+            background: #f8fafc;
+        }
+        .ql-container.ql-snow {
+            border-bottom-left-radius: 8px;
+            border-bottom-right-radius: 8px;
+            border-color: #cbd5e1;
+            font-family: inherit;
+            font-size: 13.5px;
+            min-height: 120px;
+            background: #ffffff;
+        }
+        .ql-editor {
+            line-height: 1.6;
+            color: #1e293b;
+            min-height: 120px;
+        }
+        .meeting-rich-content {
+            font-size: 13px;
+            line-height: 1.65;
+            color: #334155;
+        }
+        .meeting-rich-content p {
+            margin-bottom: 6px;
+        }
+        .meeting-rich-content ul, .meeting-rich-content ol {
+            padding-left: 20px;
+            margin-bottom: 6px;
+        }
+
+        /* Katılımcı Arama & Rozet Stilleri */
+        .participant-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #e0f2fe;
+            color: #0369a1;
+            border: 1px solid #bae6fd;
+            border-radius: 20px;
+            padding: 4px 10px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .participant-chip .remove-chip {
+            background: none;
+            border: none;
+            color: #0284c7;
+            cursor: pointer;
+            font-weight: 800;
+            padding: 0;
+            line-height: 1;
+            font-size: 14px;
+        }
+        .participant-chip .remove-chip:hover {
+            color: #dc2626;
+        }
+
+        .user-search-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.12);
+            z-index: 1050;
+            max-height: 240px;
+            overflow-y: auto;
+            display: none;
+        }
+        .user-search-item {
+            padding: 8px 12px;
+            border-bottom: 1px solid #f1f5f9;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.15s ease;
+        }
+        .user-search-item:hover {
+            background: #f0f9ff;
+        }
+
+        /* Erteleme Modalı */
+        .postpone-modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(4px);
+            z-index: 9999;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .postpone-modal-card {
+            background: #ffffff;
+            width: 100%;
+            max-width: 560px;
+            border-radius: 14px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.25);
+            overflow: hidden;
+            animation: modalFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: scale(0.96); }
+            to { opacity: 1; transform: scale(1); }
+        }
+    </style>
+@endpush
+
 @section('content')
-    <!-- ÜST İSTATİSTİK & FİLTRE ŞERİDİ -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 20px;">
+    <!-- ÜST İSTATİSTİK ŞERİDİ -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 16px; margin-bottom: 20px;">
         <div class="card" style="padding: 16px; display: flex; align-items: center; gap: 14px; margin-bottom: 0;">
             <div style="width: 44px; height: 44px; border-radius: 10px; background: #eff6ff; color: #2563eb; display: flex; align-items: center; justify-content: center; font-size: 20px;">
                 📅
             </div>
             <div>
                 <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Toplam Toplantı</div>
-                <div style="font-size: 20px; font-weight: 800; color: var(--navy);">{{ $stats['total'] ?? $meetings->count() }}</div>
+                <div style="font-size: 20px; font-weight: 800; color: var(--navy);">{{ number_format($stats['total'] ?? 0) }}</div>
             </div>
         </div>
 
@@ -23,7 +146,17 @@
             </div>
             <div>
                 <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Planlanan / Bekleyen</div>
-                <div style="font-size: 20px; font-weight: 800; color: #b45309;">{{ $stats['scheduled'] ?? 0 }}</div>
+                <div style="font-size: 20px; font-weight: 800; color: #b45309;">{{ number_format($stats['scheduled'] ?? 0) }}</div>
+            </div>
+        </div>
+
+        <div class="card" style="padding: 16px; display: flex; align-items: center; gap: 14px; margin-bottom: 0;">
+            <div style="width: 44px; height: 44px; border-radius: 10px; background: #fffbeb; color: #d97706; display: flex; align-items: center; justify-content: center; font-size: 20px; border: 1px solid #fde68a;">
+                ⏳
+            </div>
+            <div>
+                <div style="font-size: 11px; font-weight: 700; color: #b45309; text-transform: uppercase;">Ertelenen Toplantılar</div>
+                <div style="font-size: 20px; font-weight: 800; color: #d97706;">{{ number_format($stats['postponed'] ?? 0) }}</div>
             </div>
         </div>
 
@@ -33,7 +166,7 @@
             </div>
             <div>
                 <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Tamamlanan / Tutanaklı</div>
-                <div style="font-size: 20px; font-weight: 800; color: #15803d;">{{ $stats['completed'] ?? 0 }}</div>
+                <div style="font-size: 20px; font-weight: 800; color: #15803d;">{{ number_format($stats['completed'] ?? 0) }}</div>
             </div>
         </div>
     </div>
@@ -41,19 +174,19 @@
     <!-- YENİ TOPLANTI PLANLAMA KARTI -->
     @if(!auth()->user()->isYonetim() && (auth()->user()->isSuperAdmin() || auth()->user()->isAdmin() || auth()->user()->hasPermission('meeting.create') || auth()->user()->hasPermission('meeting.manage')))
     <div class="card" style="margin-bottom: 24px; border: 1px solid #e2e8f0; border-radius: 10px;">
-        <div class="card-header" style="background: #ffffff; border-bottom: 1px solid #e2e8f0; padding: 14px 20px; display: flex; justify-content: space-between; align-items: center;">
+        <div class="card-header" style="background: #ffffff; border-bottom: 1px solid #e2e8f0; padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
             <span class="card-title" style="font-size: 15px; font-weight: 700; color: var(--navy); display: flex; align-items: center; gap: 8px;">
                 <span>➕</span> Yeni Proje Toplantısı Planla
             </span>
-            <span style="font-size: 12px; color: var(--text-muted);">Tüm proje paydaşlarına bildirim ve takvim daveti iletilir</span>
+            <span style="font-size: 12px; color: var(--text-muted);">Tüm proje paydaşlarına bildirim ve takvim daveti (Zil & Mail) iletilir</span>
         </div>
         <div class="card-body" style="padding: 20px;">
-            <form action="{{ route('meetings.store') }}" method="POST">
+            <form action="{{ route('meetings.store') }}" method="POST" id="createMeetingForm">
                 @csrf
-                <div style="display: grid; grid-template-columns: 1.2fr 2fr 1.2fr 1.2fr; gap: 16px; margin-bottom: 16px;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 16px;">
                     <div class="form-group" style="margin-bottom: 0;">
                         <label class="form-label" style="font-weight: 600; font-size: 12px;">📁 İlgili Proje *</label>
-                        <select name="project_id" class="form-control" required style="font-size: 13px;">
+                        <select name="project_id" id="meetingProjectSelect" class="form-control" required style="font-size: 13px;" onchange="handleProjectChange(this.value)">
                             <option value="">-- Proje Seçiniz --</option>
                             @foreach($projects as $p)
                                 <option value="{{ $p->id }}" {{ (isset($selectedProjectId) && $selectedProjectId == $p->id) ? 'selected' : '' }}>
@@ -79,24 +212,56 @@
                     </div>
                 </div>
 
-                <div style="display: grid; grid-template-columns: 2fr 1.2fr; gap: 16px; margin-bottom: 16px;">
+                <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 16px; margin-bottom: 16px;">
+                    <!-- ZENGİN METİN GÜNDEM ALANI (QUILL.JS) -->
                     <div class="form-group" style="margin-bottom: 0;">
-                        <label class="form-label" style="font-weight: 600; font-size: 12px;">📝 Toplantı Gündemi & Görüşülecek Maddeler</label>
-                        <textarea name="agenda" rows="3" class="form-control" placeholder="1. Temel beton kırım test sonuçlarının değerlendirilmesi&#10;2. Vinç kurulum sahası zemin sertleştirme kontrolü&#10;3. İSG Yüksekte Çalışma İzinlerinin imza süreci..." style="font-size: 13px; line-height: 1.5;"></textarea>
+                        <label class="form-label" style="font-weight: 600; font-size: 12px; display: flex; justify-content: space-between;">
+                            <span>📝 Toplantı Gündemi & Görüşülecek Maddeler (Zengin Metin)</span>
+                            <span style="font-size: 11px; color: #64748b;">Madde işaretleri, numaralandırma ve biçimlendirme desteklenir</span>
+                        </label>
+                        <div id="quillAgendaEditor"></div>
+                        <input type="hidden" name="agenda" id="agendaHiddenInput">
                     </div>
 
+                    <!-- KATILIMCI ARAMA VE ÇOKTAN SEÇİM ALANI -->
                     <div class="form-group" style="margin-bottom: 0;">
-                        <label class="form-label" style="font-weight: 600; font-size: 12px;">👥 Katılımcı Daveti (Zil & Mail Bildirimi İletilir)</label>
-                        <select name="participants[]" class="form-control" multiple style="height: 74px; font-size: 12px;">
-                            @foreach($users as $u)
-                                <option value="{{ $u->id }}">{{ $u->name }} ({{ $u->title ?? 'Personel' }})</option>
-                            @endforeach
-                        </select>
-                        <small style="color: var(--text-muted); font-size: 11px;">Birden fazla kişi seçmek için Ctrl tuşunu kullanabilirsiniz.</small>
+                        <label class="form-label" style="font-weight: 600; font-size: 12px;">
+                            👥 Katılımcı Daveti (Zil & Mail Bildirimi İletilir)
+                        </label>
+                        
+                        <!-- SEÇİLİ KATILIMCI ROZETLERİ -->
+                        <div id="selectedParticipantsContainer" style="display: flex; flex-wrap: wrap; gap: 6px; min-height: 34px; padding: 6px; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px; margin-bottom: 8px;">
+                            <span id="noParticipantPlaceholder" style="font-size: 12px; color: #94a3b8; align-self: center; padding-left: 4px;">
+                                Henüz katılımcı seçilmedi. Aşağıdan arayarak ekleyebilirsiniz.
+                            </span>
+                        </div>
+                        <div id="hiddenParticipantsInputs"></div>
+
+                        <!-- ARAMA KUTUSU VE ANLIK DROPDOWN -->
+                        <div style="position: relative;">
+                            <input type="text" id="participantSearchInput" class="form-control" placeholder="İsim, unvan veya departman ile ara..." style="font-size: 13px;" autocomplete="off" onfocus="showSearchDropdown()" oninput="handleParticipantSearch(this.value)">
+                            
+                            <div id="participantSearchDropdown" class="user-search-dropdown">
+                                <div id="participantSearchResults">
+                                    @foreach($initialUsers as $u)
+                                        <div class="user-search-item" onclick="addParticipant({{ $u->id }}, '{{ addslashes($u->name) }}', '{{ addslashes($u->unvan ?? ($u->title ?? 'Personel')) }}')">
+                                            <div>
+                                                <div style="font-weight: 600; font-size: 12.5px; color: #0f172a;">{{ $u->name }}</div>
+                                                <div style="font-size: 11px; color: #64748b;">{{ $u->unvan ?? ($u->title ?? 'Personel') }} • {{ $u->bolum?->ad ?? ($u->bolum?->name ?? 'Merkez') }}</div>
+                                            </div>
+                                            <span style="font-size: 11px; font-weight: 700; color: #0284c7; background: #e0f2fe; padding: 2px 8px; border-radius: 4px;">+ Ekle</span>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                        </div>
+                        <small style="color: var(--text-muted); font-size: 11px; display: block; margin-top: 4px;">
+                            💡 Katılımcı eklemek için listeden seçiniz. Seçilen her kullanıcıya davet bildirimi gidecektir.
+                        </small>
                     </div>
                 </div>
 
-                <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #f1f5f9; padding-top: 14px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #f1f5f9; padding-top: 14px; flex-wrap: wrap; gap: 10px;">
                     <span style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
                         <span>👤</span> <strong>Planlayan / Düzenleyen:</strong> {{ auth()->user()->name }} ({{ auth()->user()->title ?? 'Proje Yetkilisi' }})
                     </span>
@@ -109,36 +274,64 @@
     </div>
     @endif
 
-    <!-- MEVCUT TOPLANTILAR LİSTESİ -->
+    <!-- MEVCUT TOPLANTILAR LİSTESİ & GELİŞMİŞ FİLTRELEME -->
     <div class="card" style="border: 1px solid #e2e8f0; border-radius: 10px;">
-        <div class="card-header" style="background: #ffffff; border-bottom: 1px solid #e2e8f0; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <span class="card-title" style="font-size: 16px; font-weight: 700; color: var(--navy);">
-                    Planlanan & Tamamlanan Toplantılar
-                </span>
-                <span class="badge" style="background: #f1f5f9; color: #475569; font-weight: 700;">{{ $meetings->count() }} Kayıt</span>
+        <div class="card-header" style="background: #ffffff; border-bottom: 1px solid #e2e8f0; padding: 16px 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span class="card-title" style="font-size: 16px; font-weight: 700; color: var(--navy);">
+                        Planlanan & Tamamlanan Toplantılar
+                    </span>
+                    <span class="badge" style="background: #f1f5f9; color: #475569; font-weight: 700;">
+                        {{ $meetings->total() }} Kayıt
+                    </span>
+                </div>
             </div>
 
-            <!-- PROJE FİLTRESİ -->
-            <form action="{{ route('meetings.index') }}" method="GET" style="display: flex; gap: 10px; align-items: center;">
-                <select name="project_id" class="form-control" style="font-size: 12px; height: 34px; min-width: 200px;" onchange="this.form.submit()">
-                    <option value="">-- Tüm Projelerin Toplantıları --</option>
-                    @foreach($projects as $p)
-                        <option value="{{ $p->id }}" {{ (isset($selectedProjectId) && $selectedProjectId == $p->id) ? 'selected' : '' }}>
-                            {{ $p->code }} - {{ Str::limit($p->title, 30) }}
-                        </option>
-                    @endforeach
-                </select>
-                @if(request()->filled('project_id'))
-                    <a href="{{ route('meetings.index') }}" class="btn btn-sm btn-outline" style="height: 34px; display: flex; align-items: center; font-size: 12px; text-decoration: none;">
-                        Temizle
-                    </a>
-                @endif
+            <!-- ANLIK ARAMA & ÇOKLU FİLTRE ÇUBUĞU -->
+            <form action="{{ route('meetings.index') }}" method="GET" style="display: grid; grid-template-columns: 2fr 1.5fr 1.2fr auto; gap: 10px; align-items: center;">
+                <div>
+                    <input type="text" name="search" value="{{ request('search') }}" placeholder="Toplantı başlığı, gündem, lokasyon veya proje ara..." class="form-control" style="font-size: 12.5px; height: 36px;">
+                </div>
+                <div>
+                    <select name="project_id" class="form-control" style="font-size: 12.5px; height: 36px;">
+                        <option value="">-- Tüm Projelerin Toplantıları --</option>
+                        @foreach($projects as $p)
+                            <option value="{{ $p->id }}" {{ (request('project_id') == $p->id || (isset($selectedProjectId) && $selectedProjectId == $p->id)) ? 'selected' : '' }}>
+                                {{ $p->code }} - {{ Str::limit($p->title, 35) }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <select name="status" class="form-control" style="font-size: 12.5px; height: 36px;">
+                        <option value="all">Tüm Durumlar</option>
+                        <option value="scheduled" {{ request('status') === 'scheduled' ? 'selected' : '' }}>⏱️ Planlanan / Bekleyen</option>
+                        <option value="in_progress" {{ request('status') === 'in_progress' ? 'selected' : '' }}>🔄 Devam Ediyor</option>
+                        <option value="postponed" {{ request('status') === 'postponed' ? 'selected' : '' }}>⏳ Ertelenenler</option>
+                        <option value="completed" {{ request('status') === 'completed' ? 'selected' : '' }}>✅ Tamamlananlar</option>
+                        <option value="cancelled" {{ request('status') === 'cancelled' ? 'selected' : '' }}>❌ İptal Edilenler</option>
+                    </select>
+                </div>
+                <div style="display: flex; gap: 6px;">
+                    <button type="submit" class="btn btn-primary" style="height: 36px; padding: 0 14px; font-size: 12.5px; display: inline-flex; align-items: center; gap: 4px;">
+                        🔍 Filtrele
+                    </button>
+                    @if(request()->hasAny(['search', 'project_id', 'status']))
+                        <a href="{{ route('meetings.index') }}" class="btn btn-outline" style="height: 36px; padding: 0 12px; font-size: 12.5px; display: inline-flex; align-items: center; text-decoration: none; background: #ffffff; border: 1px solid #cbd5e1; color: #64748b;">
+                            ✕ Sıfırla
+                        </a>
+                    @endif
+                </div>
             </form>
         </div>
 
         <div class="card-body" style="padding: 20px;">
             @forelse($meetings as $m)
+                @php
+                    $user = auth()->user();
+                    $canPostpone = !$user->isYonetim() && ($user->isSuperAdmin() || $user->isAdmin() || $user->hasPermission('meeting.manage') || $m->organizer_id === $user->id);
+                @endphp
                 <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); transition: border-color 0.2s;" onmouseover="this.style.borderColor='#93c5fd'" onmouseout="this.style.borderColor='#e2e8f0'">
                     
                     <!-- KART ÜST BAŞLIK, PROJE LİNKİ VE STATÜ -->
@@ -165,6 +358,8 @@
                                     ✅ Tamamlandı
                                 @elseif($m->status === 'in_progress')
                                     🔄 Devam Ediyor
+                                @elseif($m->status === 'postponed')
+                                    ⏳ Ertelendi
                                 @elseif($m->status === 'cancelled')
                                     ❌ İptal Edildi
                                 @else
@@ -174,22 +369,30 @@
                         </div>
 
                         <!-- TARİH VE LOKASYON BİLGİSİ -->
-                        <div style="display: flex; align-items: center; gap: 12px; font-size: 12px; color: #475569; background: #f8fafc; padding: 6px 12px; border-radius: 6px; border: 1px solid #e2e8f0;">
+                        <div style="display: flex; align-items: center; gap: 12px; font-size: 12px; color: #475569; background: #f8fafc; padding: 6px 12px; border-radius: 6px; border: 1px solid #e2e8f0; flex-wrap: wrap;">
                             <span style="font-weight: 600; color: #1e293b; display: inline-flex; align-items: center; gap: 4px;">
                                 📅 {{ $m->meeting_date->format('d.m.Y H:i') }}
                             </span>
                             <span style="color: #cbd5e1;">•</span>
                             <span style="display: inline-flex; align-items: center; gap: 4px;">
-                                📍 {{ $m->location ?? '2. OSB Şantiye Ofisi / Konferans Salonu' }}
+                                📍 {{ $m->location ?? 'Şantiye Ofisi / Konferans Salonu' }}
                             </span>
                         </div>
                     </div>
 
-                    <!-- META BİLGİ ŞERİDİ: PLANLAYAN KİŞİ & KATILIMCILAR -->
+                    <!-- ERTELEME GEREKÇESİ BİLGİ KUTUSU (Eğer Toplantı Ertelenmişse) -->
+                    @if($m->status === 'postponed' && $m->postpone_reason)
+                        <div style="background: #fffbeb; border: 1px solid #fde68a; border-left: 4px solid #f59e0b; border-radius: 6px; padding: 10px 14px; margin-bottom: 14px; font-size: 12.5px; color: #92400e;">
+                            <strong>⏱️ Toplantı Erteleme Gerekçesi / Notu:</strong>
+                            <div style="margin-top: 3px;">{{ $m->postpone_reason }}</div>
+                        </div>
+                    @endif
+
+                    <!-- META BİLGİ ŞERİDİ: PLANLAYAN KİŞİ, KATILIMCILAR VE AKSİYON BUTONLARI -->
                     <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px dashed #e2e8f0; font-size: 12px; flex-wrap: wrap;">
                         <!-- TOPLANTIYI PLANLAYAN KİŞİ -->
                         <div style="display: inline-flex; align-items: center; gap: 6px; background: #f1f5f9; padding: 4px 10px; border-radius: 6px; border: 1px solid #e2e8f0;">
-                            <span style="color: #64748b; font-weight: 600;">👤 Düzenleyen / Moderatör:</span>
+                            <span style="color: #64748b; font-weight: 600;">👤 Düzenleyen:</span>
                             <strong style="color: #0f172a;">{{ $m->organizer ? $m->organizer->getMaskedNameFor(auth()->user()) : 'Proje Yöneticisi' }}</strong>
                             @if($m->organizer?->title)
                                 <span style="color: #64748b; font-size: 11px;">({{ $m->organizer->title }})</span>
@@ -210,8 +413,15 @@
                             </div>
                         @endif
 
-                        <!-- DETAY SAYFASINA GİT BUTONU -->
-                        <div style="margin-left: auto;">
+                        <!-- AKSİYON BUTONLARI (ERTELEME & DETAY) -->
+                        <div style="margin-left: auto; display: flex; gap: 8px; align-items: center;">
+                            @if($canPostpone && $m->status !== 'completed' && $m->status !== 'cancelled')
+                                <button type="button" onclick="openPostponeModal({{ $m->id }}, '{{ addslashes($m->title) }}', '{{ $m->meeting_date->format('Y-m-d\TH:i') }}', '{{ addslashes($m->location ?? '') }}')"
+                                        style="display: inline-flex; align-items: center; gap: 5px; padding: 6px 12px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; font-size: 12px; font-weight: 700; color: #b45309; cursor: pointer;">
+                                    ⏱️ Toplantıyı Ertele
+                                </button>
+                            @endif
+
                             <a href="{{ route('meetings.show', $m->id) }}" 
                                style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 12px; font-weight: 700; color: #1e293b; text-decoration: none; transition: all 0.2s;"
                                onmouseover="this.style.background='#e2e8f0'; this.style.color='#0f172a';"
@@ -221,39 +431,19 @@
                         </div>
                     </div>
 
-                    <!-- GÜNDEM MADDELERİ -->
-                    @if(!empty($m->formatted_agenda_items))
-                        <div style="margin-bottom: 14px; background: #fafafa; padding: 12px 14px; border-radius: 6px; border-left: 3px solid #3b82f6;">
-                            <div style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 6px;">Toplantı Gündem Maddeleri:</div>
-                            <div style="display: flex; flex-direction: column; gap: 6px;">
-                                @foreach($m->formatted_agenda_items as $item)
-                                    <div style="display: flex; align-items: baseline; gap: 8px; font-size: 12.5px; color: #1e293b;">
-                                        <span style="font-weight: 800; color: #2563eb; min-width: 18px;">{{ $item['number'] }}.</span>
-                                        <div style="flex: 1;">
-                                            <span style="font-weight: 600;">{{ $item['title'] }}</span>
-                                            @if($item['date'] || $item['responsible'])
-                                                <span style="display: inline-flex; gap: 6px; margin-left: 6px; font-size: 11px;">
-                                                    @if($item['date'])
-                                                        <span style="background: #fef3c7; color: #92400e; padding: 1px 6px; border-radius: 3px;">📅 {{ $item['date'] }}</span>
-                                                    @endif
-                                                    @if($item['responsible'])
-                                                        <span style="background: #e0f2fe; color: #0369a1; padding: 1px 6px; border-radius: 3px;">👤 {{ $item['responsible'] }}</span>
-                                                    @endif
-                                                </span>
-                                            @endif
-                                        </div>
-                                    </div>
-                                @endforeach
+                    <!-- GÜNDEM MADDELERİ (ZENGİN METİN DESTEKLİ) -->
+                    @if($m->agenda)
+                        <div style="margin-bottom: 14px; background: #fafafa; padding: 14px; border-radius: 6px; border-left: 3px solid #3b82f6;">
+                            <div style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 6px;">
+                                📝 Toplantı Gündem Maddeleri:
                             </div>
-                        </div>
-                    @elseif($m->agenda)
-                        <div style="font-size: 13px; color: #334155; margin-bottom: 14px; line-height: 1.6; background: #fafafa; padding: 12px 14px; border-radius: 6px; border-left: 3px solid #3b82f6;">
-                            <div style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 4px;">Toplantı Gündem Maddeleri:</div>
-                            <div style="white-space: pre-line;">{{ $m->agenda }}</div>
+                            <div class="meeting-rich-content">
+                                {!! $m->agenda !!}
+                            </div>
                         </div>
                     @endif
 
-                    <!-- TOPLANTI TUTANAĞI & NOTLARI (ZENGİN METİN İÇERİĞİ) -->
+                    <!-- TOPLANTI TUTANAĞI & NOTLARI -->
                     @if($m->minutes)
                         <div style="font-size: 13px; color: #334155; margin-bottom: 16px; line-height: 1.6; background: #f0fdf4; padding: 12px 14px; border-radius: 6px; border-left: 3px solid #16a34a;">
                             <div style="font-size: 11px; font-weight: 700; color: #166534; text-transform: uppercase; margin-bottom: 6px; display: flex; align-items: center; gap: 5px;">
@@ -265,9 +455,10 @@
                         </div>
                     @endif
 
-                    <!-- KARARDAN GÖREVE DÖNÜŞTÜRME ALANI (SAP EKİP MANTIĞI VE ETİKETLİ TERMİN TARİHİ) -->
+                    <!-- KARARDAN GÖREVE DÖNÜŞTÜRME ALANI (SAP EKİP MANTIĞI) -->
+                    @if(!auth()->user()->isYonetim())
                     <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 6px;">
                             <div style="font-size: 12px; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 6px;">
                                 <span style="color: #f59e0b;">⚡</span>
                                 <span>Toplantı Kararını Doğrudan Proje Görevine Dönüştür (Kanban / Gantt'a Ekle):</span>
@@ -279,13 +470,11 @@
 
                         <form action="{{ route('meetings.convert_task', $m->id) }}" method="POST" style="display: grid; grid-template-columns: 2fr 1.3fr 1.1fr auto; gap: 10px; align-items: end;">
                             @csrf
-                            <!-- KARAR METNİ -->
                             <div style="display: flex; flex-direction: column;">
                                 <label style="font-size: 11px; font-weight: 600; color: #64748b; margin-bottom: 4px;">Karar / Aksiyon Maddesi *</label>
                                 <input type="text" name="decision_text" class="form-control" placeholder="Örn: Zemin sertleştirme test raporu hazırlanacak..." required style="font-size: 13px;">
                             </div>
 
-                            <!-- SORUMLU: SAP EKİP MANTIĞI VEYA TEKİL KİŞİ -->
                             <div style="display: flex; flex-direction: column;">
                                 <label style="font-size: 11px; font-weight: 600; color: #64748b; margin-bottom: 4px;">Sorumlu (SAP Ekip / Kişi) *</label>
                                 <select name="assigned_target" class="form-control" required style="font-size: 13px;">
@@ -293,22 +482,20 @@
                                         👥 Tüm Proje Ekibi (SAP Modeli / Ortak Görev)
                                     </option>
                                     <optgroup label="Tekil Kişi Sorumlu Ata">
-                                        @foreach($users as $u)
-                                            <option value="{{ $u->id }}">{{ $u->name }} ({{ $u->title ?? 'Ekip Üyesi' }})</option>
+                                        @foreach($initialUsers as $u)
+                                            <option value="{{ $u->id }}">{{ $u->name }} ({{ $u->unvan ?? ($u->title ?? 'Ekip Üyesi') }})</option>
                                         @endforeach
                                     </optgroup>
                                 </select>
                             </div>
 
-                            <!-- TERMİN / BİTİŞ TARİHİ (KULLANICI NE OLDUĞUNU AÇIKÇA GÖRECEK) -->
                             <div style="display: flex; flex-direction: column;">
-                                <label style="font-size: 11px; font-weight: 700; color: #b45309; margin-bottom: 4px;" title="Görevin tamamlanması gereken son tarih">
+                                <label style="font-size: 11px; font-weight: 700; color: #b45309; margin-bottom: 4px;">
                                     📅 Termin / Bitiş Tarihi *
                                 </label>
                                 <input type="date" name="due_date" class="form-control" required style="font-size: 13px;" value="{{ now()->addDays(7)->format('Y-m-d') }}">
                             </div>
 
-                            <!-- GÖREVE DÖNÜŞTÜR BUTONU -->
                             <div>
                                 <button type="submit" class="btn btn-primary" style="white-space: nowrap; height: 38px; display: inline-flex; align-items: center; gap: 6px; font-weight: 600; font-size: 13px; padding: 0 16px;">
                                     <span>➕</span> Göreve Dönüştür
@@ -316,6 +503,7 @@
                             </div>
                         </form>
                     </div>
+                    @endif
 
                     <!-- ÖNCEDEN ALINMIŞ KARARLAR LİSTESİ -->
                     @if($m->actions->count() > 0)
@@ -356,5 +544,248 @@
                 </div>
             @endforelse
         </div>
+
+        <!-- EN ÇOK SON 10 TOPLANTI SAYFALAMA ALANI -->
+        @if($meetings->hasPages())
+            <div style="padding: 16px 20px; border-top: 1px solid #e2e8f0; background: #f8fafc;">
+                {{ $meetings->links() }}
+            </div>
+        @endif
     </div>
+
+    <!-- TOPLANTI ERTELEME MODALI -->
+    <div class="postpone-modal-backdrop" id="postponeModalBackdrop">
+        <div class="postpone-modal-card">
+            <div style="background: linear-gradient(135deg, #d97706 0%, #b45309 100%); color: #ffffff; padding: 18px 24px; display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 20px;">⏱️</span>
+                    <span style="font-weight: 700; font-size: 16px;">Toplantıyı Ertele</span>
+                </div>
+                <button type="button" onclick="closePostponeModal()" style="background: none; border: none; color: #fef3c7; font-size: 20px; cursor: pointer;">✕</button>
+            </div>
+            <form id="postponeForm" method="POST" style="padding: 24px;">
+                @csrf
+                <div style="margin-bottom: 16px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 12px 14px;">
+                    <div style="font-size: 12px; color: #92400e; font-weight: 600;">Ertelenen Toplantı:</div>
+                    <div id="postponeMeetingTitle" style="font-weight: 700; font-size: 14px; color: #78350f; margin-top: 2px;"></div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
+                    <div>
+                        <label style="font-size: 12px; font-weight: 600; color: #334155; margin-bottom: 4px; display: block;">📅 Yeni Tarih & Saat *</label>
+                        <input type="datetime-local" name="new_meeting_date" id="postponeNewDate" required class="form-control" style="font-size: 13px;">
+                    </div>
+                    <div>
+                        <label style="font-size: 12px; font-weight: 600; color: #334155; margin-bottom: 4px; display: block;">📍 Lokasyon / Salon</label>
+                        <input type="text" name="location" id="postponeLocation" class="form-control" placeholder="Toplantı Yeri" style="font-size: 13px;">
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <label style="font-size: 12px; font-weight: 600; color: #334155; margin-bottom: 4px; display: block;">📝 Erteleme Gerekçesi / Notu *</label>
+                    <textarea name="postpone_reason" required rows="3" class="form-control" placeholder="Örn: Saha beton test raporlarının gecikmesi sebebiyle toplantı yarına ertelenmiştir..." style="font-size: 13px; line-height: 1.5;"></textarea>
+                </div>
+
+                <!-- BİLDİRİM MATRİSİ KANALLARI -->
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 14px; margin-bottom: 20px;">
+                    <div style="font-size: 12px; font-weight: 700; color: #0f172a; margin-bottom: 8px;">
+                        📢 Katılımcı Bilgilendirmesi (Bildirim Matrisi):
+                    </div>
+                    <div style="display: flex; gap: 20px;">
+                        <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer; color: #334155;">
+                            <input type="checkbox" name="send_bell" value="1" checked> 🔔 Zil Bildirimi Gönder
+                        </label>
+                        <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer; color: #334155;">
+                            <input type="checkbox" name="send_mail" value="1" checked> ✉️ E-Posta Bildirimi Gönder
+                        </label>
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                    <button type="button" onclick="closePostponeModal()" class="btn btn-outline" style="padding: 8px 16px; font-size: 13px; border: 1px solid #cbd5e1; background: #ffffff;">Vazgeç</button>
+                    <button type="submit" class="btn btn-primary" style="padding: 8px 18px; font-size: 13px; background: #d97706; border-color: #b45309; font-weight: 700;">
+                        <span>⏱️</span> Toplantıyı Ertele ve Bildir
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- SCRIPTS -->
+    <script src="{{ asset('vendor/quill/quill.js') }}"></script>
+    <script>
+        // 1. Gündem Alanı Quill Editörü
+        let quillAgenda = null;
+        document.addEventListener('DOMContentLoaded', function() {
+            const agendaContainer = document.getElementById('quillAgendaEditor');
+            if (agendaContainer && typeof Quill !== 'undefined') {
+                quillAgenda = new Quill(agendaContainer, {
+                    theme: 'snow',
+                    placeholder: '1. Temel beton kırım test sonuçlarının değerlendirilmesi\n2. Vinç kurulum sahası zemin sertleştirme kontrolü\n3. İSG Yüksekte Çalışma İzinlerinin imza süreci...',
+                    modules: {
+                        toolbar: [
+                            ['bold', 'italic', 'underline'],
+                            [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+                            ['link', 'clean']
+                        ]
+                    }
+                });
+            }
+
+            const createForm = document.getElementById('createMeetingForm');
+            if (createForm) {
+                createForm.addEventListener('submit', function(e) {
+                    if (quillAgenda) {
+                        const html = quillAgenda.root.innerHTML;
+                        // Boşsa boş string yap
+                        document.getElementById('agendaHiddenInput').value = (quillAgenda.getText().trim() === '') ? '' : html;
+                    }
+                });
+            }
+        });
+
+        // 2. Katılımcı Arama & Çoklu Seçim Mekanizması
+        const selectedParticipants = new Map(); // id -> {name, title}
+        let searchDebounceTimer = null;
+
+        function addParticipant(id, name, title) {
+            if (selectedParticipants.has(id)) {
+                return;
+            }
+            selectedParticipants.set(id, { name, title });
+            renderSelectedParticipants();
+            closeSearchDropdown();
+            document.getElementById('participantSearchInput').value = '';
+        }
+
+        function removeParticipant(id) {
+            selectedParticipants.delete(id);
+            renderSelectedParticipants();
+        }
+
+        function renderSelectedParticipants() {
+            const container = document.getElementById('selectedParticipantsContainer');
+            const hiddenInputs = document.getElementById('hiddenParticipantsInputs');
+            
+            container.innerHTML = '';
+            hiddenInputs.innerHTML = '';
+
+            if (selectedParticipants.size === 0) {
+                container.innerHTML = '<span id="noParticipantPlaceholder" style="font-size: 12px; color: #94a3b8; align-self: center; padding-left: 4px;">Henüz katılımcı seçilmedi. Aşağıdan arayarak ekleyebilirsiniz.</span>';
+                return;
+            }
+
+            selectedParticipants.forEach((val, id) => {
+                const chip = document.createElement('div');
+                chip.className = 'participant-chip';
+                chip.innerHTML = `
+                    <span>👤 ${escapeHtml(val.name)}</span>
+                    <button type="button" class="remove-chip" onclick="removeParticipant(${id})" title="Kaldır">✕</button>
+                `;
+                container.appendChild(chip);
+
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'participants[]';
+                input.value = id;
+                hiddenInputs.appendChild(input);
+            });
+        }
+
+        function handleParticipantSearch(query) {
+            clearTimeout(searchDebounceTimer);
+            showSearchDropdown();
+
+            searchDebounceTimer = setTimeout(() => {
+                const projectId = document.getElementById('meetingProjectSelect') ? document.getElementById('meetingProjectSelect').value : '';
+                const url = "{{ route('meetings.search_users') }}?q=" + encodeURIComponent(query) + "&project_id=" + encodeURIComponent(projectId);
+
+                fetch(url)
+                    .then(res => res.json())
+                    .then(data => {
+                        const resultsContainer = document.getElementById('participantSearchResults');
+                        resultsContainer.innerHTML = '';
+
+                        if (!data.users || data.users.length === 0) {
+                            resultsContainer.innerHTML = '<div style="padding: 12px; font-size: 12px; color: #64748b; text-align: center;">Kullanıcı bulunamadı.</div>';
+                            return;
+                        }
+
+                        data.users.forEach(u => {
+                            const isSelected = selectedParticipants.has(u.id);
+                            const item = document.createElement('div');
+                            item.className = 'user-search-item';
+                            if (isSelected) {
+                                item.style.opacity = '0.5';
+                                item.style.pointerEvents = 'none';
+                            }
+                            item.onclick = () => addParticipant(u.id, u.name, u.title);
+                            item.innerHTML = `
+                                <div>
+                                    <div style="font-weight: 600; font-size: 12.5px; color: #0f172a;">
+                                        ${escapeHtml(u.name)}
+                                        ${u.is_project_member ? '<span style="font-size: 10px; background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; padding: 1px 5px; border-radius: 4px; margin-left: 4px;">Proje Ekibi</span>' : ''}
+                                    </div>
+                                    <div style="font-size: 11px; color: #64748b;">${escapeHtml(u.title || 'Personel')} • ${escapeHtml(u.department || 'Merkez')}</div>
+                                </div>
+                                <span style="font-size: 11px; font-weight: 700; color: #0284c7; background: #e0f2fe; padding: 2px 8px; border-radius: 4px;">
+                                    ${isSelected ? 'Seçildi' : '+ Ekle'}
+                                </span>
+                            `;
+                            resultsContainer.appendChild(item);
+                        });
+                    })
+                    .catch(err => {
+                        console.error('Kullanıcı arama hatası:', err);
+                    });
+            }, 250);
+        }
+
+        function showSearchDropdown() {
+            document.getElementById('participantSearchDropdown').style.display = 'block';
+        }
+
+        function closeSearchDropdown() {
+            document.getElementById('participantSearchDropdown').style.display = 'none';
+        }
+
+        function handleProjectChange(projectId) {
+            if (projectId) {
+                // Proje değiştiğinde arama listesini tetikle
+                handleParticipantSearch('');
+            }
+        }
+
+        document.addEventListener('click', function(e) {
+            const dropdown = document.getElementById('participantSearchDropdown');
+            const searchInput = document.getElementById('participantSearchInput');
+            if (dropdown && searchInput && !dropdown.contains(e.target) && e.target !== searchInput) {
+                closeSearchDropdown();
+            }
+        });
+
+        // 3. Toplantı Erteleme Modalı
+        function openPostponeModal(meetingId, title, currentDate, location) {
+            document.getElementById('postponeMeetingTitle').innerText = title;
+            document.getElementById('postponeNewDate').value = currentDate;
+            document.getElementById('postponeLocation').value = location || '';
+            document.getElementById('postponeForm').action = "{{ url('/toplantilar') }}/" + meetingId + "/postpone";
+            document.getElementById('postponeModalBackdrop').style.display = 'flex';
+        }
+
+        function closePostponeModal() {
+            document.getElementById('postponeModalBackdrop').style.display = 'none';
+        }
+
+        document.getElementById('postponeModalBackdrop').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closePostponeModal();
+            }
+        });
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+    </script>
 @endsection

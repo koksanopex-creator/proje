@@ -39,7 +39,7 @@ class NotificationMatrixService
             $targetUser = User::with(['roles', 'bolum'])->find($specificUserId);
             if ($targetUser && $targetUser->is_active) {
                 $roleIds = $targetUser->roles->pluck('id')->toArray();
-                
+
                 $matrixEntries = NotificationMatrix::where('event_key', $eventKey)
                     ->whereIn('role_id', $roleIds)
                     ->get();
@@ -77,8 +77,8 @@ class NotificationMatrixService
                 foreach ($usersInRole as $u) {
                     $recipients->push([
                         'user' => $u,
-                        'bell' => (bool)$entry->is_bell_active,
-                        'mail' => (bool)$entry->is_mail_active,
+                        'bell' => (bool) $entry->is_bell_active,
+                        'mail' => (bool) $entry->is_mail_active,
                     ]);
                 }
             }
@@ -275,12 +275,12 @@ class NotificationMatrixService
         $recipients = collect();
 
         if ($isCustomSelection) {
-            $allTargetIds = array_unique(array_merge((array)$notifyBellUserIds, (array)$notifyMailUserIds));
+            $allTargetIds = array_unique(array_merge((array) $notifyBellUserIds, (array) $notifyMailUserIds));
             if (!empty($allTargetIds)) {
                 $targetUsers = User::with('bolum')->whereIn('id', $allTargetIds)->where('is_active', true)->get();
                 foreach ($targetUsers as $u) {
-                    $wantsBell = in_array($u->id, (array)$notifyBellUserIds);
-                    $wantsMail = in_array($u->id, (array)$notifyMailUserIds);
+                    $wantsBell = in_array($u->id, (array) $notifyBellUserIds);
+                    $wantsMail = in_array($u->id, (array) $notifyMailUserIds);
                     if ($wantsBell || $wantsMail) {
                         $recipients->push([
                             'user' => $u,
@@ -643,8 +643,8 @@ class NotificationMatrixService
     {
         foreach ($variables as $key => $val) {
             if (is_scalar($val)) {
-                $template = str_replace("{{$key}}", (string)$val, $template);
-                $template = str_replace("{" . $key . "}", (string)$val, $template);
+                $template = str_replace("{{$key}}", (string) $val, $template);
+                $template = str_replace("{" . $key . "}", (string) $val, $template);
             }
         }
         return $template;
@@ -665,8 +665,8 @@ class NotificationMatrixService
     {
         foreach ($variables as $key => $val) {
             if (is_scalar($val)) {
-                $template = str_replace("{{$key}}", (string)$val, $template);
-                $template = str_replace("{" . $key . "}", (string)$val, $template);
+                $template = str_replace("{{$key}}", (string) $val, $template);
+                $template = str_replace("{" . $key . "}", (string) $val, $template);
             }
         }
         return $template;
