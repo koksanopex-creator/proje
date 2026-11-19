@@ -182,11 +182,152 @@ class UserRoleController extends Controller
     }
 
     /**
-     * Merkezi API / Veritabanından anında senkronizasyon tetikler.
+     * Merkezi Yönetim Sistemi (merkezi_auth_db veya merkezi_app) kullanıcılarında arama yapar.
+     */
+    public function searchCentralUsers(Request $request)
+    {
+        $q = trim($request->get('q', ''));
+        if (strlen($q) < 2) {
+            return response()->json(['success' => true, 'users' => []]);
+        }
+
+        $centralDb = null;
+        try {
+            $hasDb = \Illuminate\Support\Facades\DB::select("SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME IN ('merkezi_auth_db', 'merkezi_app') ORDER BY FIELD(SCHEMA_NAME, 'merkezi_auth_db', 'merkezi_app') LIMIT 1");
+            if (!empty($hasDb)) {
+                $centralDb = $hasDb[0]->SCHEMA_NAME ?? $hasDb[0]->schema_name;
+            }
+        } catch (\Throwable $e) {}
+
+        if (!$centralDb) {
+            return response()->json(['success' => false, 'users' => [], 'message' => 'Merkezi veritabanı bulunamadı.']);
+        }
+
+        // Mevcut PMS kullanıcılarının email ve central_user_id listesi
+        $existingEmails = User::pluck('email')->map(fn($e) => strtolower($e))->toArray();
+        $existingCentralIds = User::whereNotNull('central_user_id')->pluck('central_user_id')->toArray();
+
+        $results = \Illuminate\Support\Facades\DB::table("{$centralDb}.users as u")
+            ->leftJoin("{$centralDb}.departments as d", 'u.department_id', '=', 'd.id')
+            ->whereNull('u.deleted_at')
+            ->where('u.is_customer', 0)
+            ->where(function ($sub) use ($q) {
+                $sub->where('u.first_name', 'like', "%{$q}%")
+                    ->orWhere('u.last_name', 'like', "%{$q}%")
+                    ->orWhere('u.email', 'like', "%{$q}%")
+                    ->orWhere('u.registration_no', 'like', "%{$q}%")
+                    ->orWhere('u.job_title', 'like', "%{$q}%");
+            })
+            ->select([
+                'u.id',
+                'u.first_name',
+                'u.last_name',
+                'u.email',
+                'u.registration_no as sicil_no',
+                'u.job_title as unvan',
+                'u.phone',
+                'u.profile_photo as avatar',
+                'd.name as department_name',
+            ])
+            ->limit(25)
+            ->get();
+
+        $formatted = $results->map(function ($u) use ($existingEmails, $existingCentralIds) {
+            $fullName = trim($u->first_name . ' ' . $u->last_name);
+            $lowerEmail = strtolower($u->email ?? '');
+            $isImported = in_array($lowerEmail, $existingEmails) || in_array($u->id, $existingCentralIds);
+
+            return [
+                'id' => $u->id,
+                'name' => $fullName,
+                'email' => $u->email,
+                'sicil_no' => $u->sicil_no,
+                'unvan' => $u->unvan ?? 'Uzman',
+                'department_name' => $u->department_name ?? 'Genel',
+                'avatar' => $u->avatar,
+                'is_imported' => $isImported,
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'users' => $formatted,
+        ]);
+    }
+
+    /**
+     * Merkezi Sistemden seçilen kullanıcıyı tekil olarak PMS'e aktarır ve rolünü atar.
+     */
+    public function importCentralUser(Request $request)
+    {
+        $request->validate([
+            'central_user_id' => 'required|integer',
+            'role_id' => 'nullable|exists:roles,id',
+        ]);
+
+        $centralId = (int)$request->central_user_id;
+
+        $centralDb = null;
+        try {
+            $hasDb = \Illuminate\Support\Facades\DB::select("SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME IN ('merkezi_auth_db', 'merkezi_app') ORDER BY FIELD(SCHEMA_NAME, 'merkezi_auth_db', 'merkezi_app') LIMIT 1");
+            if (!empty($hasDb)) {
+                $centralDb = $hasDb[0]->SCHEMA_NAME ?? $hasDb[0]->schema_name;
+            }
+        } catch (\Throwable $e) {}
+
+        if (!$centralDb) {
+            return response()->json(['success' => false, 'message' => 'Merkezi veritabanı bulunamadı.'], 500);
+        }
+
+        $rawUser = \Illuminate\Support\Facades\DB::table("{$centralDb}.users as u")
+            ->leftJoin("{$centralDb}.departments as d", 'u.department_id', '=', 'd.id')
+            ->where('u.id', $centralId)
+            ->select([
+                'u.id',
+                'u.first_name',
+                'u.last_name',
+                'u.email',
+                'u.registration_no',
+                'u.job_title',
+                'u.phone',
+                'u.is_active',
+                'u.profile_photo',
+                'u.password',
+                'd.name as department_name',
+            ])
+            ->first();
+
+        if (!$rawUser) {
+            return response()->json(['success' => false, 'message' => 'Merkezi sistemde bu kullanıcı bulunamadı.'], 404);
+        }
+
+        $userData = (array)$rawUser;
+        $user = UserSyncService::syncSingleUser($userData);
+
+        if ($request->filled('role_id')) {
+            $user->roles()->syncWithoutDetaching([(int)$request->role_id]);
+        }
+
+        AuditLogService::log(
+            'created',
+            "Merkezi Sistemden Kullanıcı Aktarıldı: '{$user->name}' ({$user->email}).",
+            'User',
+            $user->id
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => "'{$user->name}' kullanıcısı merkezi sistemden başarıyla projeye eklendi.",
+            'user' => $user->load('roles', 'bolum'),
+        ]);
+    }
+
+    /**
+     * Merkezi API / Veritabanından yalnızca mevcut kayıtlı kullanıcıların bilgilerini günceller.
      */
     public function syncFromCentral(Request $request)
     {
-        $result = UserSyncService::syncFromCentral();
+        $result = UserSyncService::syncExistingUsersFromCentral();
 
         if ($request->expectsJson() || $request->ajax()) {
             return response()->json($result);

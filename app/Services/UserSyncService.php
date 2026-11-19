@@ -14,6 +14,81 @@ use Illuminate\Support\Facades\Log;
 class UserSyncService
 {
     /**
+     * Yalnızca mevcut PMS kullanıcılarının profil bilgilerini (unvan, departman, avatar vb.) merkezden günceller.
+     * Asla yeni kullanıcı eklemez.
+     *
+     * @return array
+     */
+    public static function syncExistingUsersFromCentral(): array
+    {
+        $updated = 0;
+        $users = User::all();
+
+        if ($users->isEmpty()) {
+            return [
+                'success' => true,
+                'updated' => 0,
+                'total' => 0,
+                'message' => 'Güncellenecek sistem kullanıcısı bulunamadı.',
+            ];
+        }
+
+        $centralUsers = self::fetchUsersFromCentralDatabase();
+        if (empty($centralUsers)) {
+            $centralUsers = self::fetchUsersFromCentralApi();
+        }
+
+        $centralMapByEmail = [];
+        $centralMapById = [];
+        foreach ($centralUsers as $cu) {
+            if (!empty($cu['email'])) {
+                $centralMapByEmail[strtolower(trim($cu['email']))] = $cu;
+            }
+            if (!empty($cu['id'])) {
+                $centralMapById[(int)$cu['id']] = $cu;
+            }
+        }
+
+        foreach ($users as $u) {
+            $matched = null;
+            if (!empty($u->central_user_id) && isset($centralMapById[(int)$u->central_user_id])) {
+                $matched = $centralMapById[(int)$u->central_user_id];
+            } elseif (!empty($u->email) && isset($centralMapByEmail[strtolower(trim($u->email))])) {
+                $matched = $centralMapByEmail[strtolower(trim($u->email))];
+            }
+
+            if ($matched) {
+                $bolumId = $u->bolum_id;
+                if (!empty($matched['department_name'])) {
+                    $bolum = Bolum::firstOrCreate(
+                        ['ad' => trim($matched['department_name'])],
+                        ['is_active' => true]
+                    );
+                    $bolumId = $bolum->id;
+                }
+
+                $u->update([
+                    'central_user_id' => $matched['id'] ?? $u->central_user_id,
+                    'name' => trim($matched['name'] ?? (($matched['first_name'] ?? '') . ' ' . ($matched['last_name'] ?? ''))),
+                    'sicil_no' => $matched['sicil_no'] ?? $matched['registration_no'] ?? $u->sicil_no,
+                    'unvan' => $matched['unvan'] ?? $matched['job_title'] ?? $u->unvan,
+                    'phone' => $matched['phone'] ?? $matched['telefon'] ?? $u->phone,
+                    'bolum_id' => $bolumId,
+                    'avatar' => $matched['profile_photo'] ?? $matched['avatar'] ?? $u->avatar,
+                ]);
+                $updated++;
+            }
+        }
+
+        return [
+            'success' => true,
+            'updated' => $updated,
+            'total' => $users->count(),
+            'message' => "Mevcut {$updated} kullanıcının merkezi bilgileri başarıyla güncellendi.",
+        ];
+    }
+
+    /**
      * Merkezi Sistemden (Veritabanı veya REST API) tüm kullanıcıları senkronize eder.
      *
      * @return array

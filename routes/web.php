@@ -156,6 +156,8 @@ Route::middleware('auth')->group(function () {
         Route::delete('/roller/{id}', [RoleController::class, 'destroy'])->name('roles.destroy');
         // Kullanıcı & Çoklu Rol Yetkilendirme Paneli
         Route::get('/kullanici-rolleri', [UserRoleController::class, 'index'])->name('user_roles.index');
+        Route::get('/kullanici-rolleri/search-central', [UserRoleController::class, 'searchCentralUsers'])->name('user_roles.search_central');
+        Route::post('/kullanici-rolleri/import-central', [UserRoleController::class, 'importCentralUser'])->name('user_roles.import_central');
         Route::post('/kullanici-rolleri', [UserRoleController::class, 'storeUser'])->name('user_roles.store');
         Route::post('/kullanici-rolleri/{id}/roller', [UserRoleController::class, 'updateRoles'])->name('user_roles.update');
         Route::post('/kullanici-rolleri/{id}/toggle-rol', [UserRoleController::class, 'toggleRole'])->name('user_roles.toggle_role');

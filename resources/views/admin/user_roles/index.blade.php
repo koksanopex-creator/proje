@@ -292,13 +292,17 @@
         </p>
     </div>
     <div class="header-right">
-        <button type="button" class="matrix-header-btn-primary" onclick="openCreateUserModal()" title="Yeni Test veya Sistem Kullanıcısı Ekle">
-            <span>➕</span>
-            <span>Yeni Kullanıcı Ekle</span>
+        <button type="button" class="matrix-header-btn-primary" onclick="openCentralUserModal()" title="Merkezi Yönetim Sisteminden (merkezi_auth_db) Personel Ara ve Projeye Çek" style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);">
+            <span>🏢</span>
+            <span>Merkezden Kullanıcı Çek</span>
         </button>
-        <button type="button" class="matrix-header-btn-secondary" id="btnSyncCentralUsers" onclick="triggerCentralSync()" title="Merkezi API'den kullanıcı ve bölümleri şimdi senkronize et">
+        <button type="button" class="matrix-header-btn-secondary" onclick="openCreateUserModal()" title="Özel Manuel Kullanıcı Ekle">
+            <span>➕</span>
+            <span>Manuel Kullanıcı</span>
+        </button>
+        <button type="button" class="matrix-header-btn-secondary" id="btnSyncCentralUsers" onclick="triggerCentralSync()" title="Mevcut kayıtlı kullanıcıların unvan ve departman bilgilerini merkezden güncelle">
             <span id="syncIconSpan">🔄</span>
-            <span id="syncTextSpan">Merkezden Senkronize Et</span>
+            <span id="syncTextSpan">Mevcutları Güncelle</span>
         </button>
         <a href="{{ route('admin.roles.index') }}" class="matrix-header-btn-secondary" title="Rol Tanımlarını ve Renklerini Yönet">
             <span>🎭</span>
@@ -704,6 +708,64 @@
                     <span id="saveRolesBtnText">Yetkileri Kaydet</span>
                 </button>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- =========================================================================
+     MERKEZİ SİSTEMDEN KULLANICI ÇEKME / ARAMA MODALI
+     ========================================================================= -->
+<div id="centralUserModalBackdrop" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(4px); z-index: 10050; align-items: center; justify-content: center; padding: 16px;" onclick="if(event.target===this) closeCentralUserModal()">
+    <div style="background: #ffffff; border-radius: 16px; width: 100%; max-width: 780px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35); border: 1px solid #e2e8f0;" onclick="event.stopPropagation()">
+        <!-- Header -->
+        <div style="padding: 18px 24px; background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: #ffffff; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="width: 40px; height: 40px; border-radius: 10px; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 20px;">
+                    🏢
+                </div>
+                <div>
+                    <h3 style="font-size: 16px; font-weight: 800; color: #ffffff; margin: 0;">Merkezi Yönetim Sisteminden Kullanıcı Çek</h3>
+                    <p style="font-size: 12px; color: #e0f2fe; margin: 3px 0 0 0;">Merkezi havuzda kayıtlı 2.000+ personelden istediklerinizi arayıp Köksan PMS'e yetkili olarak ekleyin.</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeCentralUserModal()" style="background: rgba(255,255,255,0.15); border: none; font-size: 18px; color: #ffffff; cursor: pointer; border-radius: 8px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">✕</button>
+        </div>
+
+        <!-- Controls: Search & Role Selector -->
+        <div style="padding: 16px 24px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; display: flex; gap: 12px; align-items: center;">
+            <div style="flex: 1; position: relative;">
+                <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 15px; color: #94a3b8;">🔍</span>
+                <input type="text" id="centralSearchInput" placeholder="Ad Soyad, E-posta, Sicil No veya Unvan yazın..." 
+                       oninput="debouncedCentralSearch()" onkeydown="if(event.key==='Enter') searchCentralUsersNow()"
+                       style="width: 100%; height: 42px; border-radius: 8px; border: 1.5px solid #cbd5e1; padding: 0 12px 0 38px; font-size: 13.5px; font-weight: 500; outline: none;">
+            </div>
+            <div style="width: 220px;">
+                <label style="display: block; font-size: 11px; font-weight: 700; color: #64748b; margin-bottom: 4px;">Atanacak Rol:</label>
+                <select id="centralDefaultRole" class="form-control" style="width: 100%; height: 38px; border-radius: 8px; border: 1.5px solid #cbd5e1; font-size: 12.5px; font-weight: 600;">
+                    @foreach($roles as $r)
+                        <option value="{{ $r->id }}" {{ $r->slug === 'kullanici' ? 'selected' : '' }}>
+                            {{ $r->name }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+        </div>
+
+        <!-- Results Area -->
+        <div id="centralSearchResultsList" style="padding: 16px 24px; min-height: 250px; max-height: calc(85vh - 200px); overflow-y: auto;">
+            <div id="centralSearchPlaceholder" style="text-align: center; padding: 40px 20px; color: #64748b;">
+                <div style="font-size: 36px; margin-bottom: 10px;">👥</div>
+                <h4 style="font-size: 14px; font-weight: 700; color: #334155; margin: 0;">Personel Araması Yapın</h4>
+                <p style="font-size: 12px; margin: 4px 0 0 0;">Merkezden getirmek istediğiniz kişinin adını veya sicil numarasını yukarıdaki alana yazınız.</p>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div style="padding: 12px 24px; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;">
+            <div style="font-size: 12px; color: #64748b;">
+                <span id="centralResultCount">0</span> sonuç bulundu
+            </div>
+            <button type="button" class="btn btn-secondary" onclick="closeCentralUserModal()" style="padding: 7px 16px; font-size: 13px; font-weight: 600; border-radius: 8px;">Kapat</button>
         </div>
     </div>
 </div>
@@ -1235,6 +1297,153 @@ function closeCreateUserModal() {
         modal.style.display = 'none';
         document.body.style.overflow = '';
     }
+}
+
+// Merkezi Sistemden Kullanıcı Çekme Modalı Fonksiyonları
+let centralSearchTimeout = null;
+
+function openCentralUserModal() {
+    const modal = document.getElementById('centralUserModalBackdrop');
+    if (modal) {
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        setTimeout(() => document.getElementById('centralSearchInput')?.focus(), 100);
+    }
+}
+
+function closeCentralUserModal() {
+    const modal = document.getElementById('centralUserModalBackdrop');
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+}
+
+function debouncedCentralSearch() {
+    clearTimeout(centralSearchTimeout);
+    centralSearchTimeout = setTimeout(searchCentralUsersNow, 350);
+}
+
+function searchCentralUsersNow() {
+    const query = document.getElementById('centralSearchInput').value.trim();
+    const list = document.getElementById('centralSearchResultsList');
+    const countBadge = document.getElementById('centralResultCount');
+
+    if (query.length < 2) {
+        list.innerHTML = `
+            <div style="text-align: center; padding: 40px 20px; color: #64748b;">
+                <div style="font-size: 36px; margin-bottom: 10px;">👥</div>
+                <h4 style="font-size: 14px; font-weight: 700; color: #334155; margin: 0;">Personel Araması Yapın</h4>
+                <p style="font-size: 12px; margin: 4px 0 0 0;">En az 2 karakter giriniz.</p>
+            </div>
+        `;
+        countBadge.textContent = '0';
+        return;
+    }
+
+    list.innerHTML = `
+        <div style="text-align: center; padding: 40px 20px; color: #0284c7;">
+            <div style="font-size: 32px; margin-bottom: 10px; animation: spin 1s infinite linear;">🔄</div>
+            <p style="font-size: 13px; font-weight: 600; margin: 0;">Merkezi sistemde aranıyor...</p>
+        </div>
+    `;
+
+    fetch(`{{ route('admin.user_roles.search_central') }}?q=${encodeURIComponent(query)}`)
+        .then(res => res.json())
+        .then(data => {
+            if (!data.success || !data.users || data.users.length === 0) {
+                list.innerHTML = `
+                    <div style="text-align: center; padding: 40px 20px; color: #94a3b8;">
+                        <div style="font-size: 36px; margin-bottom: 10px;">🔍</div>
+                        <h4 style="font-size: 14px; font-weight: 700; color: #475569; margin: 0;">Eşleşen Personel Bulunamadı</h4>
+                        <p style="font-size: 12px; margin: 4px 0 0 0;">Farklı bir isim veya sicil no deneyebilirsiniz.</p>
+                    </div>
+                `;
+                countBadge.textContent = '0';
+                return;
+            }
+
+            countBadge.textContent = data.users.length;
+            let html = '<div style="display: flex; flex-direction: column; gap: 8px;">';
+
+            data.users.forEach(u => {
+                const initial = (u.name || 'U').charAt(0).toUpperCase();
+                const avatarHtml = u.avatar 
+                    ? `<img src="${u.avatar}" style="width: 38px; height: 38px; border-radius: 50%; object-fit: cover;">`
+                    : `<div style="width: 38px; height: 38px; border-radius: 50%; background: #e0f2fe; color: #0284c7; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 15px;">${initial}</div>`;
+
+                const actionHtml = u.is_imported 
+                    ? `<span style="padding: 6px 12px; border-radius: 6px; font-size: 11.5px; font-weight: 700; background: #e2e8f0; color: #475569;">✓ Sistemde Ekli</span>`
+                    : `<button type="button" class="btn btn-sm btn-primary" onclick="importCentralUser(${u.id}, this)" style="padding: 6px 14px; font-size: 12px; font-weight: 700; border-radius: 6px; background: #0284c7; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 5px;">
+                         <span>📥</span><span>PMS'e Ekle</span>
+                       </button>`;
+
+                html += `
+                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; transition: all 0.2s ease;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            ${avatarHtml}
+                            <div>
+                                <div style="font-size: 13.5px; font-weight: 700; color: #0f172a; line-height: 1.2;">${u.name}</div>
+                                <div style="font-size: 11.5px; color: #64748b; margin-top: 2px;">
+                                    <span style="font-weight: 600; color: #334155;">${u.department_name}</span> &bull; 
+                                    <span>${u.unvan}</span>
+                                    ${u.sicil_no ? ` &bull; <code style="font-size: 10.5px; background: #f1f5f9; padding: 1px 4px; border-radius: 3px;">${u.sicil_no}</code>` : ''}
+                                </div>
+                                <div style="font-size: 11px; color: #94a3b8; margin-top: 1px;">${u.email}</div>
+                            </div>
+                        </div>
+                        <div id="centralAction_${u.id}">
+                            ${actionHtml}
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += '</div>';
+            list.innerHTML = html;
+        })
+        .catch(err => {
+            list.innerHTML = `<div style="text-align: center; color: #dc2626; padding: 20px;">Arama hatası: ${err.message}</div>`;
+        });
+}
+
+function importCentralUser(centralUserId, btn) {
+    const roleId = document.getElementById('centralDefaultRole').value;
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span>⏳</span><span>Ekleniyor...</span>';
+
+    fetch('{{ route("admin.user_roles.import_central") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+            central_user_id: centralUserId,
+            role_id: roleId
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            btn.parentNode.innerHTML = '<span style="padding: 6px 12px; border-radius: 6px; font-size: 11.5px; font-weight: 700; background: #dcfce7; color: #15803d;">✓ Eklendi</span>';
+            showToast(data.message, 'success');
+            setTimeout(() => {
+                window.location.reload();
+            }, 900);
+        } else {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+            showToast(data.message || 'Aktarma sırasında bir hata oluştu.', 'error');
+        }
+    })
+    .catch(err => {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+        showToast('İstek hatası: ' + err.message, 'error');
+    });
 }
 </script>
 @endpush
