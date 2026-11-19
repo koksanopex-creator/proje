@@ -10,7 +10,7 @@ return new class extends Migration
     {
         if (Schema::hasTable('projects') && !Schema::hasColumn('projects', 'tags')) {
             Schema::table('projects', function (Blueprint $table) {
-                $table->json('tags')->nullable()->after('categories');
+                $table->json('tags')->nullable();
             });
         }
     }

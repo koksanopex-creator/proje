@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::table('projects', function (Blueprint $table) {
             if (!Schema::hasColumn('projects', 'scope_tools')) {
-                $table->json('scope_tools')->nullable()->after('notification_settings');
+                $table->json('scope_tools')->nullable();
             }
         });
     }
@@ -18,7 +18,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('projects', function (Blueprint $table) {
-            if (!Schema::hasColumn('projects', 'scope_tools')) {
+            if (Schema::hasColumn('projects', 'scope_tools')) {
                 $table->dropColumn('scope_tools');
             }
         });
