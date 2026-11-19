@@ -878,7 +878,7 @@
                 ];
             @endphp
             <div class="table-responsive matrix-scroll-wrapper" style="overflow-x: auto !important; overflow-y: visible !important; width: 100% !important; max-width: 100% !important; box-sizing: border-box !important; -webkit-overflow-scrolling: touch !important;">
-                <table class="table table-hover matrix-table mb-0" style="width: max-content; min-width: 100%; border-collapse: separate; border-spacing: 0;">
+                <table class="table table-hover matrix-table mb-0" style="width: 100%; min-width: 100%; border-collapse: separate; border-spacing: 0;">
                     <thead>
                         <tr style="background: #f8fafc; border-bottom: 2px solid #cbd5e1;">
                             <th style="position: sticky; top: -24px; left: 0; z-index: 35; background: #f8fafc; width: 280px; min-width: 280px; padding: 12px 18px; font-size: 12px; font-weight: 700; color: #475569; text-transform: uppercase; border-right: 2px solid #cbd5e1; border-bottom: 2px solid #cbd5e1; box-shadow: 4px 0 8px -2px rgba(15, 23, 42, 0.08);">Log Kategorisi</th>

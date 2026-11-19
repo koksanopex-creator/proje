@@ -644,7 +644,7 @@ body.hide-slug-col thead th.sticky-col-perm {
         </div>
 
         <div class="matrix-scroll-wrapper">
-            <table class="matrix-modern-table">
+            <table class="matrix-modern-table" style="width: 100%; min-width: 100%;">
                 <thead>
                     <tr>
                         <th class="sticky-col-perm">İzin Tanımı</th>

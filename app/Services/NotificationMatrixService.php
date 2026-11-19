@@ -92,15 +92,32 @@ class NotificationMatrixService
             $targetUser = $r['user'];
 
             // ZENGİN DİNAMİK DEĞİŞKEN HAVUZU
-            $deptName = $variables['departman_adi'] ?? ($targetUser->bolum?->ad ?? ($targetUser->bolum?->name ?? 'Merkez Departman'));
-            $actorName = $variables['islem_yapan'] ?? ($variables['olusturan'] ?? ($currentUser?->name ?? 'Sistem'));
+            $deptName = $variables['departman_adi'] ?? ($variables['department_name'] ?? ($targetUser->bolum?->ad ?? ($targetUser->bolum?->name ?? 'Merkez Departman')));
+            $actorName = $variables['islem_yapan'] 
+                ?? ($variables['olusturan'] 
+                ?? ($variables['removed_by'] 
+                ?? ($variables['assigned_by'] 
+                ?? ($variables['action_by'] 
+                ?? ($currentUser?->name ?? 'Sistem Yöneticisi')))));
+
+            $userName = $targetUser->name;
+            $appUrl = url('/');
+            if (!str_ends_with($appUrl, '/proje') && str_contains($appUrl, 'kys.koksan.com')) {
+                $appUrl = rtrim($appUrl, '/') . '/proje';
+            }
 
             $richVars = [
-                // Kullanıcı Değişkenleri
-                'kullanici_adi' => $targetUser->name,
-                'username' => $targetUser->name,
+                // Kullanıcı Değişkenleri (Tüm Takma Adlar)
+                'kullanici_adi' => $userName,
+                'username' => $userName,
+                'user_name' => $userName,
+                'kullanici' => $userName,
+                'ad_soyad' => $userName,
+                'name' => $userName,
+
                 'kullanici_eposta' => $targetUser->email,
                 'user_email' => $targetUser->email,
+                'email' => $targetUser->email,
                 'unvan' => $targetUser->unvan ?? 'Personel',
                 'title' => $targetUser->unvan ?? 'Personel',
                 'sicil_no' => $targetUser->sicil_no ?? '',
@@ -110,30 +127,66 @@ class NotificationMatrixService
                 'department_name' => $deptName,
                 'bolum_adi' => $deptName,
 
-                // İşlemi Yapan / Moderatör Değişkenleri
+                // İşlemi Yapan / Moderatör Değişkenleri (Tüm Takma Adlar)
                 'islem_yapan' => $actorName,
                 'action_by' => $actorName,
                 'olusturan' => $actorName,
                 'creator' => $actorName,
+                'removed_by' => $actorName,
+                'assigned_by' => $actorName,
+                'ekleyen' => $actorName,
+                'tamamlayan' => $actorName,
 
                 // Tarih & Zaman Değişkenleri
                 'tarih' => now()->format('d.m.Y H:i'),
                 'date' => now()->format('d.m.Y H:i'),
                 'saat' => now()->format('H:i'),
+
+                // Uygulama & Sistem URL
+                'uygulama_url' => $appUrl,
+                'app_url' => $appUrl,
+                'proje_url' => $appUrl,
             ];
+
+            // Kurul / Komite Takma İsimleri (Alias)
+            $committeeName = $variables['kurul_adi'] ?? ($variables['committee_name'] ?? ($variables['komite_adi'] ?? ''));
+            if (!empty($committeeName)) {
+                $richVars['kurul_adi'] = $committeeName;
+                $richVars['committee_name'] = $committeeName;
+                $richVars['komite_adi'] = $committeeName;
+                $richVars['kurul'] = $committeeName;
+            }
+
+            // Kurul Üyelik Rolü & Görev Takma İsimleri
+            $memberRole = $variables['member_role'] ?? ($variables['rol'] ?? ($variables['role_label'] ?? ($variables['gorev'] ?? '')));
+            if (!empty($memberRole)) {
+                $richVars['member_role'] = $memberRole;
+                $richVars['rol'] = $memberRole;
+                $richVars['role_label'] = $memberRole;
+                $richVars['gorev'] = $memberRole;
+            }
+
+            // Oy Ağırlığı
+            $votingWeight = $variables['voting_weight'] ?? ($variables['oy_agirligi'] ?? '');
+            if (!empty($votingWeight)) {
+                $richVars['voting_weight'] = $votingWeight;
+                $richVars['oy_agirligi'] = $votingWeight;
+            }
 
             // Proje Takma İsimleri (Alias)
             if (!empty($variables['proje_adi'])) {
                 $richVars['project_name'] = $variables['proje_adi'];
+                $richVars['project_title'] = $variables['proje_adi'];
+            }
+            if (!empty($variables['project_name'])) {
+                $richVars['proje_adi'] = $variables['project_name'];
+                $richVars['project_title'] = $variables['project_name'];
             }
             if (!empty($variables['proje_kodu'])) {
                 $richVars['project_code'] = $variables['proje_kodu'];
             }
-            if (!empty($variables['kurul_adi'])) {
-                $richVars['committee_name'] = $variables['kurul_adi'];
-            }
-            if (!empty($variables['committee_name'])) {
-                $richVars['kurul_adi'] = $variables['committee_name'];
+            if (!empty($variables['project_code'])) {
+                $richVars['proje_kodu'] = $variables['project_code'];
             }
 
             // Olay özel değişkenleriyle birleştir
@@ -643,22 +696,49 @@ class NotificationMatrixService
     {
         foreach ($variables as $key => $val) {
             if (is_scalar($val)) {
-                $template = str_replace("{{$key}}", (string) $val, $template);
-                $template = str_replace("{" . $key . "}", (string) $val, $template);
+                $valStr = (string) $val;
+                // Markdown bold brackets: **{key}**
+                $template = str_replace("**{{$key}}**", $valStr, $template);
+                $template = str_replace("**{" . $key . "}**", $valStr, $template);
+                // Normal brackets: {key}
+                $template = str_replace("{{$key}}", $valStr, $template);
+                $template = str_replace("{" . $key . "}", $valStr, $template);
             }
         }
-        return $template;
+        // Kalan olası çift yıldızları temizle
+        $template = preg_replace('/\*\*(.*?)\*\*/', '$1', $template);
+        return trim($template);
     }
 
     protected function renderHtml(string $template, array $variables): string
     {
         foreach ($variables as $key => $val) {
             if (is_scalar($val)) {
-                $template = str_replace("{{$key}}", "<strong>" . e($val) . "</strong>", $template);
-                $template = str_replace("{" . $key . "}", "<strong>" . e($val) . "</strong>", $template);
+                $valStr = (string) $val;
+                $boldVal = "<strong>" . e($valStr) . "</strong>";
+
+                // Markdown bold wrappers: **{key}** -> <strong>val</strong>
+                $template = str_replace("**{{$key}}**", $boldVal, $template);
+                $template = str_replace("**{" . $key . "}**", $boldVal, $template);
+
+                // Normal brackets: {key} -> <strong>val</strong>
+                $template = str_replace("{{$key}}", $boldVal, $template);
+                $template = str_replace("{" . $key . "}", $boldVal, $template);
             }
         }
-        return $template;
+
+        // <strong> etiketlerinin etrafında kalabilecek çift yıldızları temizle
+        $template = str_replace('**<strong>', '<strong>', $template);
+        $template = str_replace('</strong>**', '</strong>', $template);
+        // Kalan genel markdown bold **metin** sözdizimini <strong>metin</strong> yap
+        $template = preg_replace('/\*\*(.*?)\*\*/', '<strong>$1</strong>', $template);
+
+        // Eğer HTML etiketleri (p, div, br) yoksa satır sonlarını br ile biçimlendir
+        if (!str_contains($template, '<p>') && !str_contains($template, '<div>') && !str_contains($template, '<br>')) {
+            $template = nl2br($template);
+        }
+
+        return $this->wrapEmailWithCorporateLayout($template);
     }
 
     protected function renderRawHtml(string $template, array $variables): string
@@ -670,5 +750,63 @@ class NotificationMatrixService
             }
         }
         return $template;
+    }
+
+    /**
+     * Tüm bildirim e-postalarını kurumsal Köksan PPM tasarım şablonu ve
+     * doğrudan sisteme yönlendiren 'Köksan Proje Yönetim Sistemi' buton linki ile sarmalar.
+     */
+    protected function wrapEmailWithCorporateLayout(string $bodyHtml): string
+    {
+        // Halihazırda tam HTML şablonuna sahipse veya kurumsal buton içeriyorsa mükerrer sarmalama yapma
+        if (str_contains($bodyHtml, '<!DOCTYPE') || str_contains($bodyHtml, 'Köksan Proje Yönetim Sistemi ↗') || str_contains($bodyHtml, 'Köksan Enterprise PPM Toplantı')) {
+            return $bodyHtml;
+        }
+
+        $appUrl = url('/');
+        if (!str_ends_with($appUrl, '/proje') && str_contains($appUrl, 'kys.koksan.com')) {
+            $appUrl = rtrim($appUrl, '/') . '/proje';
+        }
+
+        return <<<HTML
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f1f5f9; margin: 0; padding: 24px 12px; color: #1e293b;">
+    <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
+        <!-- Kurumsal PPM Üst Başlık -->
+        <div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); padding: 20px 24px; text-align: left; border-bottom: 3px solid #0284c7;">
+            <div style="font-size: 11px; font-weight: 700; color: #38bdf8; text-transform: uppercase; letter-spacing: 1px;">KÖKSAN HOLDİNG</div>
+            <div style="font-size: 17px; font-weight: 800; color: #ffffff; margin-top: 3px; letter-spacing: -0.02em;">Kurumsal Proje Yönetim Sistemi (PPM)</div>
+        </div>
+        
+        <!-- İçerik Alanı -->
+        <div style="padding: 24px 28px; line-height: 1.65; font-size: 14px; color: #334155;">
+            {$bodyHtml}
+            
+            <!-- Sabit Kurumsal Buton Bağlantısı (Kullanıcı Talebi) -->
+            <div style="margin-top: 28px; padding-top: 20px; border-top: 1px solid #e2e8f0; text-align: center;">
+                <a href="{$appUrl}" style="display: inline-block; background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: #ffffff; text-decoration: none; padding: 11px 26px; border-radius: 8px; font-weight: 700; font-size: 13.5px; box-shadow: 0 3px 8px rgba(2, 132, 199, 0.25);">
+                    Köksan Proje Yönetim Sistemi ↗
+                </a>
+            </div>
+        </div>
+        
+        <!-- Kurumsal Altlık Bilgisi -->
+        <div style="background-color: #f8fafc; padding: 14px 24px; border-top: 1px solid #e2e8f0; text-align: center;">
+            <p style="margin: 0; font-size: 11.5px; color: #64748b;">
+                Bu e-posta Köksan Enterprise Proje Yönetim Sistemi tarafından otomatik olarak gönderilmiştir.
+            </p>
+            <p style="margin: 4px 0 0 0; font-size: 11px; color: #94a3b8;">
+                © 2026 Köksan Holding A.Ş. — Bilgi Teknolojileri ve Yönetim Sistemleri
+            </p>
+        </div>
+    </div>
+</body>
+</html>
+HTML;
     }
 }

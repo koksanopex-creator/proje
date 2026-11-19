@@ -106,6 +106,12 @@ class NotificationLogController extends Controller
         $timestamp = now()->format('d.m.Y H:i:s');
         $environment = app()->environment();
 
+        // Alıcı kullanıcısını veritabanında ara (eğer kayıtlı kullanıcı ise adını ve ID'sini eşle)
+        $targetUser = User::where('email', $recipientEmail)->first();
+        $targetUserId = $targetUser?->id;
+        $recipientName = $targetUser ? $targetUser->name : (explode('@', $recipientEmail)[0] ?? $recipientEmail);
+        $appUrl = url('/');
+
         $subject = "Köksan PMS - Microsoft Graph E-Posta Testi ({$timestamp})";
 
         $htmlBody = <<<HTML
@@ -122,7 +128,7 @@ class NotificationLogController extends Controller
             <p style="color: #bae6fd; margin: 6px 0 0 0; font-size: 13px; font-weight: 500;">Microsoft Graph API E-Posta Servis Doğrulaması</p>
         </div>
         <div style="padding: 28px 24px; background-color: #0f172a;">
-            <p style="font-size: 15px; color: #f1f5f9; margin-top: 0;">Sayın Yetkili,</p>
+            <p style="font-size: 15px; color: #f1f5f9; margin-top: 0;">Sayın <strong>{$recipientName}</strong>,</p>
             <p style="font-size: 14px; color: #cbd5e1; line-height: 1.6;">
                 Bu e-posta, <strong>Köksan Proje Yönetim Sistemi (PPM)</strong> üzerinden <strong>kys@koksan.com</strong> Microsoft Graph API altyapısı kullanılarak başarıyla gönderilmiştir.
             </p>
@@ -136,7 +142,7 @@ class NotificationLogController extends Controller
                     </tr>
                     <tr>
                         <td style="padding: 4px 0; color: #64748b;">Hedef Alıcı:</td>
-                        <td style="padding: 4px 0; color: #f8fafc; font-weight: 600;">{$recipientEmail}</td>
+                        <td style="padding: 4px 0; color: #f8fafc; font-weight: 600;">{$recipientName} ({$recipientEmail})</td>
                     </tr>
                     <tr>
                         <td style="padding: 4px 0; color: #64748b;">İşlemi Yapan:</td>
@@ -156,6 +162,12 @@ class NotificationLogController extends Controller
             <p style="font-size: 13px; color: #94a3b8; line-height: 1.5;">
                 Bildirim matrisinde aktif olan tüm süreçler (toplantı davetleri, onay talepleri, kurul üyelik değişiklikleri vb.) bu Microsoft Graph hesabı üzerinden otomatik olarak ilgililere iletilmektedir.
             </p>
+
+            <div style="margin-top: 28px; text-align: center;">
+                <a href="{$appUrl}" style="display: inline-block; background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-weight: 700; font-size: 13.5px; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.35);">
+                    Köksan Proje Yönetim Sistemi ↗
+                </a>
+            </div>
             
             <div style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #1e293b; text-align: center;">
                 <p style="font-size: 12px; color: #64748b; margin: 0;">
@@ -179,8 +191,8 @@ HTML;
                 'channel' => 'mail',
                 'event_key' => 'test_mail',
                 'event_title' => 'Sistem Test E-Postası (Microsoft Graph)',
-                'user_id' => $currentUser?->id,
-                'recipient_name' => $currentUser?->name ?? $recipientEmail,
+                'user_id' => $targetUserId,
+                'recipient_name' => $recipientName,
                 'recipient_email' => $recipientEmail,
                 'subject' => $subject,
                 'body' => $htmlBody,
@@ -195,20 +207,20 @@ HTML;
 
             AuditLogService::log(
                 'created',
-                "Microsoft Graph canlı test maili {$recipientEmail} adresine başarıyla gönderildi (Log ID: {$log->id}).",
+                "Microsoft Graph canlı test maili {$recipientName} ({$recipientEmail}) adresine başarıyla gönderildi (Log ID: {$log->id}).",
                 'NotificationLog',
                 $log->id
             );
 
-            return redirect()->back()->with('success', "Test e-postası başarıyla {$recipientEmail} adresine iletildi ve loglandı.");
+            return redirect()->back()->with('success', "Test e-postası başarıyla {$recipientName} ({$recipientEmail}) adresine iletildi ve loglandı.");
         } catch (\Throwable $e) {
             // Başarısız log kaydı oluştur
             NotificationLog::create([
                 'channel' => 'mail',
                 'event_key' => 'test_mail',
                 'event_title' => 'Sistem Test E-Postası (Microsoft Graph)',
-                'user_id' => $currentUser?->id,
-                'recipient_name' => $currentUser?->name ?? $recipientEmail,
+                'user_id' => $targetUserId,
+                'recipient_name' => $recipientName,
                 'recipient_email' => $recipientEmail,
                 'subject' => $subject,
                 'body' => $htmlBody,
