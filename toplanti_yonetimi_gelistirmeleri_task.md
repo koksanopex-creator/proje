@@ -18,7 +18,7 @@
   - [x] Yeni toplantı oluşturma, zengin metin gündem ve katılımcı arama testi <!-- id: 4.1 -->
   - [x] Toplantı erteleme, bildirim gönderme ve `notification_logs` kaydını doğrulama <!-- id: 4.2 -->
   - [x] Yetki filtresi ve 10'luk sayfalama testi <!-- id: 4.3 -->
-- [ ] 5. Canlı Sunucu Dağıtımı ve Doğrulama <!-- id: 5 -->
-  - [ ] Git commit ve push <!-- id: 5.1 -->
-  - [ ] Sunucuda `git pull`, migration çalıştırma ve cache temizleme <!-- id: 5.2 -->
-  - [ ] Sunucuda canlı test ve doğrulama <!-- id: 5.3 -->
+- [x] 5. Canlı Sunucu Dağıtımı ve Doğrulama <!-- id: 5 -->
+  - [x] Git commit ve push <!-- id: 5.1 -->
+  - [x] Sunucuda `git pull`, migration çalıştırma ve cache temizleme <!-- id: 5.2 -->
+  - [x] Sunucuda canlı test ve doğrulama <!-- id: 5.3 -->
