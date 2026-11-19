@@ -43,60 +43,30 @@ Bu dokümanda **Köksan PMS** projesinin **Merkezi API** ile bağlandığı SSO 
 
 ---
 
-## 3. GitHub & Sunucu Dağıtım Yol Haritası
+## 3. GitHub & Sunucu Dağıtımı (Tamamlandı)
 
 ### 3.1. GitHub Gönderimi (Local -> Remote)
-Hedef Repo: `https://github.com/koksanopex-creator/proje`
+- **Depo:** `https://github.com/koksanopex-creator/proje.git`
+- **Dal:** `main`
+- Proje temiz orphan dal yapısıyla, migration düzeltmeleri ve SSO entegrasyonu dahil GitHub'a başarıyla iletildi.
 
-```bash
-# 1. Mevcut remote kontrol edilir ve güncellenir:
-git remote set-url origin https://github.com/koksanopex-creator/proje.git
-# veya eklenir:
-git remote add origin https://github.com/koksanopex-creator/proje.git
-
-# 2. Değişiklikler incelenip commit ve push yapılır (Kullanıcı talimat verdiğinde):
-git add .
-git commit -m "feat: Merkezi API SSO entegrasyonu, ortam izolasyonu ve kapsam modülü"
-git push -u origin main
-```
-
-### 3.2. Sunucu Kurulum Adımları (Ubuntu 24.04 / Nginx)
-
-1. **Dizin ve Kod Çekimi:**
-   ```bash
-   cd /var/www
-   git clone https://github.com/koksanopex-creator/proje.git koksan_pms
-   cd koksan_pms
-   composer install --no-dev --optimize-autoloader
-   ```
-2. **Ortam Değişkenleri (`.env`):**
-   ```env
-   APP_NAME="Köksan PPM"
-   APP_ENV=production
-   APP_DEBUG=false
-   APP_URL=https://kys.koksan.com/proje
-
-   DB_CONNECTION=mysql
-   DB_HOST=127.0.0.1
-   DB_DATABASE=koksan_pms
-   DB_USERNAME=root
-   DB_PASSWORD=...
-
-   CENTRAL_SSO_URL=https://kys.koksan.com/merkezi_yonetim_sistemi
-   CENTRAL_SSO_APP_CODE=koksan-pms
-   ```
-3. **Nginx Yapılandırması (Örnek Subpath `/proje`):**
-   ```nginx
-   location ^~ /proje {
-       alias /var/www/koksan_pms/public;
-       try_files $uri $uri/ @proje;
-
-       location ~ \.php$ {
-           include snippets/fastcgi-php.conf;
-           fastcgi_param SCRIPT_FILENAME $request_filename;
-           fastcgi_pass unix:/var/run/php/php8.3-fpm.sock;
-       }
-   }
+### 3.2. Canlı Sunucu Kurulumu (`172.20.5.10`)
+1. **Dizin ve Kod:**
+   - Proje konumu: `/var/www/kys_koksan/koksan_pms`
+   - Bağımlılıklar: `composer install --no-dev --optimize-autoloader` tamamlandı.
+2. **Veritabanı & Migrasyonlar:**
+   - MySQL Veritabanı: `koksan_pms_db` oluşturuldu.
+   - Tüm migrasyonlar (toplam 42 adet) sıfır hatayla başarıyla çalıştırıldı (`php artisan migrate --force`).
+   - Seeder'lar (`DoaAndCommitteeSeeder`, `AssignDefaultPermissionsSeeder`) uygulandı.
+   - Merkezi Yetkilendirme Veritabanından (`merkezi_auth_db`) **2012 personel** `koksan_pms_db.users` tablosuna aktarıldı ve `central_user_id` eşleşmeleri tamamlandı (`php artisan koksan:sync-users`).
+3. **Nginx & SSL Reverse Proxy:**
+   - Dosya: `/etc/nginx/sites-available/kys.koksan.com`
+   - Subpath: `/proje` bloğu yapılandırıldı, `php8.3-fpm.sock` ve FastCGI parametreleri tanımlandı, Nginx yeniden yüklendi.
+4. **Canlı Doğrulama:**
+   - `https://kys.koksan.com/proje` -> `https://kys.koksan.com/proje/` (301 Yönlendirme)
+   - `https://kys.koksan.com/proje/` -> `https://kys.koksan.com/proje/login` (302 Yetkisiz İstek)
+   - `https://kys.koksan.com/proje/login` -> `https://kys.koksan.com/merkezi_yonetim_sistemi/sso-entry?app_code=koksan-pms` (302 Merkezi API SSO Kapısı)
+   - Canlı ortamda `APP_ENV=production` devrede olup, "Hızlı Rol Testi" gizlenmiş ve yetkisiz geçişler engellenmiştir.
 
    location @proje {
        rewrite /proje/(.*)$ /proje/index.php?/$1 last;

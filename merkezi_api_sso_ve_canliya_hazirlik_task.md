@@ -17,6 +17,9 @@
 - [x] 5. Test ve Doğrulama <!-- id: 5 -->
   - [x] Yerel SSO akışı testi (Port 8088 <-> Port 8001 token doğrulama testi ve session login başarılı) <!-- id: 5.1 -->
   - [x] Kullanıcı verilerinin (central_user_id, avatar, sicil) otomatik eşitlendiğinin doğrulanması <!-- id: 5.2 -->
-- [ ] 6. GitHub ve Sunucu Kurulum Rehberi <!-- id: 6 -->
-  - [ ] GitHub remote yapılandırması ve push rehberi <!-- id: 6.1 -->
-  - [ ] Sunucu Nginx, dizin ve ortam değişkenleri rehberinin hazırlanması <!-- id: 6.2 -->
+- [x] 6. GitHub ve Sunucu Kurulumu <!-- id: 6 -->
+  - [x] GitHub remote yapılandırması ve push işlemi (`main` branch) <!-- id: 6.1 -->
+  - [x] Sunucu MySQL veritabanı oluşturulması (`koksan_pms_db`), repo klonlanması ve `.env` yapılandırması <!-- id: 6.2 -->
+  - [x] Sunucu migration ve seed işlemlerinin tamamlanması <!-- id: 6.3 -->
+  - [x] Merkezi auth veritabanından 2012 personelin `koksan_pms_db.users` tablosuna senkronize edilmesi <!-- id: 6.4 -->
+  - [x] Nginx `/proje` reverse proxy bloğunun yapılandırılması, SSL testi ve canlı SSO doğrulaması <!-- id: 6.5 -->
