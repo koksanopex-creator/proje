@@ -178,10 +178,10 @@ Route::middleware('auth')->group(function () {
         Route::post('/sync-bolumler', [NotificationMatrixController::class, 'syncBolumler'])->name('sync_bolumler');
 
         // Bildirim & Mail Logları
-        Route::get('/bildirim-loglari', [NotificationLogController::class, 'index'])->name('admin.notification_logs.index');
-        Route::get('/bildirim-loglari/{id}', [NotificationLogController::class, 'show'])->name('admin.notification_logs.show');
-        Route::post('/bildirim-loglari/test-mail', [NotificationLogController::class, 'sendTestMail'])->name('admin.notification_logs.test_mail');
-        Route::post('/bildirim-loglari/{id}/resend', [NotificationLogController::class, 'resend'])->name('admin.notification_logs.resend');
+        Route::get('/bildirim-loglari', [NotificationLogController::class, 'index'])->name('notification_logs.index');
+        Route::get('/bildirim-loglari/{id}', [NotificationLogController::class, 'show'])->name('notification_logs.show');
+        Route::post('/bildirim-loglari/test-mail', [NotificationLogController::class, 'sendTestMail'])->name('notification_logs.test_mail');
+        Route::post('/bildirim-loglari/{id}/resend', [NotificationLogController::class, 'resend'])->name('notification_logs.resend');
         // Kategori Yönetimi CRUD
         Route::get('/kategoriler', [ProjectCategoryController::class, 'index'])->name('categories.index');
         Route::post('/kategoriler', [ProjectCategoryController::class, 'store'])->name('categories.store');
