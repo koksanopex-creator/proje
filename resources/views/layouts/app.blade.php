@@ -947,6 +947,11 @@
                     <span class="nav-label">5×5 Risk Matrisi</span>
                 </a>
 
+                <a href="{{ route('quality.index') }}" class="nav-item {{ request()->routeIs('quality.*') ? 'active' : '' }}" title="Kalite & Kabul Yönetimi">
+                    <span class="nav-icon">🔬</span>
+                    <span class="nav-label">Kalite & Kabul</span>
+                </a>
+
                 <a href="{{ route('timesheets.index') }}" class="nav-item {{ request()->routeIs('timesheets.*') ? 'active' : '' }}" title="Zaman Takibi">
                     <span class="nav-icon">⏱️</span>
                     <span class="nav-label">Zaman Takibi</span>

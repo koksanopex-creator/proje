@@ -13,15 +13,27 @@ class GanttController extends Controller
         $projects = Project::where('is_template', false)->forUser($user)->orderBy('code')->get();
         $selectedProjectId = $request->get('project_id', $projects->first()?->id);
         $project = null;
+        $activeBaseline = null;
+        $baselineTasksMap = collect();
 
         if ($selectedProjectId) {
-            $candidate = Project::with(['phases.tasks.assignee', 'tasks.assignee'])->find($selectedProjectId);
+            $candidate = Project::with([
+                'phases.tasks.assignee',
+                'tasks.assignee',
+                'activeBaseline.tasks',
+                'baselines'
+            ])->find($selectedProjectId);
+            
             if ($candidate && $user->canAccessProject($candidate)) {
                 $project = $candidate;
+                $activeBaseline = $project->activeBaseline;
+                if ($activeBaseline) {
+                    $baselineTasksMap = $activeBaseline->tasks->keyBy('task_id');
+                }
             }
         }
 
-        return view('gantt.index', compact('projects', 'project'));
+        return view('gantt.index', compact('projects', 'project', 'activeBaseline', 'baselineTasksMap'));
     }
 
     public function data(int $id)

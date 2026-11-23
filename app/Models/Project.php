@@ -162,6 +162,10 @@ class Project extends Model
     public function budgets() { return $this->budgetItems(); }
     public function meetings() { return $this->hasMany(ProjectMeeting::class, 'project_id'); }
     public function files() { return $this->hasMany(ProjectFile::class, 'project_id'); }
+    public function qualities() { return $this->hasMany(ProjectQuality::class, 'project_id'); }
+    public function nonConformances() { return $this->hasMany(ProjectNonConformance::class, 'project_id'); }
+    public function baselines() { return $this->hasMany(ProjectBaseline::class, 'project_id')->latest(); }
+    public function activeBaseline() { return $this->hasOne(ProjectBaseline::class, 'project_id')->where('is_active', true)->latestOfMany(); }
     public function auditLogs() { return $this->hasMany(ProjectAuditLog::class, 'project_id')->latest(); }
     public function approvalRequests() { return $this->hasMany(ProjectApprovalRequest::class, 'project_id')->latest(); }
     public function latestApprovalRequest() { return $this->hasOne(ProjectApprovalRequest::class, 'project_id')->latestOfMany(); }

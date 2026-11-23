@@ -293,6 +293,11 @@
                     <button type="button" class="btn btn-xs btn-outline-danger" id="filterDelayedBtn" onclick="toggleOnlyDelayed()" style="padding: 6px 12px; font-size: 11.5px; border-radius: 6px; font-weight: 600; border: 1px solid #fca5a5; color: #b91c1c; background: #fef2f2;">
                         ⚠️ Sadece Gecikenler
                     </button>
+
+                    <!-- Temel Çizgi (Schedule Baseline) Karşılaştırma Modu -->
+                    <button type="button" class="btn btn-xs" id="btnToggleBaseline" onclick="toggleBaselineComparison()" style="padding: 6px 12px; font-size: 11.5px; border-radius: 6px; font-weight: 700; border: 1.5px solid #6366f1; color: #4338ca; background: #eef2ff; display: inline-flex; align-items: center; gap: 4px; cursor: pointer;" title="Dondurulmuş Temel Çizgi (Baseline) ile mevcut takvimi çift çubukla karşılaştır">
+                        <span>📐</span> Temel Çizgi @if($activeBaseline) ({{ $activeBaseline->version }}) @else (Yok) @endif
+                    </button>
                 </div>
             @endif
         </div>
@@ -328,6 +333,11 @@
                     <span style="display: inline-flex; align-items: center; gap: 6px; color: #b45309;">
                         <span>💎</span>
                         <strong>Kilometre Taşı</strong>
+                    </span>
+
+                    <span class="baseline-legend-item" style="display: none; align-items: center; gap: 6px; color: #4338ca;">
+                        <span style="width: 14px; height: 6px; border-radius: 2px; background: #6366f1; border-top: 2px dashed #312e81; display: inline-block;"></span>
+                        <strong>Temel Çizgi (Baseline {{ $activeBaseline?->version }})</strong>
                     </span>
                 </div>
 
@@ -666,6 +676,17 @@
                                         📁 {{ $project->title }} • %{{ (int) round($project->progress_percentage) }}
                                     </div>
                                 </div>
+                                @if($activeBaseline && $activeBaseline->planned_start_date && $activeBaseline->planned_end_date)
+                                    @php
+                                        $bpStart = \Carbon\Carbon::parse($activeBaseline->planned_start_date);
+                                        $bpEnd = \Carbon\Carbon::parse($activeBaseline->planned_end_date);
+                                        $bpOffset = max(0, (int) round($minDate->diffInDays($bpStart)));
+                                        $bpDuration = max(1, (int) round($bpStart->diffInDays($bpEnd)));
+                                        $bpLeft = $bpOffset * $pxPerDay;
+                                        $bpWidth = $bpDuration * $pxPerDay;
+                                    @endphp
+                                    <div class="baseline-bar project-baseline-bar" style="display: none; position: absolute; left: {{ $bpLeft }}px; width: {{ $bpWidth }}px; bottom: 2px; height: 6px; border-radius: 3px; background: #6366f1; border-top: 2px dashed #312e81; z-index: 4;" title="Temel Çizgi ({{ $activeBaseline->version }}): {{ $bpStart->format('d.m.Y') }} - {{ $bpEnd->format('d.m.Y') }} (Bütçe: {{ number_format($activeBaseline->total_planned_budget, 2) }} {{ $project->currency ?? 'TRY' }})"></div>
+                                @endif
                             </div>
 
                             <!-- 2. Faz ve Görev Barları -->
@@ -741,6 +762,32 @@
                                                 </span>
                                                 <span>{{ $t->assignee->name }}</span>
                                             </div>
+                                        @endif
+
+                                        <!-- TEMEL ÇİZGİ (BASELINE v1.0) KARŞILAŞTIRMA ÇUBUĞU VE SAPMA ROZETİ -->
+                                        @if($activeBaseline && isset($baselineTasksMap))
+                                            @php
+                                                $bTask = $baselineTasksMap->get($t->id);
+                                            @endphp
+                                            @if($bTask && $bTask->baseline_start_date && $bTask->baseline_due_date)
+                                                @php
+                                                    $btStart = \Carbon\Carbon::parse($bTask->baseline_start_date);
+                                                    $btDue = \Carbon\Carbon::parse($bTask->baseline_due_date);
+                                                    $btOffset = max(0, (int) round($minDate->diffInDays($btStart)));
+                                                    $btDuration = max(1, (int) round($btStart->diffInDays($btDue)));
+                                                    $btLeft = $btOffset * $pxPerDay;
+                                                    $btWidth = $btDuration * $pxPerDay;
+                                                    $varDays = $bTask->getDaysVariance();
+                                                @endphp
+                                                <div class="baseline-bar task-baseline-bar" style="display: none; position: absolute; left: {{ $btLeft }}px; width: {{ $btWidth }}px; bottom: 3px; height: 6px; border-radius: 3px; background: #6366f1; border-top: 2px dashed #3730a3; z-index: 4;" title="Temel Çizgi ({{ $activeBaseline->version }}): {{ $btStart->format('d.m.Y') }} - {{ $btDue->format('d.m.Y') }} ({{ (int) round($btDuration) }} gün)"></div>
+                                                @if($varDays !== null && $varDays != 0)
+                                                    <div class="baseline-bar task-variance-badge" style="display: none; position: absolute; left: {{ max($tBarLeft + $tPlannedWidth, $btLeft + $btWidth) + ($t->assignee ? 115 : 10) }}px; bottom: 3px; z-index: 7;">
+                                                        <span style="font-size: 9.5px; font-weight: 800; padding: 1px 6px; border-radius: 4px; white-space: nowrap; {{ $varDays > 0 ? 'background: #fee2e2; color: #b91c1c; border: 1px solid #f87171;' : 'background: #dcfce7; color: #15803d; border: 1px solid #86efac;' }}">
+                                                            {{ $varDays > 0 ? "+{$varDays}g gecikme" : "{$varDays}g erken" }}
+                                                        </span>
+                                                    </div>
+                                                @endif
+                                            @endif
                                         @endif
 
                                     </div>
@@ -936,6 +983,44 @@ function toggleOnlyDelayed() {
 
         applyGanttColumnVisibility();
         taskTRows.forEach(row => row.style.display = 'flex');
+    }
+}
+
+// =========================================================================
+// 7. TEMEL ÇİZGİ (BASELINE) ÇİFT ÇUBUK VE SAPMA MODU
+// =========================================================================
+let baselineComparisonActive = false;
+
+function toggleBaselineComparison() {
+    const bars = document.querySelectorAll('.baseline-bar');
+    const legend = document.querySelector('.baseline-legend-item');
+    const btn = document.getElementById('btnToggleBaseline');
+    
+    if (!bars || bars.length === 0) {
+        alert('Bu proje için henüz dondurulmuş bir Temel Çizgi (Baseline) kaydı bulunmuyor. Proje Çalışma Alanı detay sayfasından "Temel Çizgi Dondur (Baseline)" işlemi yapabilirsiniz.');
+        return;
+    }
+    
+    baselineComparisonActive = !baselineComparisonActive;
+    
+    bars.forEach(el => {
+        el.style.display = baselineComparisonActive ? 'block' : 'none';
+    });
+    
+    if (legend) {
+        legend.style.display = baselineComparisonActive ? 'inline-flex' : 'none';
+    }
+    
+    if (btn) {
+        if (baselineComparisonActive) {
+            btn.style.background = '#4338ca';
+            btn.style.color = '#ffffff';
+            btn.style.borderColor = '#312e81';
+        } else {
+            btn.style.background = '#eef2ff';
+            btn.style.color = '#4338ca';
+            btn.style.borderColor = '#6366f1';
+        }
     }
 }
 

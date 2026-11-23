@@ -184,6 +184,8 @@ class ProjectController extends Controller
             'bolum', 'manager', 'sponsor', 'waitingRole', 'waitingUser',
             'phases.tasks.assignee', 'stakeholders.user', 'stakeholders.handoverToUser', 'stakeholderPermissions',
             'risks.owner', 'risks.mitigations', 'boms', 'budgetItems', 'meetings.organizer', 'files.uploader',
+            'qualities.checker', 'qualities.approver', 'nonConformances.assignee',
+            'baselines.creator', 'activeBaseline.tasks',
             'discussions.user.bolum', 'auditLogs.user', 'auditLogs.actingAsUser', 'draftSuggestions.user',
             'draftShares.sharedBy', 'draftShares.revokedBy'
         ])->findOrFail($id);
@@ -230,8 +232,9 @@ class ProjectController extends Controller
         $canManage = $this->canManageProject($project, $user);
         $activeProjectDelegations = $project->getActiveStakeholderDelegations();
         $pastProjectDelegations = $project->getPastStakeholderDelegations();
+        $evmMetrics = $project->activeBaseline ? $project->activeBaseline->calculateEvm() : null;
 
-        return view('projects.show', compact('project', 'roles', 'users', 'isObserver', 'observers', 'workflowPhasesData', 'canManage', 'activeProjectDelegations', 'pastProjectDelegations'));
+        return view('projects.show', compact('project', 'roles', 'users', 'isObserver', 'observers', 'workflowPhasesData', 'canManage', 'activeProjectDelegations', 'pastProjectDelegations', 'evmMetrics'));
     }
 
     /**

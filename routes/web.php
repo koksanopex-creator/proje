@@ -13,6 +13,8 @@ use App\Http\Controllers\TimesheetController;
 use App\Http\Controllers\BomController;
 use App\Http\Controllers\MeetingController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\QualityController;
+use App\Http\Controllers\BaselineController;
 use App\Http\Controllers\DelegationController;
 use App\Http\Controllers\Admin\PermissionMatrixController;
 use App\Http\Controllers\Admin\NotificationMatrixController;
@@ -103,6 +105,12 @@ Route::middleware('auth')->group(function () {
     Route::post('/projects/{project}/stakeholders/handover', [ProjectController::class, 'handoverMember'])->name('projects.stakeholders.handover');
     Route::post('/projects/{project}/change-manager', [ProjectController::class, 'changeManager'])->name('projects.change_manager');
 
+    // Temel Çizgi (Schedule & Cost Baseline) Rotaları
+    Route::post('/projects/{project}/baselines', [BaselineController::class, 'store'])->name('projects.baselines.store');
+    Route::post('/projects/{project}/baselines/{baseline}/set-active', [BaselineController::class, 'setActive'])->name('projects.baselines.set_active');
+    Route::delete('/projects/{project}/baselines/{baseline}', [BaselineController::class, 'destroy'])->name('projects.baselines.destroy');
+    Route::get('/projects/{project}/baselines/evm-metrics', [BaselineController::class, 'evmMetrics'])->name('projects.baselines.evm_metrics');
+
     // Kurumsal Vekalet (User Deputyship / Proxy) Rotaları
     Route::get('/delegations', [DelegationController::class, 'index'])->name('delegations.index');
     Route::get('/delegations/{id}', [DelegationController::class, 'show'])->name('delegations.show');
@@ -133,6 +141,15 @@ Route::middleware('auth')->group(function () {
     Route::get('/butce-bom', [BomController::class, 'index'])->name('boms.index');
     Route::post('/butce-bom/item', [BomController::class, 'storeBom'])->name('boms.store_bom');
     Route::post('/butce-bom/budget', [BomController::class, 'storeBudget'])->name('boms.store_budget');
+
+    // Kalite & Kabul Yönetimi
+    Route::get('/kalite', [QualityController::class, 'index'])->name('quality.index');
+    Route::post('/kalite', [QualityController::class, 'store'])->name('quality.store');
+    Route::post('/kalite/{id}/evaluate', [QualityController::class, 'evaluate'])->name('quality.evaluate');
+    Route::delete('/kalite/{id}', [QualityController::class, 'destroy'])->name('quality.destroy');
+    Route::post('/kalite/ncr', [QualityController::class, 'storeNcr'])->name('quality.ncr.store');
+    Route::post('/kalite/ncr/{id}', [QualityController::class, 'updateNcr'])->name('quality.ncr.update');
+    Route::delete('/kalite/ncr/{id}', [QualityController::class, 'destroyNcr'])->name('quality.ncr.destroy');
 
     // Toplantılar
     Route::get('/toplantilar', [MeetingController::class, 'index'])->name('meetings.index');

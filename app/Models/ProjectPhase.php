@@ -27,4 +27,5 @@ class ProjectPhase extends Model
         public function completedBy() { return $this->belongsTo(User::class, 'completed_by'); }
     public function ehsApprovedBy() { return $this->belongsTo(User::class, 'ehs_approved_by'); }
     public function tasks() { return $this->hasMany(ProjectTask::class, 'phase_id'); }
+    public function qualities() { return $this->hasMany(ProjectQuality::class, 'phase_id'); }
 }

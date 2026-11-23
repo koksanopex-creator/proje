@@ -911,6 +911,8 @@
         <button class="tab-btn" onclick="switchTab('files')">📁 8. Dosya & Envanter Kasası ({{ $project->files->count() }})</button>
         <button class="tab-btn" onclick="switchTab('logs')">📜 9. Denetim İzi (Loglar)</button>
         <button class="tab-btn" onclick="switchTab('team_matrix')" style="background: #f0fdf4; color: #166534; border-radius: 6px 6px 0 0; font-weight: 700;">👥 10. Ekip & Yetki Matrisi ({{ $project->stakeholders->count() }})</button>
+        <button class="tab-btn" onclick="switchTab('quality')" style="background: #f0f9ff; color: #0284c7; border-radius: 6px 6px 0 0; font-weight: 700;">🔬 11. Kalite & Kabul Kriterleri ({{ $project->qualities->count() }})</button>
+        <button class="tab-btn" onclick="switchTab('baselines')" style="background: #eef2ff; color: #4338ca; border-radius: 6px 6px 0 0; font-weight: 700;">📐 12. Temel Çizgi (Baseline & EVM) ({{ $project->baselines->count() }})</button>
     </div>
 
     <!-- TAB 1: FAZLAR & MONDAY.COM TARZI KATLANABİLİR WBS TABLOSU (Görsel 4) -->
@@ -2707,6 +2709,833 @@
         </div>
     </div>
 
+    <!-- TAB 11: KALİTE & KABUL KRİTERLERİ (QUALITY GATES & TESTS) -->
+    <div id="tab-quality" class="tab-content" style="display: none;">
+        @php
+            $projQualities = $project->qualities ?? collect();
+            $projNcrs = $project->nonConformances ?? collect();
+            $qPassed = $projQualities->where('status', 'passed')->count();
+            $qFailed = $projQualities->where('status', 'failed')->count();
+            $qPending = $projQualities->where('status', 'pending')->count();
+            $ncrOpen = $projNcrs->whereIn('status', ['open', 'investigating', 'capa_in_progress'])->count();
+        @endphp
+
+        <!-- ÜST KART & HIZLI AKSİYONLAR -->
+        <div class="card mb-4" style="border-radius: 12px; border: 1px solid #bae6fd; background: linear-gradient(135deg, #f0f9ff 0%, #ffffff 100%); padding: 18px 22px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px;">
+                <div>
+                    <h3 style="font-size: 17px; font-weight: 800; color: #0369a1; margin: 0; display: flex; align-items: center; gap: 8px;">
+                        <span>🔬</span> Proje Kalite Standartları, Kabul Kriterleri & Kalite Kapıları
+                    </h3>
+                    <p style="font-size: 12.5px; color: #0284c7; margin: 4px 0 0;">
+                        Faz geçiş kriterleri, fabrika kabul testleri (FAT/SAT), ölçüm toleransları ve açık uygunsuzluk (NCR) takibi.
+                    </p>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                    <button type="button" class="btn btn-sm btn-primary" onclick="openProjQualityModal()" style="font-weight: 700; border-radius: 8px;">
+                        + Kalite Kriteri Ekle
+                    </button>
+                    <button type="button" class="btn btn-sm btn-danger" onclick="openProjNcrModal()" style="font-weight: 700; border-radius: 8px;">
+                        🚨 Uygunsuzluk (NCR) Aç
+                    </button>
+                    <a href="{{ route('quality.index', ['project_id' => $project->id]) }}" class="btn btn-sm btn-outline-info" style="font-weight: 700; border-radius: 8px;">
+                        Tam Kalite Panosu ↗
+                    </a>
+                </div>
+            </div>
+
+            <!-- ÖZET KPI ŞERİDİ -->
+            <div style="display: flex; gap: 16px; margin-top: 16px; flex-wrap: wrap;">
+                <div style="background: #ffffff; padding: 10px 18px; border-radius: 8px; border: 1px solid #e2e8f0; display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 18px;">📋</span>
+                    <div>
+                        <div style="font-size: 11px; color: #64748b; font-weight: 700;">TOPLAM KRİTER</div>
+                        <div style="font-size: 16px; font-weight: 800; color: #0f172a;">{{ $projQualities->count() }}</div>
+                    </div>
+                </div>
+                <div style="background: #ffffff; padding: 10px 18px; border-radius: 8px; border: 1px solid #bbf7d0; display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 18px;">✅</span>
+                    <div>
+                        <div style="font-size: 11px; color: #15803d; font-weight: 700;">GEÇTİ (PASSED)</div>
+                        <div style="font-size: 16px; font-weight: 800; color: #166534;">{{ $qPassed }}</div>
+                    </div>
+                </div>
+                <div style="background: #ffffff; padding: 10px 18px; border-radius: 8px; border: 1px solid #fecaca; display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 18px;">❌</span>
+                    <div>
+                        <div style="font-size: 11px; color: #b91c1c; font-weight: 700;">REDDEDİLDİ (FAILED)</div>
+                        <div style="font-size: 16px; font-weight: 800; color: #991b1b;">{{ $qFailed }}</div>
+                    </div>
+                </div>
+                <div style="background: #ffffff; padding: 10px 18px; border-radius: 8px; border: 1px solid #fed7aa; display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 18px;">⏳</span>
+                    <div>
+                        <div style="font-size: 11px; color: #c2410c; font-weight: 700;">TEST BEKLİYOR</div>
+                        <div style="font-size: 16px; font-weight: 800; color: #ea580c;">{{ $qPending }}</div>
+                    </div>
+                </div>
+                <div style="background: #ffffff; padding: 10px 18px; border-radius: 8px; border: 1px solid #fecdd3; display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 18px;">🚨</span>
+                    <div>
+                        <div style="font-size: 11px; color: #e11d48; font-weight: 700;">AÇIK NCR</div>
+                        <div style="font-size: 16px; font-weight: 800; color: #be123c;">{{ $ncrOpen }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 1. BÖLÜM: KALİTE TESTLERİ & KABUL KRİTERLERİ TABLOSU -->
+        <div class="card mb-4" style="border-radius: 12px; border: 1px solid #e2e8f0; background: #ffffff;">
+            <div class="card-header bg-white" style="padding: 14px 20px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; justify-content: space-between;">
+                <div style="font-weight: 800; color: #1e293b; font-size: 14px; display: flex; align-items: center; gap: 8px;">
+                    <span>🔬</span> Testler, Ölçümler ve Faz Kalite Kapıları
+                </div>
+                <span style="font-size: 11.5px; color: #64748b;">{{ $projQualities->count() }} Kriter Tanımlı</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0" style="font-size: 12.5px; vertical-align: middle;">
+                    <thead style="background: #f8fafc; color: #475569; font-weight: 700; border-bottom: 1.5px solid #e2e8f0;">
+                        <tr>
+                            <th style="padding: 10px 16px;">Tip</th>
+                            <th>Kriter & Standart</th>
+                            <th>İlgili Faz / Görev</th>
+                            <th>Hedef Değer & Tolerans</th>
+                            <th>Ölçülen Fiili Değer</th>
+                            <th>Durum</th>
+                            <th>Kontrolör / Onay</th>
+                            <th style="text-align: right; padding-right: 16px;">İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($projQualities as $q)
+                            <tr>
+                                <td style="padding: 10px 16px;">
+                                    <span class="badge" style="background: #e0f2fe; color: #0369a1; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 5px;">
+                                        {{ $q->check_type_label }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div style="font-weight: 700; color: #0f172a;">{{ $q->title }}</div>
+                                    @if($q->standards_reference)
+                                        <div style="font-size: 11px; color: #0284c7;">Ref: {{ $q->standards_reference }}</div>
+                                    @endif
+                                    @if($q->description)
+                                        <div style="font-size: 11px; color: #64748b;">{{ Str::limit($q->description, 50) }}</div>
+                                    @endif
+                                </td>
+                                <td>
+                                    @if($q->phase)
+                                        <div style="font-weight: 600;">🔷 {{ $q->phase->name }}</div>
+                                    @endif
+                                    @if($q->task)
+                                        <div style="font-size: 11px; color: #64748b;">📋 {{ Str::limit($q->task->title, 30) }}</div>
+                                    @endif
+                                    @if(!$q->phase && !$q->task)
+                                        <span style="color: #94a3b8;">Genel Proje</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    @if($q->target_value)
+                                        <div style="font-weight: 700; color: #0f172a;">{{ $q->target_value }} {{ $q->unit }}</div>
+                                        @if($q->tolerance)
+                                            <div style="font-size: 10.5px; color: #64748b;">Tol: {{ $q->tolerance }}</div>
+                                        @endif
+                                    @else
+                                        <span style="color: #94a3b8;">Niteliksel / Görsel</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    @if($q->actual_value)
+                                        <span style="font-weight: 800; color: #0f172a;">{{ $q->actual_value }} {{ $q->unit }}</span>
+                                    @else
+                                        <span style="color: #94a3b8;">Ölçülmedi</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    @php $qBadge = $q->status_badge; @endphp
+                                    <span class="badge" style="background: {{ $qBadge['bg'] }}; color: {{ $qBadge['color'] }}; font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 6px;">
+                                        {{ $qBadge['icon'] ?? '' }} {{ $qBadge['label'] }}
+                                    </span>
+                                </td>
+                                <td>
+                                    @if($q->checker)
+                                        <div>{{ $q->checker->name }}</div>
+                                        <div style="font-size: 10.5px; color: #94a3b8;">{{ $q->checked_at ? $q->checked_at->format('d.m.Y H:i') : '' }}</div>
+                                    @else
+                                        <span style="color: #94a3b8;">Atanmadı</span>
+                                    @endif
+                                </td>
+                                <td style="text-align: right; padding-right: 16px;">
+                                    <div style="display: inline-flex; align-items: center; gap: 6px;">
+                                        <button type="button" class="btn btn-xs btn-outline-primary" onclick="evaluateProjQuality({{ json_encode($q) }})" style="font-size: 11px; font-weight: 700; border-radius: 6px;">
+                                            Değerlendir
+                                        </button>
+                                        <form method="POST" action="{{ route('quality.destroy', $q->id) }}" onsubmit="return confirm('Bu kalite kriterini silmek istediğinize emin misiniz?');" style="margin: 0;">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-xs btn-outline-danger" style="font-size: 11px; border-radius: 6px;">
+                                                Sil
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="8" class="text-center py-4" style="color: #94a3b8;">
+                                    Bu projeye henüz kalite kontrol kriteri veya test planı eklenmemiş.
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 2. BÖLÜM: KALİTE UYGUNSUZLUKLARI (NCR / PUNCH LIST) TABLOSU -->
+        <div class="card mb-4" style="border-radius: 12px; border: 1px solid #e2e8f0; background: #ffffff;">
+            <div class="card-header bg-white" style="padding: 14px 20px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; justify-content: space-between;">
+                <div style="font-weight: 800; color: #1e293b; font-size: 14px; display: flex; align-items: center; gap: 8px;">
+                    <span>🚨</span> Açık Kalite Uygunsuzlukları & DÖF Takibi
+                </div>
+                <span style="font-size: 11.5px; color: #64748b;">{{ $projNcrs->count() }} NCR Kaydı</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0" style="font-size: 12.5px; vertical-align: middle;">
+                    <thead style="background: #f8fafc; color: #475569; font-weight: 700; border-bottom: 1.5px solid #e2e8f0;">
+                        <tr>
+                            <th style="padding: 10px 16px;">NCR No</th>
+                            <th>Önem</th>
+                            <th>Uygunsuzluk Başlığı</th>
+                            <th>Kök Neden & Aksiyon</th>
+                            <th>Sorumlu</th>
+                            <th>Termin</th>
+                            <th>Durum</th>
+                            <th style="text-align: right; padding-right: 16px;">Detay</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($projNcrs as $ncr)
+                            <tr>
+                                <td style="padding: 10px 16px; font-weight: 800; color: #b91c1c;">
+                                    {{ $ncr->ncr_number }}
+                                </td>
+                                <td>
+                                    @php $sevBadge = $ncr->severity_badge; @endphp
+                                    <span class="badge" style="background: {{ $sevBadge['bg'] }}; color: {{ $sevBadge['color'] }}; font-size: 10.5px; font-weight: 800; padding: 3px 7px; border-radius: 6px;">
+                                        {{ $sevBadge['label'] }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div style="font-weight: 700; color: #0f172a;">{{ $ncr->title }}</div>
+                                    @if($ncr->description)
+                                        <div style="font-size: 11px; color: #64748b;">{{ Str::limit($ncr->description, 50) }}</div>
+                                    @endif
+                                </td>
+                                <td>
+                                    @if($ncr->root_cause)
+                                        <div style="font-size: 11px; color: #475569;"><strong>Kök Neden:</strong> {{ Str::limit($ncr->root_cause, 40) }}</div>
+                                    @endif
+                                    @if($ncr->corrective_action)
+                                        <div style="font-size: 11px; color: #0284c7;"><strong>Aksiyon:</strong> {{ Str::limit($ncr->corrective_action, 40) }}</div>
+                                    @endif
+                                    @if(!$ncr->root_cause && !$ncr->corrective_action)
+                                        <span style="color: #94a3b8;">Analiz bekleniyor</span>
+                                    @endif
+                                </td>
+                                <td>{{ $ncr->assignee?->name ?? 'Atanmadı' }}</td>
+                                <td>
+                                    @if($ncr->due_date)
+                                        <span style="{{ $ncr->is_overdue ? 'color: #dc2626; font-weight: 800;' : '' }}">
+                                            {{ $ncr->due_date->format('d.m.Y') }}
+                                            @if($ncr->is_overdue) ⚠️ @endif
+                                        </span>
+                                    @else
+                                        <span style="color: #94a3b8;">-</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    @php $stBadge = $ncr->status_badge; @endphp
+                                    <span class="badge" style="background: {{ $stBadge['bg'] }}; color: {{ $stBadge['color'] }}; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px;">
+                                        {{ $stBadge['label'] }}
+                                    </span>
+                                </td>
+                                <td style="text-align: right; padding-right: 16px;">
+                                    <a href="{{ route('quality.index', ['project_id' => $project->id, 'tab' => 'ncrs']) }}" class="btn btn-xs btn-outline-secondary" style="font-size: 11px;">
+                                        Detay ↗
+                                    </a>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="8" class="text-center py-4" style="color: #94a3b8;">
+                                    Bu projede açık veya kayıtlı bir uygunsuzluk (NCR) bulunmuyor.
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 12: TEMEL ÇİZGİLER & EVM (SCHEDULE & COST BASELINE, S-CURVE) -->
+    <div id="tab-baselines" class="tab-content" style="display: none;">
+        @php
+            $activeBaseline = $project->activeBaseline;
+            $allBaselines = $project->baselines;
+            $evm = $evmMetrics ?? ($activeBaseline ? $activeBaseline->calculateEvm() : null);
+        @endphp
+
+        <!-- ÜST AKSİYON & BİLGİ KARTI -->
+        <div class="card mb-4" style="border-radius: 12px; border: 1px solid #c7d2fe; background: linear-gradient(135deg, #eef2ff 0%, #ffffff 100%); padding: 18px 22px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px;">
+                <div>
+                    <h3 style="font-size: 17px; font-weight: 800; color: #312e81; margin: 0; display: flex; align-items: center; gap: 8px;">
+                        <span>📐</span> Schedule & Cost Baseline (Temel Çizgi) ve EVM Analizi
+                    </h3>
+                    <p style="font-size: 12.5px; color: #4338ca; margin: 4px 0 0;">
+                        Onaylanmış orijinal proje taahhütleri (Zaman ve Maliyet Temel Çizgisi), S-Eğrisi referansı ve PMI Kazanılmış Değer (Earned Value) metrikleri.
+                    </p>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                    <button type="button" class="btn btn-sm" onclick="openFreezeBaselineModal()" style="background: #4f46e5; color: #ffffff; font-weight: 700; border-radius: 8px; padding: 7px 16px; border: none; box-shadow: 0 2px 4px rgba(79,70,229,0.25);">
+                        <span>🔒</span> + Yeni Temel Çizgi Dondur (Snapshot)
+                    </button>
+                    <a href="{{ route('gantt.index', ['project_id' => $project->id]) }}" class="btn btn-sm btn-outline-primary" style="font-weight: 700; border-radius: 8px; border-color: #6366f1; color: #4f46e5; background: #ffffff;">
+                        <span>📊</span> Gantt Çift Çubuk Karşılaştır ↗
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- EVM KPI METRİKLERİ PANOSU -->
+        @if($evm)
+            <div class="row g-3 mb-4">
+                <!-- BAC (Budget at Completion) -->
+                <div class="col-md-3 col-sm-6">
+                    <div class="card p-3" style="border-radius: 10px; border: 1.5px solid #e0e7ff; background: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+                        <div style="font-size: 11px; font-weight: 800; color: #4338ca; text-transform: uppercase;">BAC (Temel Çizgi Bütçesi)</div>
+                        <div style="font-size: 20px; font-weight: 900; color: #1e1b4b; margin-top: 4px;">
+                            {{ number_format($evm['bac'], 2) }} <span style="font-size: 13px; font-weight: 700; color: #6366f1;">{{ $project->currency ?? 'TRY' }}</span>
+                        </div>
+                        <div style="font-size: 11px; color: #64748b; margin-top: 2px;">Onaylanan Tavan Bütçe</div>
+                    </div>
+                </div>
+
+                <!-- PV (Planned Value) -->
+                <div class="col-md-3 col-sm-6">
+                    <div class="card p-3" style="border-radius: 10px; border: 1.5px solid #e2e8f0; background: #ffffff;">
+                        <div style="font-size: 11px; font-weight: 800; color: #0284c7; text-transform: uppercase;">PV (Planlanan Değer)</div>
+                        <div style="font-size: 20px; font-weight: 900; color: #0f172a; margin-top: 4px;">
+                            {{ number_format($evm['pv'], 2) }} <span style="font-size: 13px; font-weight: 700; color: #0284c7;">{{ $project->currency ?? 'TRY' }}</span>
+                        </div>
+                        <div style="font-size: 11px; color: #64748b; margin-top: 2px;">Takvime göre bugünkü hedef (%{{ $evm['time_ratio_pct'] }})</div>
+                    </div>
+                </div>
+
+                <!-- EV (Earned Value) -->
+                <div class="col-md-3 col-sm-6">
+                    <div class="card p-3" style="border-radius: 10px; border: 1.5px solid #bbf7d0; background: #f0fdf4;">
+                        <div style="font-size: 11px; font-weight: 800; color: #15803d; text-transform: uppercase;">EV (Kazanılmış Değer)</div>
+                        <div style="font-size: 20px; font-weight: 900; color: #166534; margin-top: 4px;">
+                            {{ number_format($evm['ev'], 2) }} <span style="font-size: 13px; font-weight: 700; color: #15803d;">{{ $project->currency ?? 'TRY' }}</span>
+                        </div>
+                        <div style="font-size: 11px; color: #15803d; margin-top: 2px;">Gerçekleşen İlerleme Karşılığı (%{{ $evm['progress_pct'] }})</div>
+                    </div>
+                </div>
+
+                <!-- AC (Actual Cost) -->
+                <div class="col-md-3 col-sm-6">
+                    <div class="card p-3" style="border-radius: 10px; border: 1.5px solid #fecaca; background: #fff5f5;">
+                        <div style="font-size: 11px; font-weight: 800; color: #b91c1c; text-transform: uppercase;">AC (Fiili Harcanan)</div>
+                        <div style="font-size: 20px; font-weight: 900; color: #991b1b; margin-top: 4px;">
+                            {{ number_format($evm['ac'], 2) }} <span style="font-size: 13px; font-weight: 700; color: #b91c1c;">{{ $project->currency ?? 'TRY' }}</span>
+                        </div>
+                        <div style="font-size: 11px; color: #991b1b; margin-top: 2px;">Kümülatif fiili harcama</div>
+                    </div>
+                </div>
+
+                <!-- CV (Cost Variance) & CPI -->
+                <div class="col-md-6">
+                    <div class="card p-3" style="border-radius: 10px; border: 1.5px solid {{ $evm['cv'] >= 0 ? '#86efac' : '#fca5a5' }}; background: #ffffff;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <span style="font-size: 11px; font-weight: 800; color: #475569; text-transform: uppercase;">Maliyet Sapması (CV) & Endeksi (CPI)</span>
+                                <div style="font-size: 18px; font-weight: 900; color: {{ $evm['cv'] >= 0 ? '#15803d' : '#b91c1c' }}; margin-top: 4px;">
+                                    CV: {{ $evm['cv'] >= 0 ? '+' : '' }}{{ number_format($evm['cv'], 2) }} {{ $project->currency ?? 'TRY' }}
+                                </div>
+                            </div>
+                            <div style="text-align: right;">
+                                <span class="badge" style="font-size: 13px; font-weight: 800; padding: 6px 12px; border-radius: 8px; {{ $evm['cpi'] >= 1.0 ? 'background: #dcfce7; color: #166534;' : 'background: #fee2e2; color: #991b1b;' }}">
+                                    CPI: {{ number_format($evm['cpi'], 2) }}
+                                </span>
+                                <div style="font-size: 11px; color: #64748b; margin-top: 4px;">
+                                    {{ $evm['cpi'] >= 1.0 ? '✅ Bütçe altında / Tasarruflu' : '⚠️ Bütçe aşımı riski' }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SV (Schedule Variance) & SPI -->
+                <div class="col-md-6">
+                    <div class="card p-3" style="border-radius: 10px; border: 1.5px solid {{ $evm['sv'] >= 0 ? '#86efac' : '#fca5a5' }}; background: #ffffff;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <span style="font-size: 11px; font-weight: 800; color: #475569; text-transform: uppercase;">Zaman Sapması (SV) & Endeksi (SPI)</span>
+                                <div style="font-size: 18px; font-weight: 900; color: {{ $evm['sv'] >= 0 ? '#15803d' : '#b91c1c' }}; margin-top: 4px;">
+                                    SV: {{ $evm['sv'] >= 0 ? '+' : '' }}{{ number_format($evm['sv'], 2) }} {{ $project->currency ?? 'TRY' }}
+                                </div>
+                            </div>
+                            <div style="text-align: right;">
+                                <span class="badge" style="font-size: 13px; font-weight: 800; padding: 6px 12px; border-radius: 8px; {{ $evm['spi'] >= 1.0 ? 'background: #dcfce7; color: #166534;' : 'background: #fee2e2; color: #991b1b;' }}">
+                                    SPI: {{ number_format($evm['spi'], 2) }}
+                                </span>
+                                <div style="font-size: 11px; color: #64748b; margin-top: 4px;">
+                                    {{ $evm['spi'] >= 1.0 ? '✅ Takvimin önünde / Zamanında' : '⚠️ Takvim gerisinde gecikme' }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        @else
+            <div class="alert alert-info d-flex align-items-center mb-4" style="border-radius: 10px; border: 1.5px solid #bfdbfe; background: #eff6ff; color: #1e40af;">
+                <span style="font-size: 20px; margin-right: 12px;">ℹ️</span>
+                <div>
+                    <strong>Henüz aktif bir Temel Çizgi (Baseline) dondurulmamış.</strong>
+                    <div style="font-size: 12px; margin-top: 2px;">
+                        EVM maliyet ve takvim sapma analizlerinin hesaplanabilmesi için yukarıdaki <strong>"+ Yeni Temel Çizgi Dondur"</strong> butonuna tıklayarak ilk onaylı planı (v1.0) kaydedebilirsiniz.
+                    </div>
+                </div>
+            </div>
+        @endif
+
+        <!-- DONDURULMUŞ TEMEL ÇİZGİ SÜRÜMLERİ TABLOSU -->
+        <div class="card mb-4" style="border-radius: 12px; border: 1px solid #e2e8f0; background: #ffffff;">
+            <div class="card-header bg-white" style="padding: 14px 20px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; justify-content: space-between;">
+                <div style="font-weight: 800; color: #1e293b; font-size: 14px; display: flex; align-items: center; gap: 8px;">
+                    <span>📜</span> Dondurulmuş Temel Çizgi Sürüm Geçmişi (Baseline History)
+                </div>
+                <span style="font-size: 11.5px; color: #64748b;">{{ $allBaselines->count() }} Sürüm Kayıtlı</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0" style="font-size: 12.5px; vertical-align: middle;">
+                    <thead style="background: #f8fafc; color: #475569; font-weight: 700; border-bottom: 1.5px solid #e2e8f0;">
+                        <tr>
+                            <th style="padding: 10px 16px;">Sürüm</th>
+                            <th>Temel Çizgi Adı & Açıklama</th>
+                            <th>Onaylı Bütçe (Cost Baseline)</th>
+                            <th>Toplam Efor</th>
+                            <th>Hedef Başlangıç / Bitiş</th>
+                            <th>Donduran / Tarih</th>
+                            <th>Durum</th>
+                            <th style="text-align: right; padding-right: 16px;">İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($allBaselines as $b)
+                            <tr style="{{ $b->is_active ? 'background: #f8fafc; font-weight: 600;' : '' }}">
+                                <td style="padding: 10px 16px;">
+                                    <span class="badge" style="font-size: 11px; font-weight: 800; {{ $b->is_active ? 'background: #4f46e5; color: #ffffff;' : 'background: #e2e8f0; color: #475569;' }}">
+                                        {{ $b->version }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div style="color: #0f172a; font-weight: 700;">{{ $b->name }}</div>
+                                    @if($b->description)
+                                        <div style="font-size: 11px; color: #64748b;">{{ Str::limit($b->description, 60) }}</div>
+                                    @endif
+                                </td>
+                                <td>
+                                    <strong style="color: #1e293b;">{{ number_format($b->total_planned_budget, 2) }}</strong> {{ $project->currency ?? 'TRY' }}
+                                </td>
+                                <td>{{ number_format($b->total_planned_hours, 1) }} saat</td>
+                                <td>
+                                    <div style="font-size: 11.5px;">{{ $b->planned_start_date ? $b->planned_start_date->format('d.m.Y') : '-' }}</div>
+                                    <div style="font-size: 11px; color: #64748b;">{{ $b->planned_end_date ? $b->planned_end_date->format('d.m.Y') : '-' }}</div>
+                                </td>
+                                <td>
+                                    <div>{{ $b->creator?->name ?? 'Sistem' }}</div>
+                                    <div style="font-size: 10.5px; color: #94a3b8;">{{ $b->approved_at ? $b->approved_at->format('d.m.Y H:i') : $b->created_at->format('d.m.Y H:i') }}</div>
+                                </td>
+                                <td>
+                                    @if($b->is_active)
+                                        <span class="badge" style="background: #dcfce7; color: #166534; font-size: 11px; border: 1px solid #86efac;">
+                                            ✓ Aktif Referans
+                                        </span>
+                                    @else
+                                        <span class="badge" style="background: #f1f5f9; color: #64748b; font-size: 11px;">
+                                            Arşiv
+                                        </span>
+                                    @endif
+                                </td>
+                                <td style="text-align: right; padding-right: 16px;">
+                                    <div style="display: inline-flex; align-items: center; gap: 6px;">
+                                        @if(!$b->is_active)
+                                            <form method="POST" action="{{ route('projects.baselines.set_active', [$project->id, $b->id]) }}" style="margin: 0;">
+                                                @csrf
+                                                <button type="submit" class="btn btn-xs btn-outline-primary" style="font-size: 11px; font-weight: 700; border-radius: 6px;" title="Bu sürümü aktif temel çizgi referansı yap">
+                                                    Aktif Yap
+                                                </button>
+                                            </form>
+                                        @endif
+                                        <form method="POST" action="{{ route('projects.baselines.destroy', [$project->id, $b->id]) }}" onsubmit="return confirm('Bu temel çizgi sürümünü silmek istediğinize emin misiniz?');" style="margin: 0;">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-xs btn-outline-danger" style="font-size: 11px; border-radius: 6px;">
+                                                Sil
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="8" class="text-center py-4" style="color: #94a3b8;">
+                                    Bu proje için henüz dondurulmuş bir Temel Çizgi (Baseline) kaydı bulunmuyor.
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- AKTİF TEMEL ÇİZGİ GÖREV SAPMA DETAYLARI (SCHEDULE VARIANCE TABLE) -->
+        @if($activeBaseline && $activeBaseline->tasks->count() > 0)
+            <div class="card mb-4" style="border-radius: 12px; border: 1px solid #e2e8f0; background: #ffffff;">
+                <div class="card-header bg-white" style="padding: 14px 20px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; justify-content: space-between;">
+                    <div style="font-weight: 800; color: #1e293b; font-size: 14px; display: flex; align-items: center; gap: 8px;">
+                        <span>📋</span> Aktif Temel Çizgi ({{ $activeBaseline->version }}) Görev Zaman Sapma Analizi
+                    </div>
+                    <span style="font-size: 11.5px; color: #64748b;">{{ $activeBaseline->tasks->count() }} Görev Kıyaslandı</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0" style="font-size: 12.5px; vertical-align: middle;">
+                        <thead style="background: #f8fafc; color: #475569; font-weight: 700; border-bottom: 1.5px solid #e2e8f0;">
+                            <tr>
+                                <th style="padding: 10px 16px;">Görev Adı</th>
+                                <th>Faz</th>
+                                <th>Temel Çizgi Bitiş</th>
+                                <th>Güncel Bitiş</th>
+                                <th>Takvim Sapması (Schedule Variance)</th>
+                                <th>Mevcut İlerleme</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($activeBaseline->tasks as $bt)
+                                @php
+                                    $currentTask = $bt->task;
+                                    $var = $bt->getDaysVariance();
+                                @endphp
+                                <tr>
+                                    <td style="padding: 10px 16px;">
+                                        <strong>{{ $bt->title }}</strong>
+                                        @if($bt->is_milestone)
+                                            <span style="font-size: 10px; background: #fef3c7; color: #92400e; padding: 1px 5px; border-radius: 4px; margin-left: 4px;">Kilometre Taşı</span>
+                                        @endif
+                                    </td>
+                                    <td>{{ $bt->phase?->name ?? '-' }}</td>
+                                    <td>{{ $bt->baseline_due_date ? $bt->baseline_due_date->format('d.m.Y') : '-' }}</td>
+                                    <td>{{ $currentTask?->due_date ? $currentTask->due_date->format('d.m.Y') : '-' }}</td>
+                                    <td>
+                                        @if($var === null)
+                                            <span style="color: #94a3b8;">-</span>
+                                        @elseif($var > 0)
+                                            <span class="badge" style="background: #fee2e2; color: #b91c1c; font-size: 11px; border: 1px solid #f87171;">
+                                                ⚠️ +{{ $var }} Gün Gecikme
+                                            </span>
+                                        @elseif($var < 0)
+                                            <span class="badge" style="background: #dcfce7; color: #166534; font-size: 11px; border: 1px solid #86efac;">
+                                                ✓ {{ abs($var) }} Gün Erken
+                                            </span>
+                                        @else
+                                            <span class="badge" style="background: #f1f5f9; color: #475569; font-size: 11px;">
+                                                Tam Zamanında (0g)
+                                            </span>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        <div style="display: flex; align-items: center; gap: 8px;">
+                                            <div class="progress" style="width: 80px; height: 6px; border-radius: 3px; background: #e2e8f0;">
+                                                <div class="progress-bar" style="width: {{ $currentTask?->progress_percentage ?? 0 }}%; background: #0284c7;"></div>
+                                            </div>
+                                            <span style="font-size: 11px; font-weight: 700; color: #475569;">%{{ (int) round($currentTask?->progress_percentage ?? 0) }}</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        @endif
+    </div>
+
+    <!-- MODALLER: KALİTE & TEMEL ÇİZGİ -->
+    <!-- 1. PROJE İÇİ KALİTE KRİTERİ EKLE MODALI -->
+    <div class="modal fade" id="modalProjNewQuality" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <form method="POST" action="{{ route('quality.store') }}" enctype="multipart/form-data" class="modal-content" style="border-radius: 12px;">
+                @csrf
+                <input type="hidden" name="project_id" value="{{ $project->id }}">
+                <div class="modal-header" style="background: #0284c7; color: #ffffff; padding: 14px 20px;">
+                    <h5 class="modal-title" style="font-size: 15px; font-weight: 800;">
+                        <span>🔬</span> {{ $project->code }} Projesine Kalite Kriteri Ekle
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" style="padding: 20px;">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label" style="font-weight: 700;">Kontrol Tipi *</label>
+                            <select name="check_type" class="form-select" required style="border-radius: 7px;">
+                                <option value="acceptance_criteria">Kabul Kriteri (Acceptance)</option>
+                                <option value="quality_gate">Faz Kalite Kapısı (Gate)</option>
+                                <option value="test_case">Test Vakası / Test Case</option>
+                                <option value="inspection">Saha Muayenesi (Inspection)</option>
+                                <option value="ehs_audit">İSG & Çevre Denetimi</option>
+                                <option value="fat">Fabrika Kabul Testi (FAT)</option>
+                                <option value="sat">Saha Kabul Testi (SAT)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label" style="font-weight: 700;">Kalite Kontrolü & Test Başlığı *</label>
+                            <input type="text" name="title" class="form-control" required placeholder="Örn: Güneş Panelleri Taşıyıcı Ray Tork Kalibrasyonu" style="border-radius: 7px;">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" style="font-weight: 700;">İlgili Faz / Aşama</label>
+                            <select name="phase_id" class="form-select" style="border-radius: 7px;">
+                                <option value="">-- Tüm Proje / Faz Bağımsız --</option>
+                                @foreach($project->phases as $ph)
+                                    <option value="{{ $ph->id }}">{{ $ph->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" style="font-weight: 700;">İlgili Görev (Opsiyonel)</label>
+                            <select name="task_id" class="form-select" style="border-radius: 7px;">
+                                <option value="">-- Görev Bağımsız --</option>
+                                @foreach($project->tasks as $t)
+                                    <option value="{{ $t->id }}">{{ $t->title }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" style="font-weight: 700;">Hedef Ölçüm / Standart Değer</label>
+                            <input type="text" name="target_value" class="form-control" placeholder="Örn: 25.4" style="border-radius: 7px;">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" style="font-weight: 700;">Tolerans Aralığı</label>
+                            <input type="text" name="tolerance" class="form-control" placeholder="Örn: ±0.2 mm veya min. 95%" style="border-radius: 7px;">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" style="font-weight: 700;">Birim</label>
+                            <input type="text" name="unit" class="form-control" placeholder="Örn: bar, mm, °C, %" style="border-radius: 7px;">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" style="font-weight: 700;">Standart / Şartname Referansı</label>
+                            <input type="text" name="standards_reference" class="form-control" placeholder="Örn: ISO 9001 Madde 8.6, TS EN 1090" style="border-radius: 7px;">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" style="font-weight: 700;">Testi Yapacak Personel</label>
+                            <select name="checked_by" class="form-select" style="border-radius: 7px;">
+                                <option value="">-- Atama Yapılmadı --</option>
+                                @foreach($users as $u)
+                                    <option value="{{ $u->id }}">{{ $u->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" style="font-weight: 700;">Test Yöntemi, Açıklaması ve Kabul Şartları</label>
+                            <textarea name="description" class="form-control" rows="3" placeholder="Test adımları, cihaz kalibrasyonu, numune alma koşulları..." style="border-radius: 7px;"></textarea>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" style="font-weight: 700;">Kanıt / Sertifika / Şartname Dosyası</label>
+                            <input type="file" name="evidence_file" class="form-control" style="border-radius: 7px;">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer" style="background: #f8fafc; padding: 12px 20px;">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="border-radius: 7px;">Vazgeç</button>
+                    <button type="submit" class="btn btn-primary" style="background: #0284c7; border-color: #0284c7; font-weight: 700; border-radius: 7px;">
+                        ✓ Kriteri Kaydet
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 2. PROJE İÇİ KALİTE UYGUNSUZLUĞU (NCR) AÇ MODALI -->
+    <div class="modal fade" id="modalProjNewNcr" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <form method="POST" action="{{ route('quality.ncr.store') }}" enctype="multipart/form-data" class="modal-content" style="border-radius: 12px;">
+                @csrf
+                <input type="hidden" name="project_id" value="{{ $project->id }}">
+                <div class="modal-header" style="background: #dc2626; color: #ffffff; padding: 14px 20px;">
+                    <h5 class="modal-title" style="font-size: 15px; font-weight: 800;">
+                        <span>🚨</span> {{ $project->code }} İçin Kalite Uygunsuzluğu (NCR) Aç
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" style="padding: 20px;">
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label" style="font-weight: 700;">Uygunsuzluk Başlığı *</label>
+                            <input type="text" name="title" class="form-control" required placeholder="Örn: Kaynak Dikişinde Radyografik Çatlak Tespiti" style="border-radius: 7px;">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" style="font-weight: 700;">Kritiklik Seviyesi *</label>
+                            <select name="severity" class="form-select" required style="border-radius: 7px;">
+                                <option value="minor">Düşük (Minor)</option>
+                                <option value="major" selected>Orta / Önemli (Major)</option>
+                                <option value="critical">Kritik / Durdurucu (Critical)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" style="font-weight: 700;">Düzeltici Faaliyet Sorumlusu (CAPA Owner)</label>
+                            <select name="assigned_to" class="form-select" style="border-radius: 7px;">
+                                <option value="">-- Sorumlu Seçiniz --</option>
+                                @foreach($users as $u)
+                                    <option value="{{ $u->id }}">{{ $u->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" style="font-weight: 700;">Giderilme Hedef Tarihi (Termin)</label>
+                            <input type="date" name="due_date" class="form-control" style="border-radius: 7px;">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" style="font-weight: 700;">Uygunsuzluk Detayı & Sapma Tanımı *</label>
+                            <textarea name="description" class="form-control" rows="3" required placeholder="Hatanın oluş şekli, nerede ve hangi parçada tespit edildiği..." style="border-radius: 7px;"></textarea>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" style="font-weight: 700;">Kök Neden Analizi (Root Cause)</label>
+                            <textarea name="root_cause" class="form-control" rows="2" placeholder="Neden oldu? Operatör hatası, malzeme kusuru, parametre sapması..." style="border-radius: 7px;"></textarea>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" style="font-weight: 700;">Planlanan Düzeltici / Önleyici Faaliyet (CAPA)</label>
+                            <textarea name="corrective_action" class="form-control" rows="2" placeholder="Tekrarını önlemek için ne yapılacak? Parça değişimi, revizyon, eğitim..." style="border-radius: 7px;"></textarea>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" style="font-weight: 700;">Hata Fotoğrafı / Ölçüm Raporu Kanıtı</label>
+                            <input type="file" name="evidence_file" class="form-control" style="border-radius: 7px;">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer" style="background: #f8fafc; padding: 12px 20px;">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="border-radius: 7px;">Vazgeç</button>
+                    <button type="submit" class="btn btn-danger" style="font-weight: 700; border-radius: 7px;">
+                        🚨 NCR Kaydını Aç
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 3. KALİTE TESTİNİ DEĞERLENDİR MODALI -->
+    <div class="modal fade" id="modalProjEvaluateQuality" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <form method="POST" id="formProjEvaluateQuality" enctype="multipart/form-data" class="modal-content" style="border-radius: 12px;">
+                @csrf
+                <div class="modal-header" style="background: #0f172a; color: #ffffff; padding: 14px 20px;">
+                    <h5 class="modal-title" style="font-size: 15px; font-weight: 800;">
+                        <span>📋</span> Kalite Testini / Kabul Kriterini Değerlendir
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" style="padding: 20px;">
+                    <div class="mb-3">
+                        <label class="form-label" style="font-weight: 700;">Kriter Başlığı</label>
+                        <div id="evalProjQualityTitle" style="font-size: 13px; font-weight: 800; color: #0284c7;"></div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" style="font-weight: 700;">Hedef / Standart Değer</label>
+                        <div id="evalProjQualityTarget" style="font-size: 12.5px; color: #475569;"></div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" style="font-weight: 700;">Ölçülen Fiili Değer</label>
+                        <input type="text" name="actual_value" id="evalProjActualValue" class="form-control" placeholder="Örn: 25.3" style="border-radius: 7px;">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" style="font-weight: 700;">Değerlendirme Sonucu *</label>
+                        <select name="status" id="evalProjStatus" class="form-select" required style="border-radius: 7px; font-weight: 700;">
+                            <option value="passed">✅ Geçti (Passed / Kabul)</option>
+                            <option value="failed">❌ Kaldı / Reddedildi (Failed)</option>
+                            <option value="conditionally_passed">⚠️ Şartlı Kabul Edildi (Conditionally Passed)</option>
+                            <option value="in_progress">⏳ Test Süreci Devam Ediyor</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" style="font-weight: 700;">Test Notları & Değerlendirme Raporu</label>
+                        <textarea name="evaluation_notes" id="evalProjNotes" class="form-control" rows="3" placeholder="Ölçüm ortamı, kullanılan cihaz seri no, gözlemler..." style="border-radius: 7px;"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" style="font-weight: 700;">Test Kanıtı / Ölçüm Raporu Dosyası</label>
+                        <input type="file" name="evidence_file" class="form-control" style="border-radius: 7px;">
+                    </div>
+                </div>
+                <div class="modal-footer" style="background: #f8fafc; padding: 12px 20px;">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="border-radius: 7px;">İptal</button>
+                    <button type="submit" class="btn btn-success" style="font-weight: 700; border-radius: 7px;">
+                        ✓ Değerlendirmeyi Kaydet
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 4. YENİ TEMEL ÇİZGİ DONDUR (FREEZE BASELINE) MODALI -->
+    <div class="modal fade" id="modalFreezeBaseline" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <form method="POST" action="{{ route('projects.baselines.store', $project->id) }}" class="modal-content" style="border-radius: 12px;">
+                @csrf
+                <div class="modal-header" style="background: #4f46e5; color: #ffffff; padding: 14px 20px;">
+                    <h5 class="modal-title" style="font-size: 15px; font-weight: 800;">
+                        <span>🔒</span> Proje Temel Çizgisini Dondur (Baseline Snapshot)
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" style="padding: 20px;">
+                    <div class="alert alert-warning mb-3" style="font-size: 12px; border-radius: 8px;">
+                        <span>ℹ️</span> <strong>Temel Çizgi (Baseline):</strong> Projenin şu anki planlanan bütçesi ({{ number_format($project->planned_budget ?? 0, 2) }} {{ $project->currency ?? 'TRY' }}), faz ve görev tarihleri kilitlenerek saklanacaktır. Gelecekteki revizyonlar ve takvim/maliyet sapmaları (EVM) bu dondurulan referansa göre kıyaslanacaktır.
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label" style="font-weight: 700; font-size: 13px;">Temel Çizgi Sürüm Kodu *</label>
+                        <input type="text" name="version" class="form-control" value="v{{ $project->baselines->count() + 1 }}.0" required style="border-radius: 7px; font-weight: 700;">
+                        <small class="text-muted">Örn: v1.0 (Orijinal Onay), v2.0 (Yönetim Kurulu Bütçe Revizyonu)</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label" style="font-weight: 700; font-size: 13px;">Temel Çizgi Adı / Etiketi</label>
+                        <input type="text" name="name" class="form-control" value="{{ $project->baselines->count() === 0 ? 'Orijinal Onaylı Proje Planı' : 'Proje Revizyon Temel Çizgisi' }}" placeholder="Örn: 2026 Q1 Onaylı Temel Çizgi" style="border-radius: 7px;">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label" style="font-weight: 700; font-size: 13px;">Dondurma Sebebi & Açıklama</label>
+                        <textarea name="description" class="form-control" rows="3" placeholder="Bu temel çizginin alınma gerekçesi veya yönetim kararı..." style="border-radius: 7px;"></textarea>
+                    </div>
+
+                    <div class="form-check form-switch mt-3">
+                        <input class="form-check-input" type="checkbox" name="set_active" value="1" id="switchSetActive" checked>
+                        <label class="form-check-label" for="switchSetActive" style="font-weight: 700; font-size: 13px;">
+                            Aktif Kıyaslama Referansı Olarak Ayarla (Gantt & EVM)
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer" style="background: #f8fafc; padding: 12px 20px;">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="border-radius: 7px;">Vazgeç</button>
+                    <button type="submit" class="btn btn-primary" style="background: #4f46e5; border-color: #4f46e5; font-weight: 700; border-radius: 7px;">
+                        <span>🔒</span> Temel Çizgiyi Dondur ve Kaydet
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
         <!-- TASLAĞI PAYLAŞ MODALI -->
     <div id="modalShareDraft" style="display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.65); align-items: center; justify-content: center; z-index: 10000; backdrop-filter: blur(4px);">
         <div style="background: #ffffff; width: 560px; max-width: 94vw; border-radius: 16px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.35); overflow: hidden; display: flex; flex-direction: column; max-height: 90vh;">
@@ -4365,6 +5194,34 @@ window.openHandoverModal = openHandoverModal;
 window.closeHandoverModal = closeHandoverModal;
 window.openChangeManagerModal = openChangeManagerModal;
 window.closeChangeManagerModal = closeChangeManagerModal;
+
+// Kalite & Temel Çizgi (Baseline) Modal Yöneticileri
+function openProjQualityModal() {
+    new bootstrap.Modal(document.getElementById('modalProjNewQuality')).show();
+}
+
+function openProjNcrModal() {
+    new bootstrap.Modal(document.getElementById('modalProjNewNcr')).show();
+}
+
+function evaluateProjQuality(q) {
+    document.getElementById('evalProjQualityTitle').textContent = q.title;
+    document.getElementById('evalProjQualityTarget').textContent = (q.target_value ? q.target_value + ' ' + (q.unit || '') : 'Niteliksel / Görsel Standart') + (q.tolerance ? ' (Tolerans: ' + q.tolerance + ')' : '');
+    document.getElementById('evalProjActualValue').value = q.actual_value || '';
+    document.getElementById('evalProjStatus').value = q.status || 'passed';
+    document.getElementById('evalProjNotes').value = q.evaluation_notes || '';
+    document.getElementById('formProjEvaluateQuality').action = '{{ url("/kalite") }}/' + q.id + '/evaluate';
+    new bootstrap.Modal(document.getElementById('modalProjEvaluateQuality')).show();
+}
+
+function openFreezeBaselineModal() {
+    new bootstrap.Modal(document.getElementById('modalFreezeBaseline')).show();
+}
+
+window.openProjQualityModal = openProjQualityModal;
+window.openProjNcrModal = openProjNcrModal;
+window.evaluateProjQuality = evaluateProjQuality;
+window.openFreezeBaselineModal = openFreezeBaselineModal;
 </script>
 @endpush
 @endsection

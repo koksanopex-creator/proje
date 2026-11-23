@@ -47,6 +47,8 @@ class ProjectTask extends Model
     public function creator() { return $this->belongsTo(User::class, 'created_by'); }
     public function dependencies() { return $this->hasMany(ProjectTaskDependency::class, 'task_id'); }
     public function timesheets() { return $this->hasMany(ProjectTimesheet::class, 'task_id'); }
+    public function qualities() { return $this->hasMany(ProjectQuality::class, 'task_id'); }
+    public function baselineTasks() { return $this->hasMany(ProjectBaselineTask::class, 'task_id'); }
 
     public static function statusLabel(?string $status): string
     {
