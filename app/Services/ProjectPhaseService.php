@@ -42,6 +42,14 @@ class ProjectPhaseService
      */
     public function completePhase(Project $project, ProjectPhase $phase, User $user): array
     {
+        // Proje Taslak / Onay Süreci Kontrolü
+        if ($project->isDraft()) {
+            throw new \Exception("Taslak modundaki bir projede adımlar tamamlanamaz. Adımları tamamlamak için lütfen önce projeyi yayınlayın veya onaya gönderin.");
+        }
+        if ($project->status === 'waiting_approval') {
+            throw new \Exception("Onay sürecinde olan bir projede adımlar tamamlanamaz. Proje onaylanıp aktif hale geldikten sonra adımlar işletilebilir.");
+        }
+
         // İSG Kilidi Kontrolü
         if ($phase->requires_ehs_approval && !$phase->ehs_approved_at) {
             throw new \Exception("Bu aşama İSG Saha İzin Onayı gerektirmektedir. İSG onayı verilmeden tamamlanamaz!");

@@ -886,6 +886,13 @@ class ProjectController extends Controller
 
     public function updateTaskStatus(Request $request, Project $project, ProjectTask $task)
     {
+        if ($project->isDraft() || $project->status === 'waiting_approval') {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(['success' => false, 'message' => 'Taslak veya onay sürecindeki bir projede görev durumu değiştirilemez. Lütfen önce projeyi yayınlayın.'], 422);
+            }
+            return back()->with('error', 'Taslak veya onay sürecindeki bir projede görev durumu değiştirilemez. Lütfen önce projeyi yayınlayın.');
+        }
+
         $data = $request->validate([
             'status' => 'required|in:todo,in_progress,review,done',
         ]);
