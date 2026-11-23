@@ -7,6 +7,7 @@ use App\Models\Project;
 use App\Models\ProjectBaseline;
 use App\Models\ProjectBaselineTask;
 use App\Services\AuditLogService;
+use App\Services\NotificationMatrixService;
 
 class BaselineController extends Controller
 {
@@ -114,6 +115,28 @@ class BaselineController extends Controller
             $baseline->id,
             $project->id
         );
+
+        // Bildirim Matrisi Entegrasyonu
+        try {
+            $actor = auth()->user();
+            $actorName = ($actor && $actor->isSuperAdmin()) ? 'Sistem Yöneticisi' : ($actor?->name ?? 'Sistem Yöneticisi');
+            app(NotificationMatrixService::class)->dispatch(
+                'temel_cizgi_donduruldu',
+                [
+                    'proje_kodu' => $project->code ?? '',
+                    'proje_adi' => $project->title ?? '',
+                    'versiyon' => $baseline->version,
+                    'surum_adi' => $baseline->name,
+                    'planlanan_butce' => number_format($totalPlannedBudget, 2, ',', '.') . ' ' . ($project->currency ?? 'TRY'),
+                    'aciklama' => $baseline->description ?? 'Resmi temel çizgi donduruldu',
+                    'islem_yapan' => $actorName,
+                    'proje_url' => route('projects.show', [$project->id, 'tab' => 'baselines']),
+                ],
+                route('projects.show', [$project->id, 'tab' => 'baselines'])
+            );
+        } catch (\Throwable $e) {
+            \Log::warning("Temel çizgi bildirimi gönderilemedi: " . $e->getMessage());
+        }
 
         return redirect()->back()->with('success', "Proje Temel Çizgisi ({$baseline->version}) başarıyla donduruldu ve aktif referans olarak kaydedildi.");
     }

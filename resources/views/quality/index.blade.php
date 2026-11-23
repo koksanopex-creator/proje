@@ -6,280 +6,515 @@
 
 @section('content')
 <style>
-.quality-card {
-    border-radius: 12px;
-    border: 1px solid #e2e8f0;
-    background: #ffffff;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-    transition: all 0.2s ease;
+/* ==========================================================================
+   KALİTE MODÜLÜ ÖZEL STİLLERİ (SIFIR BOOTSTRAP BAĞIMLILIĞI - PURE CSS)
+   ========================================================================== */
+
+/* 1. Üst Sekmeler ve Aksiyon Çubuğu */
+.quality-nav-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    border-bottom: 2px solid #e2e8f0;
+    margin-bottom: 24px;
+    padding-bottom: 0;
 }
-.quality-card:hover {
-    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
-    border-color: #cbd5e1;
+
+.quality-tabs-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: -2px; /* Çizgiyle birleşme efekti */
 }
-.status-pill {
+
+.quality-tab-item {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
-    padding: 3px 10px;
-    border-radius: 9999px;
-    font-size: 11px;
+    gap: 8px;
+    padding: 10px 18px;
+    font-size: 13.5px;
     font-weight: 700;
+    color: #64748b;
+    text-decoration: none;
+    border-bottom: 3px solid transparent;
+    transition: all 0.15s ease;
+    border-radius: 8px 8px 0 0;
 }
-.severity-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 2.5px 8px;
-    border-radius: 6px;
+
+.quality-tab-item:hover {
+    color: #0284c7;
+    background: #f8fafc;
+}
+
+.quality-tab-item.active {
+    color: #0284c7;
+    background: #f0f9ff;
+    border-bottom: 3px solid #0284c7;
+}
+
+.quality-tab-item.danger-tab.active {
+    color: #dc2626;
+    background: #fef2f2;
+    border-bottom: 3px solid #dc2626;
+}
+
+.quality-tab-badge {
+    padding: 2px 8px;
+    border-radius: 9999px;
     font-size: 11px;
     font-weight: 800;
 }
-.tab-switch-btn {
-    padding: 8px 18px;
-    font-size: 13px;
-    font-weight: 700;
-    border-radius: 8px;
-    border: 1.5px solid #e2e8f0;
+
+.quality-tab-item.active .quality-tab-badge {
+    background: #0284c7;
+    color: #ffffff;
+}
+
+.quality-tab-item:not(.active) .quality-tab-badge {
+    background: #e2e8f0;
+    color: #475569;
+}
+
+.quality-tab-item.danger-tab.active .quality-tab-badge {
+    background: #dc2626;
+    color: #ffffff;
+}
+
+/* 2. Üçlü KPI Özet Izgarası (Ekrana Tam Oturan, Taşmayan 3 Sütun) */
+.quality-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+@media (max-width: 992px) {
+    .quality-kpi-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.quality-kpi-card {
     background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 18px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+    transition: all 0.2s ease;
+    min-height: 96px;
+    box-sizing: border-box;
+}
+
+.quality-kpi-card:hover {
+    border-color: #cbd5e1;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    transform: translateY(-1px);
+}
+
+.kpi-icon-box {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+}
+
+.kpi-meta-box {
+    flex: 1;
+    min-width: 0;
+}
+
+.kpi-label {
+    font-size: 11px;
+    font-weight: 750;
     color: #64748b;
-    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.kpi-value-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 3px;
+}
+
+.kpi-number {
+    font-size: 24px;
+    font-weight: 900;
+    line-height: 1.1;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.kpi-subtext {
+    font-size: 11.5px;
+    color: #94a3b8;
+    line-height: 1.3;
+}
+
+/* 3. Kompakt Yatay Filtre Alanı */
+.quality-filter-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 14px 18px;
+    margin-bottom: 24px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+}
+
+.quality-filter-form {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 0;
+}
+
+.q-filter-control {
+    height: 38px;
+    border-radius: 8px;
+    border: 1.5px solid #cbd5e1;
+    font-size: 12.5px;
+    padding: 0 12px;
+    background: #ffffff;
+    color: #0f172a;
+    transition: all 0.15s ease;
+    box-sizing: border-box;
+}
+
+.q-filter-control:focus {
+    border-color: #0284c7;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.12);
+}
+
+/* 4. Tablo ve İçerik Düzeni */
+.quality-table-container {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+    overflow: hidden;
+    margin-bottom: 24px;
+}
+
+.quality-table-header {
+    padding: 14px 20px;
+    border-bottom: 1px solid #f1f5f9;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #ffffff;
+}
+
+.quality-data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+}
+
+.quality-data-table th {
+    background: #f8fafc;
+    border-bottom: 1.5px solid #e2e8f0;
+    color: #475569;
+    font-size: 11px;
+    text-transform: uppercase;
+    font-weight: 800;
+    letter-spacing: 0.4px;
+    padding: 12px 18px;
+    text-align: left;
+}
+
+.quality-data-table td {
+    padding: 14px 18px;
+    border-bottom: 1px solid #f1f5f9;
+    vertical-align: middle;
+    color: #1e293b;
+}
+
+.quality-data-table tbody tr:hover td {
+    background-color: #f8fafc;
+}
+
+.quality-data-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* Durum ve Şiddet Rozetleri */
+.badge-pill {
     display: inline-flex;
     align-items: center;
-    gap: 7px;
-    transition: all 0.15s ease;
-    text-decoration: none;
+    gap: 5px;
+    padding: 3px 9px;
+    border-radius: 9999px;
+    font-size: 11px;
+    font-weight: 700;
+    border: 1px solid transparent;
 }
-.tab-switch-btn.active {
-    background: #0284c7;
-    border-color: #0284c7;
-    color: #ffffff;
-    box-shadow: 0 2px 6px rgba(2, 132, 199, 0.25);
+
+/* 5. Custom Native Modal Overlay Stilleri */
+.native-modal-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.65);
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    backdrop-filter: blur(4px);
+    animation: modalBackdropFade 0.15s ease-out;
 }
-.tab-switch-btn:hover:not(.active) {
-    background: #f8fafc;
-    border-color: #cbd5e1;
-    color: #0f172a;
+
+.native-modal-box {
+    background: #ffffff;
+    width: 680px;
+    max-width: 94vw;
+    border-radius: 16px;
+    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.35);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    max-height: 90vh;
+    animation: modalScaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalBackdropFade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes modalScaleIn {
+    from { transform: scale(0.96) translateY(6px); opacity: 0; }
+    to { transform: scale(1) translateY(0); opacity: 1; }
 }
 </style>
 
-<!-- ÜST AKSİYON VE BİLGİ BANDI -->
-<div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
-    <div class="d-flex align-items-center gap-2">
+<!-- ========================================================================= -->
+<!-- 1. ÜST NAVİGASYON (SEKME BUTONLARI VE SAĞ AKSİYON BUTONLARI) -->
+<!-- ========================================================================= -->
+<div class="quality-nav-bar">
+    <!-- Sol: Sekme Bağlantıları (Temiz Çizgili Tasarım) -->
+    <div class="quality-tabs-group">
         <a href="?tab=checks{{ $selectedProjectId ? '&project_id=' . $selectedProjectId : '' }}" 
-           class="tab-switch-btn {{ $activeTab === 'checks' ? 'active' : '' }}">
-            <span>🔬</span> Kalite Testleri &amp; Kabul Kapıları
-            <span class="badge" style="background: {{ $activeTab === 'checks' ? 'rgba(255,255,255,0.25)' : '#f1f5f9' }}; color: {{ $activeTab === 'checks' ? '#ffffff' : '#475569' }}; border-radius: 9999px; font-size: 11px;">
-                {{ $totalChecks }}
-            </span>
+           class="quality-tab-item {{ $activeTab === 'checks' ? 'active' : '' }}">
+            <span>🔬</span>
+            <span>Kalite Testleri &amp; Kabul Kapıları</span>
+            <span class="quality-tab-badge">{{ $totalChecks }}</span>
         </a>
         <a href="?tab=ncrs{{ $selectedProjectId ? '&project_id=' . $selectedProjectId : '' }}" 
-           class="tab-switch-btn {{ $activeTab === 'ncrs' ? 'active' : '' }}">
-            <span>🚨</span> Uygunsuzluk &amp; Hata Panosu (NCR / DÖF)
-            <span class="badge" style="background: {{ $activeTab === 'ncrs' ? 'rgba(255,255,255,0.25)' : '#fee2e2' }}; color: {{ $activeTab === 'ncrs' ? '#ffffff' : '#b91c1c' }}; border-radius: 9999px; font-size: 11px;">
-                {{ $openNcrs }} Açık
-            </span>
+           class="quality-tab-item danger-tab {{ $activeTab === 'ncrs' ? 'active' : '' }}">
+            <span>🚨</span>
+            <span>Uygunsuzluk &amp; Hata Panosu (NCR / DÖF)</span>
+            <span class="quality-tab-badge">{{ $openNcrs }} Açık</span>
         </a>
     </div>
 
-    <div class="d-flex align-items-center gap-2 flex-wrap">
-        <button type="button" class="btn btn-sm" onclick="openNewQualityModal()" 
-                style="background: #0284c7; color: #ffffff; font-weight: 700; border-radius: 8px; padding: 7px 14px; box-shadow: 0 2px 4px rgba(2, 132, 199, 0.2);">
-            + Yeni Kalite Kriteri Ekle
+    <!-- Sağ: Aksiyon Butonları (Madde 19 - Yönetim Salt Okunur Koruması) -->
+    @if(!auth()->user()->isYonetim())
+    <div style="display: flex; align-items: center; gap: 8px;">
+        <button type="button" onclick="openNativeModal('modalNewQuality')" 
+                style="background: #0284c7; color: #ffffff; font-weight: 700; font-size: 12.5px; border-radius: 8px; padding: 8px 16px; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 6px rgba(2, 132, 199, 0.25); height: 38px;">
+            <span style="font-size: 15px; font-weight: 900;">+</span> Yeni Kalite Kriteri Ekle
         </button>
-        <button type="button" class="btn btn-sm" onclick="openNewNcrModal()" 
-                style="background: #dc2626; color: #ffffff; font-weight: 700; border-radius: 8px; padding: 7px 14px; box-shadow: 0 2px 4px rgba(220, 38, 38, 0.2);">
-            🚨 Yeni Uygunsuzluk (NCR) Aç
+        <button type="button" onclick="openNativeModal('modalNewNcr')" 
+                style="background: #dc2626; color: #ffffff; font-weight: 700; font-size: 12.5px; border-radius: 8px; padding: 8px 16px; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 6px rgba(220, 38, 38, 0.25); height: 38px;">
+            <span>🚨</span> Yeni Uygunsuzluk (NCR) Aç
         </button>
     </div>
+    @endif
 </div>
 
-<!-- KURUMSAL KALİTE GÖSTERGE KARTLARI (KPI) -->
-<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 16px; margin-bottom: 24px;">
+<!-- ========================================================================= -->
+<!-- 2. ÜÇ SÜTUNLU YÖNETİCİ KPI KARTLARI (TAM OTURAN, TAŞMAYAN KURUMSAL DÜZEN) -->
+<!-- ========================================================================= -->
+<div class="quality-kpi-grid">
     
     <!-- Kart 1: Kalite Başarı Oranı -->
-    <div class="quality-card p-3">
-        <div class="d-flex justify-content-between align-items-center mb-1">
-            <span style="font-size: 11.5px; font-weight: 700; color: #64748b; text-transform: uppercase;">🎯 Kalite Başarı Oranı</span>
-            <span style="font-size: 18px;">🏆</span>
+    <div class="quality-kpi-card" style="border-left: 4px solid {{ $qualityRate >= 85 ? '#16a34a' : ($qualityRate >= 65 ? '#d97706' : '#dc2626') }};">
+        <div class="kpi-icon-box" style="background: #f0fdf4; color: #16a34a; border: 1px solid #dcfce7;">
+            🎯
         </div>
-        <div class="d-flex align-items-baseline gap-2 mb-1">
-            <span style="font-size: 26px; font-weight: 900; color: {{ $qualityRate >= 85 ? '#16a34a' : ($qualityRate >= 65 ? '#d97706' : '#dc2626') }}; font-family: 'JetBrains Mono', monospace;">
-                %{{ $qualityRate }}
-            </span>
-            <span style="font-size: 12px; font-weight: 600; color: #64748b;">
-                ({{ $passedChecks }} / {{ $totalChecks }} Onaylı)
-            </span>
-        </div>
-        <div class="progress" style="height: 6px; border-radius: 999px; background: #f1f5f9;">
-            <div class="progress-bar" style="width: {{ $qualityRate }}%; background: {{ $qualityRate >= 85 ? '#16a34a' : ($qualityRate >= 65 ? '#d97706' : '#dc2626') }}; border-radius: 999px;"></div>
-        </div>
-        <div style="font-size: 11px; color: #94a3b8; margin-top: 6px;">
-            Geçti ve Şartlı Kabul edilen testler
+        <div class="kpi-meta-box">
+            <div class="kpi-label">Kalite Başarı Oranı</div>
+            <div class="kpi-value-row">
+                <span class="kpi-number" style="color: {{ $qualityRate >= 85 ? '#16a34a' : ($qualityRate >= 65 ? '#d97706' : '#dc2626') }};">
+                    %{{ $qualityRate }}
+                </span>
+                <span style="font-size: 11px; font-weight: 700; color: #64748b;">
+                    ({{ $passedChecks }} / {{ $totalChecks }} Onaylı)
+                </span>
+            </div>
+            <div class="kpi-subtext">Geçti ve Şartlı Kabul testleri</div>
         </div>
     </div>
 
-    <!-- Kart 2: Toplam Kontrol & Bekleyen Testler -->
-    <div class="quality-card p-3">
-        <div class="d-flex justify-content-between align-items-center mb-1">
-            <span style="font-size: 11.5px; font-weight: 700; color: #64748b; text-transform: uppercase;">🔬 Test &amp; Kontrol Planı</span>
-            <span style="font-size: 18px;">📋</span>
+    <!-- Kart 2: Test & Kontrol Planı -->
+    <div class="quality-kpi-card" style="border-left: 4px solid #0284c7;">
+        <div class="kpi-icon-box" style="background: #f0f9ff; color: #0284c7; border: 1px solid #e0f2fe;">
+            📋
         </div>
-        <div style="font-size: 26px; font-weight: 900; color: #0f172a; font-family: 'JetBrains Mono', monospace; margin-bottom: 2px;">
-            {{ $totalChecks }}
-        </div>
-        <div class="d-flex align-items-center gap-2" style="font-size: 11.5px; color: #64748b;">
-            <span class="status-pill" style="background: #fef3c7; color: #b45309; padding: 1px 7px;">
-                ⏳ {{ $pendingChecks }} Bekliyor
-            </span>
-            <span class="status-pill" style="background: #fee2e2; color: #b91c1c; padding: 1px 7px;">
-                ✕ {{ $failedChecks }} Reddedildi
-            </span>
+        <div class="kpi-meta-box">
+            <div class="kpi-label">Test &amp; Kontrol Planı</div>
+            <div class="kpi-value-row">
+                <span class="kpi-number" style="color: #0f172a;">{{ $totalChecks }}</span>
+                <span style="font-size: 11.5px; font-weight: 700; color: #64748b;">Toplam Kriter</span>
+            </div>
+            <div style="display: flex; gap: 6px; margin-top: 2px;">
+                <span style="font-size: 10.5px; font-weight: 700; background: #fef3c7; color: #b45309; padding: 1px 6px; border-radius: 4px;">
+                    ⏳ {{ $pendingChecks }} Bekliyor
+                </span>
+                <span style="font-size: 10.5px; font-weight: 700; background: #fee2e2; color: #b91c1c; padding: 1px 6px; border-radius: 4px;">
+                    ✕ {{ $failedChecks }} Red
+                </span>
+            </div>
         </div>
     </div>
 
     <!-- Kart 3: Açık Uygunsuzluklar (NCR) -->
-    <div class="quality-card p-3">
-        <div class="d-flex justify-content-between align-items-center mb-1">
-            <span style="font-size: 11.5px; font-weight: 700; color: #64748b; text-transform: uppercase;">🚨 Açık Uygunsuzluk (NCR)</span>
-            <span style="font-size: 18px;">⚠️</span>
+    <div class="quality-kpi-card" style="border-left: 4px solid {{ $openNcrs > 0 ? '#dc2626' : '#16a34a' }};">
+        <div class="kpi-icon-box" style="background: {{ $openNcrs > 0 ? '#fef2f2' : '#f0fdf4' }}; color: {{ $openNcrs > 0 ? '#dc2626' : '#16a34a' }}; border: 1px solid {{ $openNcrs > 0 ? '#fee2e2' : '#dcfce7' }};">
+            ⚠️
         </div>
-        <div class="d-flex align-items-baseline gap-2 mb-1">
-            <span style="font-size: 26px; font-weight: 900; color: {{ $openNcrs > 0 ? '#dc2626' : '#16a34a' }}; font-family: 'JetBrains Mono', monospace;">
-                {{ $openNcrs }}
-            </span>
-            @if($criticalNcrs > 0)
-                <span class="severity-pill" style="background: #fee2e2; color: #991b1b;">
-                    🚨 {{ $criticalNcrs }} Kritik
-                </span>
-            @endif
-        </div>
-        <div style="font-size: 11px; color: #64748b;">
-            Giderilmeyi bekleyen DÖF ve kusur sayısı ({{ $resolvedNcrs }} Kapatıldı)
-        </div>
-    </div>
-
-    <!-- Kart 4: Kalite Standartları ve Sertifikasyon -->
-    <div class="quality-card p-3">
-        <div class="d-flex justify-content-between align-items-center mb-1">
-            <span style="font-size: 11.5px; font-weight: 700; color: #64748b; text-transform: uppercase;">🏭 Fabrika &amp; Saha Kabul</span>
-            <span style="font-size: 18px;">🛡️</span>
-        </div>
-        <div style="font-size: 14px; font-weight: 800; color: #0f172a; margin-top: 4px; margin-bottom: 4px;">
-            Köksan QMS &amp; ISO Standartları
-        </div>
-        <div style="font-size: 11px; color: #64748b; line-height: 1.4;">
-            ISO 9001, DIN, TSE ve EHS standartlarına tam uyumlu Stage-Gate kalite kontrolü
+        <div class="kpi-meta-box">
+            <div class="kpi-label">Açık Uygunsuzluk &amp; DÖF (NCR)</div>
+            <div class="kpi-value-row">
+                <span class="kpi-number" style="color: {{ $openNcrs > 0 ? '#dc2626' : '#16a34a' }};">{{ $openNcrs }}</span>
+                @if($criticalNcrs > 0)
+                    <span style="font-size: 10.5px; font-weight: 800; background: #fee2e2; color: #991b1b; padding: 2px 6px; border-radius: 4px; border: 1px solid #fecaca;">
+                        🚨 {{ $criticalNcrs }} Kritik
+                    </span>
+                @endif
+            </div>
+            <div class="kpi-subtext">Giderilmeyi bekleyen DÖF ({{ $resolvedNcrs }} Kapatıldı)</div>
         </div>
     </div>
 
 </div>
 
-<!-- FİLTRE VE ARAMA KUTUSU -->
-<div class="card mb-4" style="border-radius: 12px; border: 1px solid #e2e8f0; background: #ffffff;">
-    <div class="card-body" style="padding: 14px 20px;">
-        <form method="GET" action="{{ route('quality.index') }}" class="row g-2 align-items-center">
-            <input type="hidden" name="tab" value="{{ $activeTab }}">
-            
-            <div class="col-md-4">
-                <label style="font-size: 11px; font-weight: 700; color: #64748b; display: block; margin-bottom: 3px;">📁 Proje Filtresi:</label>
-                <select name="project_id" class="form-control form-control-sm" style="border-radius: 7px; border: 1.5px solid #cbd5e1; font-weight: 600;" onchange="this.form.submit()">
-                    <option value="">-- Tüm Projeler (Konsolide) --</option>
-                    @foreach($projects as $p)
-                        <option value="{{ $p->id }}" {{ $selectedProjectId == $p->id ? 'selected' : '' }}>
-                            {{ $p->code }} - {{ $p->title }}
-                        </option>
+<!-- ========================================================================= -->
+<!-- 3. KOMPAKT YATAY FİLTRE VE ARAMA ARAÇ ÇUBUĞU -->
+<!-- ========================================================================= -->
+<div class="quality-filter-card">
+    <form method="GET" action="{{ route('quality.index') }}" class="quality-filter-form">
+        <input type="hidden" name="tab" value="{{ $activeTab }}">
+        
+        <!-- Proje Filtresi -->
+        <div style="min-width: 240px; flex: 1;">
+            <select name="project_id" class="q-filter-control" style="width: 100%; font-weight: 600;" onchange="this.form.submit()">
+                <option value="">📁 Tüm Projeler (Konsolide)</option>
+                @foreach($projects as $p)
+                    <option value="{{ $p->id }}" {{ $selectedProjectId == $p->id ? 'selected' : '' }}>
+                        {{ $p->code }} - {{ $p->title }}
+                    </option>
+                @endforeach
+            </select>
+        </div>
+
+        @if($activeTab === 'checks')
+            <!-- Kontrol Türü -->
+            <div style="min-width: 180px;">
+                <select name="check_type" class="q-filter-control" style="width: 100%;" onchange="this.form.submit()">
+                    <option value="">🔬 Tüm Kontrol Türleri</option>
+                    @foreach(\App\Models\ProjectQuality::checkTypes() as $k => $label)
+                        <option value="{{ $k }}" {{ $selectedCheckType === $k ? 'selected' : '' }}>{{ $label }}</option>
                     @endforeach
                 </select>
             </div>
 
-            @if($activeTab === 'checks')
-                <div class="col-md-3">
-                    <label style="font-size: 11px; font-weight: 700; color: #64748b; display: block; margin-bottom: 3px;">🔬 Kontrol Türü:</label>
-                    <select name="check_type" class="form-control form-control-sm" style="border-radius: 7px; border: 1.5px solid #cbd5e1;" onchange="this.form.submit()">
-                        <option value="">-- Tüm Kontrol Türleri --</option>
-                        @foreach(\App\Models\ProjectQuality::checkTypes() as $k => $label)
-                            <option value="{{ $k }}" {{ $selectedCheckType === $k ? 'selected' : '' }}>{{ $label }}</option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <div class="col-md-2">
-                    <label style="font-size: 11px; font-weight: 700; color: #64748b; display: block; margin-bottom: 3px;">Durum:</label>
-                    <select name="status" class="form-control form-control-sm" style="border-radius: 7px; border: 1.5px solid #cbd5e1;" onchange="this.form.submit()">
-                        <option value="">-- Tümü --</option>
-                        <option value="pending" {{ $selectedStatus === 'pending' ? 'selected' : '' }}>⏳ Bekliyor</option>
-                        <option value="passed" {{ $selectedStatus === 'passed' ? 'selected' : '' }}>✓ Başarılı</option>
-                        <option value="conditional" {{ $selectedStatus === 'conditional' ? 'selected' : '' }}>⚠️ Şartlı Kabul</option>
-                        <option value="failed" {{ $selectedStatus === 'failed' ? 'selected' : '' }}>✕ Reddedildi</option>
-                        <option value="exempted" {{ $selectedStatus === 'exempted' ? 'selected' : '' }}>⊘ Muaf</option>
-                    </select>
-                </div>
-            @else
-                <div class="col-md-3">
-                    <label style="font-size: 11px; font-weight: 700; color: #64748b; display: block; margin-bottom: 3px;">🚨 Şiddet Derecesi:</label>
-                    <select name="severity" class="form-control form-control-sm" style="border-radius: 7px; border: 1.5px solid #cbd5e1;" onchange="this.form.submit()">
-                        <option value="">-- Tüm Şiddetler --</option>
-                        <option value="critical" {{ $selectedSeverity === 'critical' ? 'selected' : '' }}>🚨 Kritik / Durdurucu</option>
-                        <option value="major" {{ $selectedSeverity === 'major' ? 'selected' : '' }}>⚠️ Majör / Önemli</option>
-                        <option value="minor" {{ $selectedSeverity === 'minor' ? 'selected' : '' }}>ℹ️ Minör / Kusur</option>
-                    </select>
-                </div>
-
-                <div class="col-md-2">
-                    <label style="font-size: 11px; font-weight: 700; color: #64748b; display: block; margin-bottom: 3px;">NCR Durumu:</label>
-                    <select name="ncr_status" class="form-control form-control-sm" style="border-radius: 7px; border: 1.5px solid #cbd5e1;" onchange="this.form.submit()">
-                        <option value="">-- Tümü --</option>
-                        <option value="open" {{ request('ncr_status') === 'open' ? 'selected' : '' }}>Açık</option>
-                        <option value="in_progress" {{ request('ncr_status') === 'in_progress' ? 'selected' : '' }}>Aksiyon Alınıyor</option>
-                        <option value="resolved" {{ request('ncr_status') === 'resolved' ? 'selected' : '' }}>Düzeltildi</option>
-                        <option value="closed" {{ request('ncr_status') === 'closed' ? 'selected' : '' }}>Kapatıldı</option>
-                    </select>
-                </div>
-            @endif
-
-            <div class="col-md-3">
-                <label style="font-size: 11px; font-weight: 700; color: #64748b; display: block; margin-bottom: 3px;">🔍 Arama:</label>
-                <div class="input-group input-group-sm">
-                    <input type="text" name="search" value="{{ $search }}" placeholder="Test, standart, kriter veya NCR ara..." 
-                           class="form-control" style="border-radius: 7px 0 0 7px; border: 1.5px solid #cbd5e1;">
-                    <button class="btn btn-outline-secondary" type="submit" style="border-radius: 0 7px 7px 0;">Ara</button>
-                    @if($search || $selectedProjectId || $selectedCheckType || $selectedStatus || $selectedSeverity)
-                        <a href="{{ route('quality.index', ['tab' => $activeTab]) }}" class="btn btn-outline-danger" title="Filtreyi Sıfırla">✕</a>
-                    @endif
-                </div>
+            <!-- Durum -->
+            <div style="min-width: 150px;">
+                <select name="status" class="q-filter-control" style="width: 100%;" onchange="this.form.submit()">
+                    <option value="">⚡ Tüm Durumlar</option>
+                    <option value="pending" {{ $selectedStatus === 'pending' ? 'selected' : '' }}>⏳ Bekliyor</option>
+                    <option value="passed" {{ $selectedStatus === 'passed' ? 'selected' : '' }}>✓ Başarılı</option>
+                    <option value="conditional" {{ $selectedStatus === 'conditional' ? 'selected' : '' }}>⚠️ Şartlı Kabul</option>
+                    <option value="failed" {{ $selectedStatus === 'failed' ? 'selected' : '' }}>✕ Reddedildi</option>
+                    <option value="exempted" {{ $selectedStatus === 'exempted' ? 'selected' : '' }}>⊘ Muaf</option>
+                </select>
             </div>
-        </form>
-    </div>
+        @else
+            <!-- Şiddet Derecesi -->
+            <div style="min-width: 180px;">
+                <select name="severity" class="q-filter-control" style="width: 100%;" onchange="this.form.submit()">
+                    <option value="">🚨 Tüm Şiddetler</option>
+                    <option value="critical" {{ $selectedSeverity === 'critical' ? 'selected' : '' }}>🚨 Kritik / Durdurucu</option>
+                    <option value="major" {{ $selectedSeverity === 'major' ? 'selected' : '' }}>⚠️ Majör / Önemli</option>
+                    <option value="minor" {{ $selectedSeverity === 'minor' ? 'selected' : '' }}>ℹ️ Minör / Kusur</option>
+                </select>
+            </div>
+
+            <!-- NCR Durumu -->
+            <div style="min-width: 150px;">
+                <select name="ncr_status" class="q-filter-control" style="width: 100%;" onchange="this.form.submit()">
+                    <option value="">⚙️ Tüm Durumlar</option>
+                    <option value="open" {{ request('ncr_status') === 'open' ? 'selected' : '' }}>Açık</option>
+                    <option value="in_progress" {{ request('ncr_status') === 'in_progress' ? 'selected' : '' }}>Aksiyon Alınıyor</option>
+                    <option value="resolved" {{ request('ncr_status') === 'resolved' ? 'selected' : '' }}>Düzeltildi</option>
+                    <option value="closed" {{ request('ncr_status') === 'closed' ? 'selected' : '' }}>Kapatıldı</option>
+                </select>
+            </div>
+        @endif
+
+        <!-- Arama Çubuğu -->
+        <div style="min-width: 220px; flex: 1; display: flex; gap: 6px;">
+            <input type="text" name="search" value="{{ $search }}" placeholder="Test, standart, kriter veya NCR ara..." 
+                   class="q-filter-control" style="flex: 1;">
+            <button type="submit" style="background: #0f172a; color: #ffffff; font-weight: 700; border-radius: 8px; padding: 0 16px; height: 38px; border: none; cursor: pointer;">
+                Ara
+            </button>
+            @if($search || $selectedProjectId || $selectedCheckType || $selectedStatus || $selectedSeverity || request('ncr_status'))
+                <a href="{{ route('quality.index', ['tab' => $activeTab]) }}" style="border-radius: 8px; height: 38px; display: inline-flex; align-items: center; justify-content: center; padding: 0 12px; background: #fee2e2; color: #b91c1c; text-decoration: none; font-weight: 800; border: 1px solid #fecaca;" title="Filtreleri Temizle">
+                    ✕
+                </a>
+            @endif
+        </div>
+    </form>
 </div>
 
 <!-- ========================================================================= -->
-<!-- SEKME 1: KALİTE TESTLERİ, KABUL KRİTERLERİ & KALİTE KAPILARI -->
+<!-- 4. VERİ TABLOSU: KALİTE TESTLERİ VEYA UYGUNSUZLUK (NCR) LİSTESİ -->
 <!-- ========================================================================= -->
 @if($activeTab === 'checks')
-    <div class="card" style="border-radius: 12px; border: 1px solid #e2e8f0; background: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
-        <div class="card-header bg-white" style="padding: 14px 20px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; justify-content: space-between;">
+    <div class="quality-table-container">
+        <div class="quality-table-header">
             <div style="font-weight: 800; font-size: 14px; color: #0f172a; display: flex; align-items: center; gap: 8px;">
-                <span>🔬</span> Kalite Kontrol Planı &amp; Test Listesi
-                <span class="badge" style="background: #f1f5f9; color: #475569; font-weight: 700; border-radius: 6px;">{{ $qualities->total() }} Kayıt</span>
+                <span>🔬</span>
+                <span>Kalite Kontrol Planı &amp; Test Listesi</span>
+                <span style="background: #f1f5f9; color: #475569; font-weight: 700; border-radius: 6px; padding: 2px 8px; font-size: 11px;">
+                    {{ $qualities->total() }} Kayıt
+                </span>
             </div>
-            <div style="font-size: 11.5px; color: #64748b;">
-                Tolerans testleri, görsel muayeneler ve faz sonu kalite kapıları
+            <div style="font-size: 12px; color: #64748b;">
+                Tolerans testleri, görsel muayeneler ve faz sonu kabul kapıları
             </div>
         </div>
 
-        <div class="table-responsive">
-            <table class="table align-middle mb-0" style="font-size: 12.5px;">
-                <thead style="background: #f8fafc; border-bottom: 1.5px solid #e2e8f0; color: #475569; font-size: 11px; text-transform: uppercase; font-weight: 800;">
+        <div style="overflow-x: auto;">
+            <table class="quality-data-table">
+                <thead>
                     <tr>
-                        <th style="padding: 12px 16px;">Proje &amp; Faz</th>
+                        <th style="padding-left: 20px;">Proje &amp; Faz</th>
                         <th>Kalite Kontrolü &amp; Standart</th>
                         <th>Kabul Kriteri &amp; Hedef</th>
                         <th>Ölçülen / Fiili Değer</th>
                         <th style="text-align: center;">Durum</th>
                         <th>Denetçi / Onaylayan</th>
                         <th>Sertifika / Rapor</th>
-                        <th style="text-align: right; padding-right: 16px;">İşlem</th>
+                        <th style="text-align: right; padding-right: 20px;">İşlem</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -287,27 +522,27 @@
                         @php
                             $badge = $q->status_badge;
                         @endphp
-                        <tr style="border-bottom: 1px solid #f1f5f9;">
-                            <td style="padding: 12px 16px;">
+                        <tr>
+                            <td style="padding-left: 20px;">
                                 <div style="font-weight: 800; color: #0284c7; font-size: 12px;">
                                     {{ $q->project->code ?? 'PRJ' }}
                                 </div>
-                                <div style="font-size: 11px; color: #0f172a; max-width: 180px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ $q->project->title ?? '' }}">
+                                <div style="font-size: 11.5px; color: #0f172a; max-width: 170px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ $q->project->title ?? '' }}">
                                     {{ $q->project->title ?? '-' }}
                                 </div>
                                 @if($q->phase)
-                                    <div style="font-size: 10px; color: #94a3b8; margin-top: 2px;">
+                                    <div style="font-size: 10.5px; color: #94a3b8; margin-top: 2px;">
                                         🚪 Faz: {{ $q->phase->name }}
                                     </div>
                                 @endif
                             </td>
                             <td>
-                                <div class="d-flex align-items-center gap-1 mb-0.5">
-                                    <span class="badge" style="background: #e0f2fe; color: #0369a1; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px;">
+                                <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
+                                    <span style="background: #e0f2fe; color: #0369a1; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px;">
                                         {{ $q->check_type_label }}
                                     </span>
                                     @if($q->standard_code)
-                                        <span class="badge" style="background: #f1f5f9; color: #475569; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: monospace;">
+                                        <span style="background: #f1f5f9; color: #475569; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: monospace;">
                                             {{ $q->standard_code }}
                                         </span>
                                     @endif
@@ -322,7 +557,7 @@
                                 @endif
                             </td>
                             <td>
-                                <div style="font-size: 12px; color: #334155; line-height: 1.35; max-width: 240px;">
+                                <div style="font-size: 12px; color: #334155; line-height: 1.35; max-width: 230px;">
                                     {{ $q->acceptance_criteria ?: '-' }}
                                 </div>
                             </td>
@@ -336,7 +571,7 @@
                                 @endif
                             </td>
                             <td style="text-align: center;">
-                                <span class="status-pill" style="background: {{ $badge['bg'] }}; color: {{ $badge['color'] }};">
+                                <span class="badge-pill" style="background: {{ $badge['bg'] }}; color: {{ $badge['color'] }};">
                                     <span>{{ $badge['icon'] }}</span>
                                     <span>{{ $badge['label'] }}</span>
                                 </span>
@@ -356,35 +591,39 @@
                             <td>
                                 @if($q->certificate_file)
                                     <a href="{{ asset($q->certificate_file) }}" target="_blank" 
-                                       class="btn btn-xs btn-outline-primary" style="font-size: 11px; padding: 2px 8px; border-radius: 6px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">
+                                       style="font-size: 11px; padding: 4px 8px; border-radius: 6px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; border: 1px solid #bfdbfe; background: #eff6ff; color: #1d4ed8; text-decoration: none;">
                                         📄 Sertifika ↗
                                     </a>
                                 @else
                                     <span style="color: #cbd5e1; font-size: 11px;">-</span>
                                 @endif
                             </td>
-                            <td style="text-align: right; padding-right: 16px;">
-                                <div class="d-flex align-items-center justify-content-end gap-1">
-                                    <button type="button" class="btn btn-sm" onclick="openEvaluateModal({{ json_encode($q) }})" 
-                                            style="background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; font-weight: 700; font-size: 11.5px; border-radius: 6px; padding: 3px 8px;" title="Test Sonucunu Gir &amp; Değerlendir">
-                                        ⚡ Sonuçlandır
-                                    </button>
-                                    <form method="POST" action="{{ route('quality.destroy', $q->id) }}" onsubmit="return confirm('Bu kalite kontrol kriterini silmek istediğinize emin misiniz?')" style="display: inline;">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-link text-danger p-0 px-1" title="Sil">
-                                            ✕
+                            <td style="text-align: right; padding-right: 20px;">
+                                @if(!auth()->user()->isYonetim())
+                                    <div style="display: flex; align-items: center; justify-content: flex-end; gap: 6px;">
+                                        <button type="button" onclick="openEvaluateModal({{ json_encode($q) }})" 
+                                                style="background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; font-weight: 700; font-size: 11.5px; border-radius: 6px; padding: 5px 10px; cursor: pointer;" title="Test Sonucunu Değerlendir">
+                                            ⚡ Sonuçlandır
                                         </button>
-                                    </form>
-                                </div>
+                                        <form method="POST" action="{{ route('quality.destroy', $q->id) }}" onsubmit="return confirm('Bu kalite kontrol kriterini silmek istediğinize emin misiniz?')" style="display: inline; margin: 0;">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" style="background: none; border: none; color: #ef4444; font-size: 15px; cursor: pointer; padding: 2px 4px;" title="Sil">
+                                                ✕
+                                            </button>
+                                        </form>
+                                    </div>
+                                @else
+                                    <span style="color: #94a3b8; font-size: 11px; font-weight: 600;">👁️ Salt Okunur</span>
+                                @endif
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="text-center py-5" style="color: #94a3b8;">
-                                <div style="font-size: 32px; margin-bottom: 8px;">🔬</div>
+                            <td colspan="8" style="text-align: center; padding: 50px 20px; color: #94a3b8;">
+                                <div style="font-size: 36px; margin-bottom: 8px;">🔬</div>
                                 <div style="font-weight: 700; font-size: 14px; color: #475569;">Kayıtlı Kalite Kontrolü Bulunamadı</div>
-                                <p style="font-size: 12px; margin-top: 4px;">Yukarıdaki "Yeni Kalite Kriteri Ekle" butonu ile projenize test planı tanımlayabilirsiniz.</p>
+                                <p style="font-size: 12px; margin-top: 4px; color: #64748b;">Yukarıdaki "Yeni Kalite Kriteri Ekle" butonu ile projenize test planı tanımlayabilirsiniz.</p>
                             </td>
                         </tr>
                     @endforelse
@@ -393,38 +632,39 @@
         </div>
 
         @if($qualities->hasPages())
-            <div class="card-footer bg-white py-2 px-3 border-top">
+            <div style="padding: 12px 20px; border-top: 1px solid #f1f5f9; background: #ffffff;">
                 {{ $qualities->withQueryString()->links() }}
             </div>
         @endif
     </div>
 
-<!-- ========================================================================= -->
-<!-- SEKME 2: UYGUNSUZLUK & HATA PANOSU (NCR / PUNCH LIST / DÖF) -->
-<!-- ========================================================================= -->
 @else
-    <div class="card" style="border-radius: 12px; border: 1px solid #e2e8f0; background: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
-        <div class="card-header bg-white" style="padding: 14px 20px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; justify-content: space-between;">
+    <!-- UYGUNSUZLUK (NCR / DÖF) TABLOSU -->
+    <div class="quality-table-container">
+        <div class="quality-table-header">
             <div style="font-weight: 800; font-size: 14px; color: #991b1b; display: flex; align-items: center; gap: 8px;">
-                <span>🚨</span> Kalite Uygunsuzlukları &amp; Düzeltici Faaliyetler (NCR / DÖF)
-                <span class="badge" style="background: #fee2e2; color: #b91c1c; font-weight: 700; border-radius: 6px;">{{ $nonConformances->total() }} Kayıt</span>
+                <span>🚨</span>
+                <span>Kalite Uygunsuzlukları &amp; Düzeltici Faaliyetler (NCR / DÖF)</span>
+                <span style="background: #fee2e2; color: #b91c1c; font-weight: 700; border-radius: 6px; padding: 2px 8px; font-size: 11px;">
+                    {{ $nonConformances->total() }} Kayıt
+                </span>
             </div>
-            <div style="font-size: 11.5px; color: #64748b;">
+            <div style="font-size: 12px; color: #64748b;">
                 Saha kusurları, tolerans aşımları ve kök neden aksiyon planları
             </div>
         </div>
 
-        <div class="table-responsive">
-            <table class="table align-middle mb-0" style="font-size: 12.5px;">
-                <thead style="background: #f8fafc; border-bottom: 1.5px solid #e2e8f0; color: #475569; font-size: 11px; text-transform: uppercase; font-weight: 800;">
+        <div style="overflow-x: auto;">
+            <table class="quality-data-table">
+                <thead>
                     <tr>
-                        <th style="padding: 12px 16px;">NCR Kodu &amp; Proje</th>
+                        <th style="padding-left: 20px;">NCR Kodu &amp; Proje</th>
                         <th>Kusur / Uygunsuzluk Tanımı</th>
                         <th style="text-align: center;">Şiddet</th>
                         <th>DÖF / Önleyici Aksiyon Planı</th>
                         <th>Sorumlu &amp; Termin</th>
                         <th style="text-align: center;">Durum</th>
-                        <th style="text-align: right; padding-right: 16px;">İşlem</th>
+                        <th style="text-align: right; padding-right: 20px;">İşlem</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -434,8 +674,8 @@
                             $st = $ncr->status_badge;
                             $isOverdue = $ncr->due_date && $ncr->due_date->isPast() && in_array($ncr->status, ['open', 'in_progress']);
                         @endphp
-                        <tr style="border-bottom: 1px solid #f1f5f9;">
-                            <td style="padding: 12px 16px;">
+                        <tr>
+                            <td style="padding-left: 20px;">
                                 <div style="font-weight: 900; font-family: 'JetBrains Mono', monospace; color: #dc2626; font-size: 12.5px;">
                                     {{ $ncr->ncr_code }}
                                 </div>
@@ -462,13 +702,13 @@
                                 @endif
                             </td>
                             <td style="text-align: center;">
-                                <span class="severity-pill" style="background: {{ $sev['bg'] }}; color: {{ $sev['color'] }};">
+                                <span class="badge-pill" style="background: {{ $sev['bg'] }}; color: {{ $sev['color'] }}; font-weight: 800;">
                                     {{ $sev['badge'] }}
                                 </span>
                             </td>
                             <td>
                                 @if($ncr->corrective_action)
-                                    <div style="font-size: 12px; color: #0f172a; line-height: 1.35; max-width: 260px;">
+                                    <div style="font-size: 12px; color: #0f172a; line-height: 1.35; max-width: 250px;">
                                         {{ $ncr->corrective_action }}
                                     </div>
                                 @else
@@ -488,38 +728,42 @@
                                     <div style="font-size: 11px; font-weight: 700; color: {{ $isOverdue ? '#dc2626' : '#64748b' }}; margin-top: 2px;">
                                         📅 {{ $ncr->due_date->format('d.m.Y') }}
                                         @if($isOverdue)
-                                            <span class="badge" style="background: #fee2e2; color: #b91c1c; font-size: 9.5px; padding: 1px 4px;">GECİKTİ</span>
+                                            <span style="background: #fee2e2; color: #b91c1c; font-size: 9.5px; padding: 1px 4px; border-radius: 4px; font-weight: 800;">GECİKTİ</span>
                                         @endif
                                     </div>
                                 @endif
                             </td>
                             <td style="text-align: center;">
-                                <span class="status-pill" style="background: {{ $st['bg'] }}; color: {{ $st['color'] }};">
+                                <span class="badge-pill" style="background: {{ $st['bg'] }}; color: {{ $st['color'] }};">
                                     {{ $st['label'] }}
                                 </span>
                             </td>
-                            <td style="text-align: right; padding-right: 16px;">
-                                <div class="d-flex align-items-center justify-content-end gap-1">
-                                    <button type="button" class="btn btn-sm" onclick="openUpdateNcrModal({{ json_encode($ncr) }})" 
-                                            style="background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; font-weight: 700; font-size: 11px; border-radius: 6px; padding: 3px 8px;">
-                                        Durum Güncelle / Kapat
-                                    </button>
-                                    <form method="POST" action="{{ route('quality.ncr.destroy', $ncr->id) }}" onsubmit="return confirm('Bu uygunsuzluk kaydını silmek istediğinize emin misiniz?')" style="display: inline;">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-link text-danger p-0 px-1" title="Sil">
-                                            ✕
+                            <td style="text-align: right; padding-right: 20px;">
+                                @if(!auth()->user()->isYonetim())
+                                    <div style="display: flex; align-items: center; justify-content: flex-end; gap: 6px;">
+                                        <button type="button" onclick="openUpdateNcrModal({{ json_encode($ncr) }})" 
+                                                style="background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; font-weight: 700; font-size: 11.5px; border-radius: 6px; padding: 5px 10px; cursor: pointer;">
+                                            ⚙️ Güncelle / Kapat
                                         </button>
-                                    </form>
-                                </div>
+                                        <form method="POST" action="{{ route('quality.ncr.destroy', $ncr->id) }}" onsubmit="return confirm('Bu uygunsuzluk kaydını silmek istediğinize emin misiniz?')" style="display: inline; margin: 0;">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" style="background: none; border: none; color: #ef4444; font-size: 15px; cursor: pointer; padding: 2px 4px;" title="Sil">
+                                                ✕
+                                            </button>
+                                        </form>
+                                    </div>
+                                @else
+                                    <span style="color: #94a3b8; font-size: 11px; font-weight: 600;">👁️ Salt Okunur</span>
+                                @endif
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="text-center py-5" style="color: #94a3b8;">
-                                <div style="font-size: 32px; margin-bottom: 8px;">🎉</div>
+                            <td colspan="7" style="text-align: center; padding: 50px 20px; color: #94a3b8;">
+                                <div style="font-size: 36px; margin-bottom: 8px;">🎉</div>
                                 <div style="font-weight: 700; font-size: 14px; color: #15803d;">Açık Kalite Uygunsuzluğu Bulunmuyor</div>
-                                <p style="font-size: 12px; margin-top: 4px;">Projeniz tüm kabul ve kalite testlerini başarıyla geçmektedir.</p>
+                                <p style="font-size: 12px; margin-top: 4px; color: #64748b;">Projeniz tüm kabul ve kalite testlerini başarıyla geçmektedir.</p>
                             </td>
                         </tr>
                     @endforelse
@@ -528,7 +772,7 @@
         </div>
 
         @if($nonConformances->hasPages())
-            <div class="card-footer bg-white py-2 px-3 border-top">
+            <div style="padding: 12px 20px; border-top: 1px solid #f1f5f9; background: #ffffff;">
                 {{ $nonConformances->withQueryString()->links() }}
             </div>
         @endif
@@ -536,23 +780,27 @@
 @endif
 
 <!-- ========================================================================= -->
-<!-- MODAL 1: YENİ KALİTE KRİTERİ & TEST EKLE -->
+<!-- 5. KURUMSAL NATIVE MODALLAR (OVERLAY ARŞİTEKTÜRÜ - BOOTSTRAP BAĞIMSIZ) -->
 <!-- ========================================================================= -->
-<div class="modal fade" id="modalNewQuality" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <form method="POST" action="{{ route('quality.store') }}" enctype="multipart/form-data" class="modal-content" style="border-radius: 12px; border: none; box-shadow: 0 10px 25px rgba(0,0,0,0.15);">
-            @csrf
-            <div class="modal-header" style="background: #0284c7; color: #ffffff; border-radius: 12px 12px 0 0; padding: 14px 20px;">
-                <h5 class="modal-title" style="font-size: 15px; font-weight: 800; display: flex; align-items: center; gap: 8px;">
-                    <span>🔬</span> Yeni Kalite Kontrolü &amp; Kabul Kriteri Tanımla
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Kapat"></button>
+
+<!-- MODAL 1: YENİ KALİTE KRİTERİ & TEST EKLE -->
+<div id="modalNewQuality" class="native-modal-backdrop" style="display: none;" onclick="if(event.target === this) closeNativeModal('modalNewQuality')">
+    <div class="native-modal-box">
+        <!-- Header -->
+        <div style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: #ffffff; padding: 16px 22px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
+            <div style="font-weight: 800; font-size: 15px; display: flex; align-items: center; gap: 8px;">
+                <span>🔬</span> Yeni Kalite Kontrolü &amp; Kabul Kriteri Tanımla
             </div>
-            <div class="modal-body" style="padding: 20px; font-size: 13px;">
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <label class="form-label" style="font-weight: 700; color: #0f172a;">İlgili Proje *</label>
-                        <select name="project_id" class="form-control" required style="border-radius: 7px; border: 1.5px solid #cbd5e1;">
+            <button type="button" onclick="closeNativeModal('modalNewQuality')" style="background: none; border: none; color: #ffffff; font-size: 22px; cursor: pointer; line-height: 1; padding: 0;">&times;</button>
+        </div>
+        <!-- Body Form -->
+        <form method="POST" action="{{ route('quality.store') }}" enctype="multipart/form-data" style="margin: 0; display: flex; flex-direction: column; overflow: hidden;">
+            @csrf
+            <div style="padding: 22px; overflow-y: auto; max-height: calc(90vh - 130px); font-size: 13px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
+                    <div>
+                        <label style="font-weight: 700; color: #0f172a; display: block; margin-bottom: 4px;">İlgili Proje *</label>
+                        <select name="project_id" class="q-filter-control" required style="width: 100%;">
                             <option value="">-- Proje Seçiniz --</option>
                             @foreach($projects as $p)
                                 <option value="{{ $p->id }}" {{ $selectedProjectId == $p->id ? 'selected' : '' }}>
@@ -562,33 +810,37 @@
                         </select>
                     </div>
 
-                    <div class="col-md-6">
-                        <label class="form-label" style="font-weight: 700; color: #0f172a;">Kontrol / Kabul Türü *</label>
-                        <select name="check_type" class="form-control" required style="border-radius: 7px; border: 1.5px solid #cbd5e1;">
+                    <div>
+                        <label style="font-weight: 700; color: #0f172a; display: block; margin-bottom: 4px;">Kontrol / Kabul Türü *</label>
+                        <select name="check_type" class="q-filter-control" required style="width: 100%;">
                             @foreach(\App\Models\ProjectQuality::checkTypes() as $k => $label)
                                 <option value="{{ $k }}">{{ $label }}</option>
                             @endforeach
                         </select>
                     </div>
+                </div>
 
-                    <div class="col-md-8">
-                        <label class="form-label" style="font-weight: 700; color: #0f172a;">Kalite Kontrol / Test Başlığı *</label>
-                        <input type="text" name="title" class="form-control" placeholder="Örn: Hat 4 Hidrolik Basınç Testi &amp; Sızdırmazlık Doğrulaması" required style="border-radius: 7px; border: 1.5px solid #cbd5e1;">
+                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 14px; margin-bottom: 14px;">
+                    <div>
+                        <label style="font-weight: 700; color: #0f172a; display: block; margin-bottom: 4px;">Kalite Kontrol / Test Başlığı *</label>
+                        <input type="text" name="title" class="q-filter-control" placeholder="Örn: Hat 4 Hidrolik Basınç Testi &amp; Sızdırmazlık Doğrulaması" required style="width: 100%;">
                     </div>
 
-                    <div class="col-md-4">
-                        <label class="form-label" style="font-weight: 700; color: #0f172a;">Standart / Şartname No</label>
-                        <input type="text" name="standard_code" class="form-control" placeholder="Örn: ISO 9001 / DIN 18800" style="border-radius: 7px; border: 1.5px solid #cbd5e1;">
+                    <div>
+                        <label style="font-weight: 700; color: #0f172a; display: block; margin-bottom: 4px;">Standart / Şartname No</label>
+                        <input type="text" name="standard_code" class="q-filter-control" placeholder="Örn: ISO 9001 / DIN 18800" style="width: 100%;">
                     </div>
+                </div>
 
-                    <div class="col-12">
-                        <label class="form-label" style="font-weight: 700; color: #0f172a;">Kabul Kriteri / Hedef Değer &amp; Tolerans *</label>
-                        <textarea name="acceptance_criteria" rows="2" class="form-control" placeholder="Örn: 15 Bar basınç altında 30 dakika boyunca sıfır sızıntı; maksimum 0.2 bar basınç düşümü toleransı." style="border-radius: 7px; border: 1.5px solid #cbd5e1;"></textarea>
-                    </div>
+                <div style="margin-bottom: 14px;">
+                    <label style="font-weight: 700; color: #0f172a; display: block; margin-bottom: 4px;">Kabul Kriteri / Hedef Değer &amp; Tolerans *</label>
+                    <textarea name="acceptance_criteria" rows="2" class="q-filter-control" placeholder="Örn: 15 Bar basınç altında 30 dakika boyunca sıfır sızıntı; maksimum 0.2 bar basınç düşümü toleransı." style="width: 100%; height: auto; padding: 8px 12px;"></textarea>
+                </div>
 
-                    <div class="col-md-6">
-                        <label class="form-label" style="font-weight: 700; color: #0f172a;">Testi Yapacak Uzman / Denetçi</label>
-                        <select name="checked_by" class="form-control" style="border-radius: 7px; border: 1.5px solid #cbd5e1;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+                    <div>
+                        <label style="font-weight: 700; color: #0f172a; display: block; margin-bottom: 4px;">Testi Yapacak Uzman / Denetçi</label>
+                        <select name="checked_by" class="q-filter-control" style="width: 100%;">
                             <option value="">-- Denetçi Seçiniz --</option>
                             @foreach($users as $u)
                                 <option value="{{ $u->id }}">{{ $u->name }} ({{ $u->title ?: 'Personel' }})</option>
@@ -596,42 +848,42 @@
                         </select>
                     </div>
 
-                    <div class="col-md-6">
-                        <label class="form-label" style="font-weight: 700; color: #0f172a;">Sertifika / Şartname Dosyası (Opsiyonel)</label>
-                        <input type="file" name="certificate_file" class="form-control" style="border-radius: 7px; border: 1.5px solid #cbd5e1;">
+                    <div>
+                        <label style="font-weight: 700; color: #0f172a; display: block; margin-bottom: 4px;">Sertifika / Şartname Dosyası (Opsiyonel)</label>
+                        <input type="file" name="certificate_file" class="q-filter-control" style="width: 100%; padding: 4px;">
                     </div>
                 </div>
             </div>
-            <div class="modal-footer" style="background: #f8fafc; border-radius: 0 0 12px 12px; border-top: 1px solid #e2e8f0;">
-                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">İptal</button>
-                <button type="submit" class="btn btn-primary btn-sm" style="font-weight: 700; background: #0284c7;">✓ Kriteri Kaydet</button>
+            <div style="background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 14px 22px; display: flex; justify-content: flex-end; gap: 10px; flex-shrink: 0;">
+                <button type="button" onclick="closeNativeModal('modalNewQuality')" style="background: #e2e8f0; color: #475569; font-weight: 600; border-radius: 8px; padding: 8px 16px; border: none; cursor: pointer;">İptal</button>
+                <button type="submit" style="background: #0284c7; color: #ffffff; font-weight: 700; border-radius: 8px; padding: 8px 20px; border: none; cursor: pointer;">✓ Kriteri Kaydet</button>
             </div>
         </form>
     </div>
 </div>
 
-<!-- ========================================================================= -->
 <!-- MODAL 2: TEST SONUCUNU GİR & DEĞERLENDİR -->
-<!-- ========================================================================= -->
-<div class="modal fade" id="modalEvaluateQuality" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <form method="POST" id="formEvaluateQuality" enctype="multipart/form-data" class="modal-content" style="border-radius: 12px; border: none; box-shadow: 0 10px 25px rgba(0,0,0,0.15);">
-            @csrf
-            <div class="modal-header" style="background: #16a34a; color: #ffffff; border-radius: 12px 12px 0 0; padding: 14px 20px;">
-                <h5 class="modal-title" style="font-size: 15px; font-weight: 800; display: flex; align-items: center; gap: 8px;">
-                    <span>⚡</span> Test / Kalite Kontrol Değerlendirmesi
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Kapat"></button>
+<div id="modalEvaluateQuality" class="native-modal-backdrop" style="display: none;" onclick="if(event.target === this) closeNativeModal('modalEvaluateQuality')">
+    <div class="native-modal-box" style="width: 560px;">
+        <!-- Header -->
+        <div style="background: linear-gradient(135deg, #16a34a 0%, #15803d 100%); color: #ffffff; padding: 16px 22px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
+            <div style="font-weight: 800; font-size: 15px; display: flex; align-items: center; gap: 8px;">
+                <span>⚡</span> Test / Kalite Kontrol Değerlendirmesi
             </div>
-            <div class="modal-body" style="padding: 20px; font-size: 13px;">
-                <div class="mb-3 p-2.5 rounded-3" style="background: #f8fafc; border: 1px solid #e2e8f0;">
-                    <div style="font-weight: 800; color: #0f172a;" id="evalTitleText">Test Başlığı</div>
-                    <div style="font-size: 11.5px; color: #64748b;" id="evalCriteriaText">Kriter</div>
+            <button type="button" onclick="closeNativeModal('modalEvaluateQuality')" style="background: none; border: none; color: #ffffff; font-size: 22px; cursor: pointer; line-height: 1; padding: 0;">&times;</button>
+        </div>
+        <!-- Body Form -->
+        <form method="POST" id="formEvaluateQuality" enctype="multipart/form-data" style="margin: 0; display: flex; flex-direction: column; overflow: hidden;">
+            @csrf
+            <div style="padding: 22px; overflow-y: auto; max-height: calc(90vh - 130px); font-size: 13px;">
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px 14px; margin-bottom: 14px;">
+                    <div style="font-weight: 800; color: #0f172a; font-size: 13.5px;" id="evalTitleText">Test Başlığı</div>
+                    <div style="font-size: 12px; color: #64748b; margin-top: 2px;" id="evalCriteriaText">Kriter</div>
                 </div>
 
-                <div class="mb-3">
-                    <label class="form-label" style="font-weight: 700; color: #0f172a;">Değerlendirme Sonucu *</label>
-                    <select name="status" id="evalStatusSelect" class="form-control" required style="border-radius: 7px; border: 1.5px solid #cbd5e1; font-weight: 700;" onchange="toggleAutoNcrSection(this.value)">
+                <div style="margin-bottom: 14px;">
+                    <label style="font-weight: 700; color: #0f172a; display: block; margin-bottom: 4px;">Değerlendirme Sonucu *</label>
+                    <select name="status" id="evalStatusSelect" class="q-filter-control" required style="width: 100%; font-weight: 700;" onchange="toggleAutoNcrSection(this.value)">
                         <option value="passed">✓ Başarılı / Şartnameyi Sağladı (Passed)</option>
                         <option value="conditional">⚠️ Şartlı Kabul / İstisnalı Onay (Conditional)</option>
                         <option value="failed">✕ Başarısız / Reddedildi (Failed)</option>
@@ -640,41 +892,41 @@
                     </select>
                 </div>
 
-                <div class="mb-3">
-                    <label class="form-label" style="font-weight: 700; color: #0f172a;">Ölçülen / Fiili Değer</label>
-                    <input type="text" name="measured_value" id="evalMeasuredValue" class="form-control" placeholder="Örn: 15.1 Bar (Ölçüm Başarılı) veya 0.8mm Çatlak" style="border-radius: 7px; border: 1.5px solid #cbd5e1; font-family: 'JetBrains Mono', monospace;">
+                <div style="margin-bottom: 14px;">
+                    <label style="font-weight: 700; color: #0f172a; display: block; margin-bottom: 4px;">Ölçülen / Fiili Değer</label>
+                    <input type="text" name="measured_value" id="evalMeasuredValue" class="q-filter-control" placeholder="Örn: 15.1 Bar veya 0.8mm Sapma" style="width: 100%; font-family: 'JetBrains Mono', monospace;">
                 </div>
 
-                <div class="mb-3">
-                    <label class="form-label" style="font-weight: 700; color: #0f172a;">Test / Muayene Notu</label>
-                    <textarea name="notes" id="evalNotes" rows="2" class="form-control" placeholder="Ölçüm kalibrasyonu, ortam sıcaklığı veya gözlem notları..." style="border-radius: 7px; border: 1.5px solid #cbd5e1;"></textarea>
+                <div style="margin-bottom: 14px;">
+                    <label style="font-weight: 700; color: #0f172a; display: block; margin-bottom: 4px;">Test / Muayene Notu</label>
+                    <textarea name="notes" id="evalNotes" rows="2" class="q-filter-control" placeholder="Ölçüm kalibrasyonu, ortam sıcaklığı veya gözlem notları..." style="width: 100%; height: auto; padding: 8px 12px;"></textarea>
                 </div>
 
-                <div class="mb-3">
-                    <label class="form-label" style="font-weight: 700; color: #0f172a;">Test Raporu / Kalibrasyon Belgesi (PDF/Görsel)</label>
-                    <input type="file" name="certificate_file" class="form-control" style="border-radius: 7px; border: 1.5px solid #cbd5e1;">
+                <div style="margin-bottom: 14px;">
+                    <label style="font-weight: 700; color: #0f172a; display: block; margin-bottom: 4px;">Test Raporu / Kalibrasyon Belgesi (PDF/Görsel)</label>
+                    <input type="file" name="certificate_file" class="q-filter-control" style="width: 100%; padding: 4px;">
                 </div>
 
                 <!-- Otomatik NCR Açma Alanı (Başarısız seçildiğinde) -->
-                <div id="autoNcrBox" style="display: none; background: #fef2f2; border: 1.5px dashed #fca5a5; border-radius: 8px; padding: 12px; margin-top: 12px;">
-                    <div class="form-check mb-2">
-                        <input class="form-check-input" type="checkbox" name="auto_create_ncr" value="1" id="autoNcrCheck" checked>
-                        <label class="form-check-label font-bold text-danger" for="autoNcrCheck" style="font-size: 12px; font-weight: 800;">
+                <div id="autoNcrBox" style="display: none; background: #fef2f2; border: 1.5px dashed #fca5a5; border-radius: 10px; padding: 14px; margin-top: 14px;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                        <input type="checkbox" name="auto_create_ncr" value="1" id="autoNcrCheck" checked>
+                        <label for="autoNcrCheck" style="font-size: 12px; font-weight: 800; color: #b91c1c; cursor: pointer; margin: 0;">
                             🚨 Başarısız test için otomatik Uygunsuzluk (NCR) aç
                         </label>
                     </div>
-                    <div class="row g-2">
-                        <div class="col-md-6">
-                            <label style="font-size: 11px; font-weight: 700; color: #991b1b;">Şiddet Seviyesi:</label>
-                            <select name="ncr_severity" class="form-control form-control-sm">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <div>
+                            <label style="font-size: 11px; font-weight: 700; color: #991b1b; display: block; margin-bottom: 2px;">Şiddet Seviyesi:</label>
+                            <select name="ncr_severity" class="q-filter-control" style="width: 100%; height: 32px; font-size: 11.5px;">
                                 <option value="major">⚠️ Majör / Önemli</option>
                                 <option value="critical">🚨 Kritik / Durdurucu</option>
                                 <option value="minor">ℹ️ Minör / Kusur</option>
                             </select>
                         </div>
-                        <div class="col-md-6">
-                            <label style="font-size: 11px; font-weight: 700; color: #991b1b;">DÖF Sorumlusu:</label>
-                            <select name="ncr_assignee" class="form-control form-control-sm">
+                        <div>
+                            <label style="font-size: 11px; font-weight: 700; color: #991b1b; display: block; margin-bottom: 2px;">DÖF Sorumlusu:</label>
+                            <select name="ncr_assignee" class="q-filter-control" style="width: 100%; height: 32px; font-size: 11.5px;">
                                 <option value="">-- Sorumlu Ata --</option>
                                 @foreach($users as $u)
                                     <option value="{{ $u->id }}">{{ $u->name }}</option>
@@ -684,32 +936,32 @@
                     </div>
                 </div>
             </div>
-            <div class="modal-footer" style="background: #f8fafc; border-radius: 0 0 12px 12px; border-top: 1px solid #e2e8f0;">
-                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">İptal</button>
-                <button type="submit" class="btn btn-success btn-sm" style="font-weight: 700;">✓ Sonucu Kaydet</button>
+            <div style="background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 14px 22px; display: flex; justify-content: flex-end; gap: 10px; flex-shrink: 0;">
+                <button type="button" onclick="closeNativeModal('modalEvaluateQuality')" style="background: #e2e8f0; color: #475569; font-weight: 600; border-radius: 8px; padding: 8px 16px; border: none; cursor: pointer;">İptal</button>
+                <button type="submit" style="background: #16a34a; color: #ffffff; font-weight: 700; border-radius: 8px; padding: 8px 20px; border: none; cursor: pointer;">✓ Sonucu Kaydet</button>
             </div>
         </form>
     </div>
 </div>
 
-<!-- ========================================================================= -->
 <!-- MODAL 3: YENİ UYGUNSUZLUK (NCR / DÖF) AÇ -->
-<!-- ========================================================================= -->
-<div class="modal fade" id="modalNewNcr" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <form method="POST" action="{{ route('quality.ncr.store') }}" enctype="multipart/form-data" class="modal-content" style="border-radius: 12px; border: none; box-shadow: 0 10px 25px rgba(0,0,0,0.15);">
-            @csrf
-            <div class="modal-header" style="background: #dc2626; color: #ffffff; border-radius: 12px 12px 0 0; padding: 14px 20px;">
-                <h5 class="modal-title" style="font-size: 15px; font-weight: 800; display: flex; align-items: center; gap: 8px;">
-                    <span>🚨</span> Yeni Kalite Uygunsuzluğu / Kusur Raporu (NCR) Aç
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Kapat"></button>
+<div id="modalNewNcr" class="native-modal-backdrop" style="display: none;" onclick="if(event.target === this) closeNativeModal('modalNewNcr')">
+    <div class="native-modal-box">
+        <!-- Header -->
+        <div style="background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); color: #ffffff; padding: 16px 22px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
+            <div style="font-weight: 800; font-size: 15px; display: flex; align-items: center; gap: 8px;">
+                <span>🚨</span> Yeni Kalite Uygunsuzluğu / Kusur Raporu (NCR) Aç
             </div>
-            <div class="modal-body" style="padding: 20px; font-size: 13px;">
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <label class="form-label" style="font-weight: 700; color: #0f172a;">İlgili Proje *</label>
-                        <select name="project_id" class="form-control" required style="border-radius: 7px; border: 1.5px solid #cbd5e1;">
+            <button type="button" onclick="closeNativeModal('modalNewNcr')" style="background: none; border: none; color: #ffffff; font-size: 22px; cursor: pointer; line-height: 1; padding: 0;">&times;</button>
+        </div>
+        <!-- Body Form -->
+        <form method="POST" action="{{ route('quality.ncr.store') }}" enctype="multipart/form-data" style="margin: 0; display: flex; flex-direction: column; overflow: hidden;">
+            @csrf
+            <div style="padding: 22px; overflow-y: auto; max-height: calc(90vh - 130px); font-size: 13px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
+                    <div>
+                        <label style="font-weight: 700; color: #0f172a; display: block; margin-bottom: 4px;">İlgili Proje *</label>
+                        <select name="project_id" class="q-filter-control" required style="width: 100%;">
                             <option value="">-- Proje Seçiniz --</option>
                             @foreach($projects as $p)
                                 <option value="{{ $p->id }}" {{ $selectedProjectId == $p->id ? 'selected' : '' }}>
@@ -719,33 +971,35 @@
                         </select>
                     </div>
 
-                    <div class="col-md-6">
-                        <label class="form-label" style="font-weight: 700; color: #0f172a;">Şiddet Derecesi *</label>
-                        <select name="severity" class="form-control" required style="border-radius: 7px; border: 1.5px solid #cbd5e1; font-weight: 700;">
+                    <div>
+                        <label style="font-weight: 700; color: #0f172a; display: block; margin-bottom: 4px;">Şiddet Derecesi *</label>
+                        <select name="severity" class="q-filter-control" required style="width: 100%; font-weight: 700;">
                             <option value="critical">🚨 Kritik (Fazı veya Projeyi Durdurucu Hata)</option>
                             <option value="major" selected>⚠️ Majör (Önemli Kusur / Fonksiyonel Hata)</option>
                             <option value="minor">ℹ️ Minör (Görsel Kusur / Çapak / Kozmetik Hata)</option>
                         </select>
                     </div>
+                </div>
 
-                    <div class="col-12">
-                        <label class="form-label" style="font-weight: 700; color: #0f172a;">Uygunsuzluk / Hata Başlığı *</label>
-                        <input type="text" name="title" class="form-control" placeholder="Örn: Enjeksiyon Kalıp Sıcak Yolluk Termokupl Hatası" required style="border-radius: 7px; border: 1.5px solid #cbd5e1;">
-                    </div>
+                <div style="margin-bottom: 14px;">
+                    <label style="font-weight: 700; color: #0f172a; display: block; margin-bottom: 4px;">Uygunsuzluk / Hata Başlığı *</label>
+                    <input type="text" name="title" class="q-filter-control" placeholder="Örn: Enjeksiyon Kalıp Sıcak Yolluk Termokupl Hatası" required style="width: 100%;">
+                </div>
 
-                    <div class="col-12">
-                        <label class="form-label" style="font-weight: 700; color: #0f172a;">Tespit Edilen Kusur &amp; Kök Neden Açıklaması</label>
-                        <textarea name="description" rows="2" class="form-control" placeholder="Sahada veya üretimde ne tespit edildi? Şartnameden ne kadar sapıldı?" style="border-radius: 7px; border: 1.5px solid #cbd5e1;"></textarea>
-                    </div>
+                <div style="margin-bottom: 14px;">
+                    <label style="font-weight: 700; color: #0f172a; display: block; margin-bottom: 4px;">Tespit Edilen Kusur &amp; Kök Neden Açıklaması</label>
+                    <textarea name="description" rows="2" class="q-filter-control" placeholder="Sahada veya üretimde ne tespit edildi? Şartnameden ne kadar sapıldı?" style="width: 100%; height: auto; padding: 8px 12px;"></textarea>
+                </div>
 
-                    <div class="col-12">
-                        <label class="form-label" style="font-weight: 700; color: #0f172a;">DÖF (Düzeltici ve Önleyici Faaliyet Önerisi)</label>
-                        <textarea name="corrective_action" rows="2" class="form-control" placeholder="Bu hatayı gidermek ve tekrarlanmasını önlemek için ne yapılacak?" style="border-radius: 7px; border: 1.5px solid #cbd5e1;"></textarea>
-                    </div>
+                <div style="margin-bottom: 14px;">
+                    <label style="font-weight: 700; color: #0f172a; display: block; margin-bottom: 4px;">DÖF (Düzeltici ve Önleyici Faaliyet Önerisi)</label>
+                    <textarea name="corrective_action" rows="2" class="q-filter-control" placeholder="Bu hatayı gidermek ve tekrarlanmasını önlemek için ne yapılacak?" style="width: 100%; height: auto; padding: 8px 12px;"></textarea>
+                </div>
 
-                    <div class="col-md-6">
-                        <label class="form-label" style="font-weight: 700; color: #0f172a;">Düzeltme Sorumlusu (Assignee)</label>
-                        <select name="assigned_to" class="form-control" style="border-radius: 7px; border: 1.5px solid #cbd5e1;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
+                    <div>
+                        <label style="font-weight: 700; color: #0f172a; display: block; margin-bottom: 4px;">Düzeltme Sorumlusu (Assignee)</label>
+                        <select name="assigned_to" class="q-filter-control" style="width: 100%;">
                             <option value="">-- Sorumlu Personel --</option>
                             @foreach($users as $u)
                                 <option value="{{ $u->id }}">{{ $u->name }} ({{ $u->title ?: 'Ekip' }})</option>
@@ -753,47 +1007,47 @@
                         </select>
                     </div>
 
-                    <div class="col-md-6">
-                        <label class="form-label" style="font-weight: 700; color: #0f172a;">Düzeltme Termini (Due Date)</label>
-                        <input type="date" name="due_date" class="form-control" style="border-radius: 7px; border: 1.5px solid #cbd5e1;">
-                    </div>
-
-                    <div class="col-12">
-                        <label class="form-label" style="font-weight: 700; color: #0f172a;">Kusur Fotoğrafı / Kanıt Dosyası</label>
-                        <input type="file" name="evidence_file" class="form-control" style="border-radius: 7px; border: 1.5px solid #cbd5e1;">
+                    <div>
+                        <label style="font-weight: 700; color: #0f172a; display: block; margin-bottom: 4px;">Düzeltme Termini (Due Date)</label>
+                        <input type="date" name="due_date" class="q-filter-control" style="width: 100%;">
                     </div>
                 </div>
+
+                <div>
+                    <label style="font-weight: 700; color: #0f172a; display: block; margin-bottom: 4px;">Kusur Fotoğrafı / Kanıt Dosyası</label>
+                    <input type="file" name="evidence_file" class="q-filter-control" style="width: 100%; padding: 4px;">
+                </div>
             </div>
-            <div class="modal-footer" style="background: #f8fafc; border-radius: 0 0 12px 12px; border-top: 1px solid #e2e8f0;">
-                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">İptal</button>
-                <button type="submit" class="btn btn-danger btn-sm" style="font-weight: 700;">🚨 NCR Kaydını Başlat</button>
+            <div style="background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 14px 22px; display: flex; justify-content: flex-end; gap: 10px; flex-shrink: 0;">
+                <button type="button" onclick="closeNativeModal('modalNewNcr')" style="background: #e2e8f0; color: #475569; font-weight: 600; border-radius: 8px; padding: 8px 16px; border: none; cursor: pointer;">İptal</button>
+                <button type="submit" style="background: #dc2626; color: #ffffff; font-weight: 700; border-radius: 8px; padding: 8px 20px; border: none; cursor: pointer;">🚨 NCR Kaydını Başlat</button>
             </div>
         </form>
     </div>
 </div>
 
-<!-- ========================================================================= -->
 <!-- MODAL 4: NCR DURUM GÜNCELLE / KAPAT -->
-<!-- ========================================================================= -->
-<div class="modal fade" id="modalUpdateNcr" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <form method="POST" id="formUpdateNcr" class="modal-content" style="border-radius: 12px; border: none; box-shadow: 0 10px 25px rgba(0,0,0,0.15);">
-            @csrf
-            <div class="modal-header" style="background: #334155; color: #ffffff; border-radius: 12px 12px 0 0; padding: 14px 20px;">
-                <h5 class="modal-title" style="font-size: 15px; font-weight: 800; display: flex; align-items: center; gap: 8px;">
-                    <span>⚙️</span> NCR Durumunu Güncelle &amp; Kapat
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Kapat"></button>
+<div id="modalUpdateNcr" class="native-modal-backdrop" style="display: none;" onclick="if(event.target === this) closeNativeModal('modalUpdateNcr')">
+    <div class="native-modal-box" style="width: 520px;">
+        <!-- Header -->
+        <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color: #ffffff; padding: 16px 22px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
+            <div style="font-weight: 800; font-size: 15px; display: flex; align-items: center; gap: 8px;">
+                <span>⚙️</span> NCR Durumunu Güncelle &amp; Kapat
             </div>
-            <div class="modal-body" style="padding: 20px; font-size: 13px;">
-                <div class="mb-3 p-2.5 rounded-3" style="background: #f8fafc; border: 1px solid #e2e8f0;">
-                    <div style="font-weight: 900; color: #dc2626; font-family: monospace;" id="ncrModalCode">NCR-2026-0001</div>
+            <button type="button" onclick="closeNativeModal('modalUpdateNcr')" style="background: none; border: none; color: #ffffff; font-size: 22px; cursor: pointer; line-height: 1; padding: 0;">&times;</button>
+        </div>
+        <!-- Body Form -->
+        <form method="POST" id="formUpdateNcr" style="margin: 0; display: flex; flex-direction: column; overflow: hidden;">
+            @csrf
+            <div style="padding: 22px; overflow-y: auto; max-height: calc(90vh - 130px); font-size: 13px;">
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px 14px; margin-bottom: 14px;">
+                    <div style="font-weight: 900; color: #dc2626; font-family: 'JetBrains Mono', monospace; font-size: 13.5px;" id="ncrModalCode">NCR-2026-0001</div>
                     <div style="font-weight: 700; color: #0f172a; margin-top: 2px;" id="ncrModalTitle">Başlık</div>
                 </div>
 
-                <div class="mb-3">
-                    <label class="form-label" style="font-weight: 700; color: #0f172a;">Yeni Durum *</label>
-                    <select name="status" id="ncrModalStatus" class="form-control" required style="border-radius: 7px; border: 1.5px solid #cbd5e1; font-weight: 700;">
+                <div style="margin-bottom: 14px;">
+                    <label style="font-weight: 700; color: #0f172a; display: block; margin-bottom: 4px;">Yeni Durum *</label>
+                    <select name="status" id="ncrModalStatus" class="q-filter-control" required style="width: 100%; font-weight: 700;">
                         <option value="open">Açık / Tespit Edildi</option>
                         <option value="in_progress">Aksiyon Alınıyor / Düzeltme Devam Ediyor</option>
                         <option value="resolved">Düzeltildi / Doğrulama Bekliyor</option>
@@ -801,27 +1055,47 @@
                     </select>
                 </div>
 
-                <div class="mb-3">
-                    <label class="form-label" style="font-weight: 700; color: #0f172a;">Alınan Aksiyon &amp; Çözüm Notu</label>
-                    <textarea name="resolution_notes" id="ncrModalNotes" rows="3" class="form-control" placeholder="Düzeltme nasıl yapıldı? Tekrar test sonucu ne oldu?" style="border-radius: 7px; border: 1.5px solid #cbd5e1;"></textarea>
+                <div style="margin-bottom: 14px;">
+                    <label style="font-weight: 700; color: #0f172a; display: block; margin-bottom: 4px;">Alınan Aksiyon &amp; Çözüm Notu</label>
+                    <textarea name="resolution_notes" id="ncrModalNotes" rows="3" class="q-filter-control" placeholder="Düzeltme nasıl yapıldı? Tekrar test sonucu ne oldu?" style="width: 100%; height: auto; padding: 8px 12px;"></textarea>
                 </div>
             </div>
-            <div class="modal-footer" style="background: #f8fafc; border-radius: 0 0 12px 12px; border-top: 1px solid #e2e8f0;">
-                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">İptal</button>
-                <button type="submit" class="btn btn-primary btn-sm" style="font-weight: 700;">✓ Güncelle</button>
+            <div style="background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 14px 22px; display: flex; justify-content: flex-end; gap: 10px; flex-shrink: 0;">
+                <button type="button" onclick="closeNativeModal('modalUpdateNcr')" style="background: #e2e8f0; color: #475569; font-weight: 600; border-radius: 8px; padding: 8px 16px; border: none; cursor: pointer;">İptal</button>
+                <button type="submit" style="background: #0284c7; color: #ffffff; font-weight: 700; border-radius: 8px; padding: 8px 20px; border: none; cursor: pointer;">✓ Güncelle</button>
             </div>
         </form>
     </div>
 </div>
 
+<!-- ========================================================================= -->
+<!-- 6. NATIVE JAVASCRIPT MODAL YÖNETİCİLERİ -->
+<!-- ========================================================================= -->
 <script>
-function openNewQualityModal() {
-    new bootstrap.Modal(document.getElementById('modalNewQuality')).show();
+function openNativeModal(modalId) {
+    const el = document.getElementById(modalId);
+    if (el) {
+        el.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
 }
 
-function openNewNcrModal() {
-    new bootstrap.Modal(document.getElementById('modalNewNcr')).show();
+function closeNativeModal(modalId) {
+    const el = document.getElementById(modalId);
+    if (el) {
+        el.style.display = 'none';
+        document.body.style.overflow = '';
+    }
 }
+
+// ESC tuşu ile açık modalları kapatma
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        ['modalNewQuality', 'modalEvaluateQuality', 'modalNewNcr', 'modalUpdateNcr'].forEach(function(id) {
+            closeNativeModal(id);
+        });
+    }
+});
 
 function openEvaluateModal(quality) {
     document.getElementById('evalTitleText').textContent = quality.title;
@@ -832,15 +1106,13 @@ function openEvaluateModal(quality) {
     document.getElementById('formEvaluateQuality').action = '{{ url("/kalite") }}/' + quality.id + '/evaluate';
     
     toggleAutoNcrSection(quality.status);
-    new bootstrap.Modal(document.getElementById('modalEvaluateQuality')).show();
+    openNativeModal('modalEvaluateQuality');
 }
 
 function toggleAutoNcrSection(status) {
     const box = document.getElementById('autoNcrBox');
-    if (status === 'failed') {
-        box.style.display = 'block';
-    } else {
-        box.style.display = 'none';
+    if (box) {
+        box.style.display = (status === 'failed') ? 'block' : 'none';
     }
 }
 
@@ -851,7 +1123,7 @@ function openUpdateNcrModal(ncr) {
     document.getElementById('ncrModalNotes').value = ncr.resolution_notes || '';
     document.getElementById('formUpdateNcr').action = '{{ url("/kalite/ncr") }}/' + ncr.id;
 
-    new bootstrap.Modal(document.getElementById('modalUpdateNcr')).show();
+    openNativeModal('modalUpdateNcr');
 }
 </script>
 @endsection

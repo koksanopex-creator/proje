@@ -2732,12 +2732,14 @@
                     </p>
                 </div>
                 <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                    <button type="button" class="btn btn-sm btn-primary" onclick="openProjQualityModal()" style="font-weight: 700; border-radius: 8px;">
-                        + Kalite Kriteri Ekle
-                    </button>
-                    <button type="button" class="btn btn-sm btn-danger" onclick="openProjNcrModal()" style="font-weight: 700; border-radius: 8px;">
-                        🚨 Uygunsuzluk (NCR) Aç
-                    </button>
+                    @if(!auth()->user()->isYonetim())
+                        <button type="button" class="btn btn-sm btn-primary" onclick="openProjQualityModal()" style="font-weight: 700; border-radius: 8px;">
+                            + Kalite Kriteri Ekle
+                        </button>
+                        <button type="button" class="btn btn-sm btn-danger" onclick="openProjNcrModal()" style="font-weight: 700; border-radius: 8px;">
+                            🚨 Uygunsuzluk (NCR) Aç
+                        </button>
+                    @endif
                     <a href="{{ route('quality.index', ['project_id' => $project->id]) }}" class="btn btn-sm btn-outline-info" style="font-weight: 700; border-radius: 8px;">
                         Tam Kalite Panosu ↗
                     </a>
@@ -2866,18 +2868,22 @@
                                     @endif
                                 </td>
                                 <td style="text-align: right; padding-right: 16px;">
-                                    <div style="display: inline-flex; align-items: center; gap: 6px;">
-                                        <button type="button" class="btn btn-xs btn-outline-primary" onclick="evaluateProjQuality({{ json_encode($q) }})" style="font-size: 11px; font-weight: 700; border-radius: 6px;">
-                                            Değerlendir
-                                        </button>
-                                        <form method="POST" action="{{ route('quality.destroy', $q->id) }}" onsubmit="return confirm('Bu kalite kriterini silmek istediğinize emin misiniz?');" style="margin: 0;">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="btn btn-xs btn-outline-danger" style="font-size: 11px; border-radius: 6px;">
-                                                Sil
+                                    @if(!auth()->user()->isYonetim())
+                                        <div style="display: inline-flex; align-items: center; gap: 6px;">
+                                            <button type="button" class="btn btn-xs btn-outline-primary" onclick="evaluateProjQuality({{ json_encode($q) }})" style="font-size: 11px; font-weight: 700; border-radius: 6px;">
+                                                Değerlendir
                                             </button>
-                                        </form>
-                                    </div>
+                                            <form method="POST" action="{{ route('quality.destroy', $q->id) }}" onsubmit="return confirm('Bu kalite kriterini silmek istediğinize emin misiniz?');" style="margin: 0;">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-xs btn-outline-danger" style="font-size: 11px; border-radius: 6px;">
+                                                    Sil
+                                                </button>
+                                            </form>
+                                        </div>
+                                    @else
+                                        <span style="color: #94a3b8; font-size: 11px;">👁️ Salt Okunur</span>
+                                    @endif
                                 </td>
                             </tr>
                         @empty
@@ -2999,9 +3005,11 @@
                     </p>
                 </div>
                 <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                    <button type="button" class="btn btn-sm" onclick="openFreezeBaselineModal()" style="background: #4f46e5; color: #ffffff; font-weight: 700; border-radius: 8px; padding: 7px 16px; border: none; box-shadow: 0 2px 4px rgba(79,70,229,0.25);">
-                        <span>🔒</span> + Yeni Temel Çizgi Dondur (Snapshot)
-                    </button>
+                    @if(!auth()->user()->isYonetim())
+                        <button type="button" class="btn btn-sm" onclick="openFreezeBaselineModal()" style="background: #4f46e5; color: #ffffff; font-weight: 700; border-radius: 8px; padding: 7px 16px; border: none; box-shadow: 0 2px 4px rgba(79,70,229,0.25);">
+                            <span>🔒</span> + Yeni Temel Çizgi Dondur (Snapshot)
+                        </button>
+                    @endif
                     <a href="{{ route('gantt.index', ['project_id' => $project->id]) }}" class="btn btn-sm btn-outline-primary" style="font-weight: 700; border-radius: 8px; border-color: #6366f1; color: #4f46e5; background: #ffffff;">
                         <span>📊</span> Gantt Çift Çubuk Karşılaştır ↗
                     </a>
@@ -3172,23 +3180,27 @@
                                     @endif
                                 </td>
                                 <td style="text-align: right; padding-right: 16px;">
-                                    <div style="display: inline-flex; align-items: center; gap: 6px;">
-                                        @if(!$b->is_active)
-                                            <form method="POST" action="{{ route('projects.baselines.set_active', [$project->id, $b->id]) }}" style="margin: 0;">
+                                    @if(!auth()->user()->isYonetim())
+                                        <div style="display: inline-flex; align-items: center; gap: 6px;">
+                                            @if(!$b->is_active)
+                                                <form method="POST" action="{{ route('projects.baselines.set_active', [$project->id, $b->id]) }}" style="margin: 0;">
+                                                    @csrf
+                                                    <button type="submit" class="btn btn-xs btn-outline-primary" style="font-size: 11px; font-weight: 700; border-radius: 6px;" title="Bu sürümü aktif temel çizgi referansı yap">
+                                                        Aktif Yap
+                                                    </button>
+                                                </form>
+                                            @endif
+                                            <form method="POST" action="{{ route('projects.baselines.destroy', [$project->id, $b->id]) }}" onsubmit="return confirm('Bu temel çizgi sürümünü silmek istediğinize emin misiniz?');" style="margin: 0;">
                                                 @csrf
-                                                <button type="submit" class="btn btn-xs btn-outline-primary" style="font-size: 11px; font-weight: 700; border-radius: 6px;" title="Bu sürümü aktif temel çizgi referansı yap">
-                                                    Aktif Yap
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-xs btn-outline-danger" style="font-size: 11px; border-radius: 6px;">
+                                                    Sil
                                                 </button>
                                             </form>
-                                        @endif
-                                        <form method="POST" action="{{ route('projects.baselines.destroy', [$project->id, $b->id]) }}" onsubmit="return confirm('Bu temel çizgi sürümünü silmek istediğinize emin misiniz?');" style="margin: 0;">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="btn btn-xs btn-outline-danger" style="font-size: 11px; border-radius: 6px;">
-                                                Sil
-                                            </button>
-                                        </form>
-                                    </div>
+                                        </div>
+                                    @else
+                                        <span style="color: #94a3b8; font-size: 11px;">👁️ Salt Okunur</span>
+                                    @endif
                                 </td>
                             </tr>
                         @empty
@@ -3274,24 +3286,24 @@
         @endif
     </div>
 
-    <!-- MODALLER: KALİTE & TEMEL ÇİZGİ -->
+    <!-- MODALLER: KALİTE & TEMEL ÇİZGİ (NATIVE OVERLAY ARŞİTEKTÜRÜ) -->
     <!-- 1. PROJE İÇİ KALİTE KRİTERİ EKLE MODALI -->
-    <div class="modal fade" id="modalProjNewQuality" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <form method="POST" action="{{ route('quality.store') }}" enctype="multipart/form-data" class="modal-content" style="border-radius: 12px;">
+    <div id="modalProjNewQuality" style="display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.65); align-items: center; justify-content: center; z-index: 10000; backdrop-filter: blur(4px);" onclick="if(event.target === this) closeProjQualityModal()">
+        <div style="background: #ffffff; width: 680px; max-width: 94vw; border-radius: 16px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.35); overflow: hidden; display: flex; flex-direction: column; max-height: 90vh;">
+            <div style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: #ffffff; padding: 16px 22px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
+                <h5 style="font-size: 15px; font-weight: 800; margin: 0; display: flex; align-items: center; gap: 8px;">
+                    <span>🔬</span> {{ $project->code }} Projesine Kalite Kriteri Ekle
+                </h5>
+                <button type="button" onclick="closeProjQualityModal()" style="background: none; border: none; color: #ffffff; font-size: 22px; cursor: pointer; line-height: 1; padding: 0;">&times;</button>
+            </div>
+            <form method="POST" action="{{ route('quality.store') }}" enctype="multipart/form-data" style="margin: 0; display: flex; flex-direction: column; overflow: hidden;">
                 @csrf
                 <input type="hidden" name="project_id" value="{{ $project->id }}">
-                <div class="modal-header" style="background: #0284c7; color: #ffffff; padding: 14px 20px;">
-                    <h5 class="modal-title" style="font-size: 15px; font-weight: 800;">
-                        <span>🔬</span> {{ $project->code }} Projesine Kalite Kriteri Ekle
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body" style="padding: 20px;">
+                <div style="padding: 22px; overflow-y: auto; max-height: calc(90vh - 130px); font-size: 13px;">
                     <div class="row g-3">
                         <div class="col-md-4">
-                            <label class="form-label" style="font-weight: 700;">Kontrol Tipi *</label>
-                            <select name="check_type" class="form-select" required style="border-radius: 7px;">
+                            <label class="form-label" style="font-weight: 700; color: #0f172a;">Kontrol Tipi *</label>
+                            <select name="check_type" class="form-select" required style="border-radius: 8px; border: 1.5px solid #cbd5e1; height: 38px;">
                                 <option value="acceptance_criteria">Kabul Kriteri (Acceptance)</option>
                                 <option value="quality_gate">Faz Kalite Kapısı (Gate)</option>
                                 <option value="test_case">Test Vakası / Test Case</option>
@@ -3302,12 +3314,12 @@
                             </select>
                         </div>
                         <div class="col-md-8">
-                            <label class="form-label" style="font-weight: 700;">Kalite Kontrolü & Test Başlığı *</label>
-                            <input type="text" name="title" class="form-control" required placeholder="Örn: Güneş Panelleri Taşıyıcı Ray Tork Kalibrasyonu" style="border-radius: 7px;">
+                            <label class="form-label" style="font-weight: 700; color: #0f172a;">Kalite Kontrolü & Test Başlığı *</label>
+                            <input type="text" name="title" class="form-control" required placeholder="Örn: Güneş Panelleri Taşıyıcı Ray Tork Kalibrasyonu" style="border-radius: 8px; border: 1.5px solid #cbd5e1; height: 38px;">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label" style="font-weight: 700;">İlgili Faz / Aşama</label>
-                            <select name="phase_id" class="form-select" style="border-radius: 7px;">
+                            <label class="form-label" style="font-weight: 700; color: #0f172a;">İlgili Faz / Aşama</label>
+                            <select name="phase_id" class="form-select" style="border-radius: 8px; border: 1.5px solid #cbd5e1; height: 38px;">
                                 <option value="">-- Tüm Proje / Faz Bağımsız --</option>
                                 @foreach($project->phases as $ph)
                                     <option value="{{ $ph->id }}">{{ $ph->name }}</option>
@@ -3315,8 +3327,8 @@
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label" style="font-weight: 700;">İlgili Görev (Opsiyonel)</label>
-                            <select name="task_id" class="form-select" style="border-radius: 7px;">
+                            <label class="form-label" style="font-weight: 700; color: #0f172a;">İlgili Görev (Opsiyonel)</label>
+                            <select name="task_id" class="form-select" style="border-radius: 8px; border: 1.5px solid #cbd5e1; height: 38px;">
                                 <option value="">-- Görev Bağımsız --</option>
                                 @foreach($project->tasks as $t)
                                     <option value="{{ $t->id }}">{{ $t->title }}</option>
@@ -3324,24 +3336,24 @@
                             </select>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label" style="font-weight: 700;">Hedef Ölçüm / Standart Değer</label>
-                            <input type="text" name="target_value" class="form-control" placeholder="Örn: 25.4" style="border-radius: 7px;">
+                            <label class="form-label" style="font-weight: 700; color: #0f172a;">Hedef Ölçüm / Standart Değer</label>
+                            <input type="text" name="target_value" class="form-control" placeholder="Örn: 25.4" style="border-radius: 8px; border: 1.5px solid #cbd5e1; height: 38px;">
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label" style="font-weight: 700;">Tolerans Aralığı</label>
-                            <input type="text" name="tolerance" class="form-control" placeholder="Örn: ±0.2 mm veya min. 95%" style="border-radius: 7px;">
+                            <label class="form-label" style="font-weight: 700; color: #0f172a;">Tolerans Aralığı</label>
+                            <input type="text" name="tolerance" class="form-control" placeholder="Örn: ±0.2 mm veya min. 95%" style="border-radius: 8px; border: 1.5px solid #cbd5e1; height: 38px;">
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label" style="font-weight: 700;">Birim</label>
-                            <input type="text" name="unit" class="form-control" placeholder="Örn: bar, mm, °C, %" style="border-radius: 7px;">
+                            <label class="form-label" style="font-weight: 700; color: #0f172a;">Birim</label>
+                            <input type="text" name="unit" class="form-control" placeholder="Örn: bar, mm, °C, %" style="border-radius: 8px; border: 1.5px solid #cbd5e1; height: 38px;">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label" style="font-weight: 700;">Standart / Şartname Referansı</label>
-                            <input type="text" name="standards_reference" class="form-control" placeholder="Örn: ISO 9001 Madde 8.6, TS EN 1090" style="border-radius: 7px;">
+                            <label class="form-label" style="font-weight: 700; color: #0f172a;">Standart / Şartname Referansı</label>
+                            <input type="text" name="standards_reference" class="form-control" placeholder="Örn: ISO 9001 Madde 8.6, TS EN 1090" style="border-radius: 8px; border: 1.5px solid #cbd5e1; height: 38px;">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label" style="font-weight: 700;">Testi Yapacak Personel</label>
-                            <select name="checked_by" class="form-select" style="border-radius: 7px;">
+                            <label class="form-label" style="font-weight: 700; color: #0f172a;">Testi Yapacak Personel</label>
+                            <select name="checked_by" class="form-select" style="border-radius: 8px; border: 1.5px solid #cbd5e1; height: 38px;">
                                 <option value="">-- Atama Yapılmadı --</option>
                                 @foreach($users as $u)
                                     <option value="{{ $u->id }}">{{ $u->name }}</option>
@@ -3349,18 +3361,18 @@
                             </select>
                         </div>
                         <div class="col-12">
-                            <label class="form-label" style="font-weight: 700;">Test Yöntemi, Açıklaması ve Kabul Şartları</label>
-                            <textarea name="description" class="form-control" rows="3" placeholder="Test adımları, cihaz kalibrasyonu, numune alma koşulları..." style="border-radius: 7px;"></textarea>
+                            <label class="form-label" style="font-weight: 700; color: #0f172a;">Test Yöntemi, Açıklaması ve Kabul Şartları</label>
+                            <textarea name="description" class="form-control" rows="2" placeholder="Test adımları, cihaz kalibrasyonu, numune alma koşulları..." style="border-radius: 8px; border: 1.5px solid #cbd5e1;"></textarea>
                         </div>
                         <div class="col-12">
-                            <label class="form-label" style="font-weight: 700;">Kanıt / Sertifika / Şartname Dosyası</label>
-                            <input type="file" name="evidence_file" class="form-control" style="border-radius: 7px;">
+                            <label class="form-label" style="font-weight: 700; color: #0f172a;">Kanıt / Sertifika / Şartname Dosyası</label>
+                            <input type="file" name="evidence_file" class="form-control" style="border-radius: 8px; border: 1.5px solid #cbd5e1;">
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer" style="background: #f8fafc; padding: 12px 20px;">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="border-radius: 7px;">Vazgeç</button>
-                    <button type="submit" class="btn btn-primary" style="background: #0284c7; border-color: #0284c7; font-weight: 700; border-radius: 7px;">
+                <div style="background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 14px 22px; display: flex; justify-content: flex-end; gap: 10px; flex-shrink: 0;">
+                    <button type="button" onclick="closeProjQualityModal()" class="btn btn-secondary btn-sm" style="border-radius: 8px; font-weight: 600; padding: 7px 16px;">Vazgeç</button>
+                    <button type="submit" class="btn btn-primary btn-sm" style="background: #0284c7; border-color: #0284c7; font-weight: 700; border-radius: 8px; padding: 7px 18px;">
                         ✓ Kriteri Kaydet
                     </button>
                 </div>
@@ -3369,34 +3381,34 @@
     </div>
 
     <!-- 2. PROJE İÇİ KALİTE UYGUNSUZLUĞU (NCR) AÇ MODALI -->
-    <div class="modal fade" id="modalProjNewNcr" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <form method="POST" action="{{ route('quality.ncr.store') }}" enctype="multipart/form-data" class="modal-content" style="border-radius: 12px;">
+    <div id="modalProjNewNcr" style="display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.65); align-items: center; justify-content: center; z-index: 10000; backdrop-filter: blur(4px);" onclick="if(event.target === this) closeProjNcrModal()">
+        <div style="background: #ffffff; width: 680px; max-width: 94vw; border-radius: 16px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.35); overflow: hidden; display: flex; flex-direction: column; max-height: 90vh;">
+            <div style="background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); color: #ffffff; padding: 16px 22px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
+                <h5 style="font-size: 15px; font-weight: 800; margin: 0; display: flex; align-items: center; gap: 8px;">
+                    <span>🚨</span> {{ $project->code }} İçin Kalite Uygunsuzluğu (NCR) Aç
+                </h5>
+                <button type="button" onclick="closeProjNcrModal()" style="background: none; border: none; color: #ffffff; font-size: 22px; cursor: pointer; line-height: 1; padding: 0;">&times;</button>
+            </div>
+            <form method="POST" action="{{ route('quality.ncr.store') }}" enctype="multipart/form-data" style="margin: 0; display: flex; flex-direction: column; overflow: hidden;">
                 @csrf
                 <input type="hidden" name="project_id" value="{{ $project->id }}">
-                <div class="modal-header" style="background: #dc2626; color: #ffffff; padding: 14px 20px;">
-                    <h5 class="modal-title" style="font-size: 15px; font-weight: 800;">
-                        <span>🚨</span> {{ $project->code }} İçin Kalite Uygunsuzluğu (NCR) Aç
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body" style="padding: 20px;">
+                <div style="padding: 22px; overflow-y: auto; max-height: calc(90vh - 130px); font-size: 13px;">
                     <div class="row g-3">
                         <div class="col-md-8">
-                            <label class="form-label" style="font-weight: 700;">Uygunsuzluk Başlığı *</label>
-                            <input type="text" name="title" class="form-control" required placeholder="Örn: Kaynak Dikişinde Radyografik Çatlak Tespiti" style="border-radius: 7px;">
+                            <label class="form-label" style="font-weight: 700; color: #0f172a;">Uygunsuzluk Başlığı *</label>
+                            <input type="text" name="title" class="form-control" required placeholder="Örn: Kaynak Dikişinde Radyografik Çatlak Tespiti" style="border-radius: 8px; border: 1.5px solid #cbd5e1; height: 38px;">
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label" style="font-weight: 700;">Kritiklik Seviyesi *</label>
-                            <select name="severity" class="form-select" required style="border-radius: 7px;">
+                            <label class="form-label" style="font-weight: 700; color: #0f172a;">Kritiklik Seviyesi *</label>
+                            <select name="severity" class="form-select" required style="border-radius: 8px; border: 1.5px solid #cbd5e1; height: 38px;">
                                 <option value="minor">Düşük (Minor)</option>
                                 <option value="major" selected>Orta / Önemli (Major)</option>
                                 <option value="critical">Kritik / Durdurucu (Critical)</option>
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label" style="font-weight: 700;">Düzeltici Faaliyet Sorumlusu (CAPA Owner)</label>
-                            <select name="assigned_to" class="form-select" style="border-radius: 7px;">
+                            <label class="form-label" style="font-weight: 700; color: #0f172a;">Düzeltici Faaliyet Sorumlusu (CAPA Owner)</label>
+                            <select name="assigned_to" class="form-select" style="border-radius: 8px; border: 1.5px solid #cbd5e1; height: 38px;">
                                 <option value="">-- Sorumlu Seçiniz --</option>
                                 @foreach($users as $u)
                                     <option value="{{ $u->id }}">{{ $u->name }}</option>
@@ -3404,30 +3416,30 @@
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label" style="font-weight: 700;">Giderilme Hedef Tarihi (Termin)</label>
-                            <input type="date" name="due_date" class="form-control" style="border-radius: 7px;">
+                            <label class="form-label" style="font-weight: 700; color: #0f172a;">Giderilme Hedef Tarihi (Termin)</label>
+                            <input type="date" name="due_date" class="form-control" style="border-radius: 8px; border: 1.5px solid #cbd5e1; height: 38px;">
                         </div>
                         <div class="col-12">
-                            <label class="form-label" style="font-weight: 700;">Uygunsuzluk Detayı & Sapma Tanımı *</label>
-                            <textarea name="description" class="form-control" rows="3" required placeholder="Hatanın oluş şekli, nerede ve hangi parçada tespit edildiği..." style="border-radius: 7px;"></textarea>
+                            <label class="form-label" style="font-weight: 700; color: #0f172a;">Uygunsuzluk Detayı & Sapma Tanımı *</label>
+                            <textarea name="description" class="form-control" rows="2" required placeholder="Hatanın oluş şekli, nerede ve hangi parçada tespit edildiği..." style="border-radius: 8px; border: 1.5px solid #cbd5e1;"></textarea>
                         </div>
                         <div class="col-12">
-                            <label class="form-label" style="font-weight: 700;">Kök Neden Analizi (Root Cause)</label>
-                            <textarea name="root_cause" class="form-control" rows="2" placeholder="Neden oldu? Operatör hatası, malzeme kusuru, parametre sapması..." style="border-radius: 7px;"></textarea>
+                            <label class="form-label" style="font-weight: 700; color: #0f172a;">Kök Neden Analizi (Root Cause)</label>
+                            <textarea name="root_cause" class="form-control" rows="2" placeholder="Neden oldu? Operatör hatası, malzeme kusuru, parametre sapması..." style="border-radius: 8px; border: 1.5px solid #cbd5e1;"></textarea>
                         </div>
                         <div class="col-12">
-                            <label class="form-label" style="font-weight: 700;">Planlanan Düzeltici / Önleyici Faaliyet (CAPA)</label>
-                            <textarea name="corrective_action" class="form-control" rows="2" placeholder="Tekrarını önlemek için ne yapılacak? Parça değişimi, revizyon, eğitim..." style="border-radius: 7px;"></textarea>
+                            <label class="form-label" style="font-weight: 700; color: #0f172a;">Planlanan Düzeltici / Önleyici Faaliyet (CAPA)</label>
+                            <textarea name="corrective_action" class="form-control" rows="2" placeholder="Tekrarını önlemek için ne yapılacak? Parça değişimi, revizyon, eğitim..." style="border-radius: 8px; border: 1.5px solid #cbd5e1;"></textarea>
                         </div>
                         <div class="col-12">
-                            <label class="form-label" style="font-weight: 700;">Hata Fotoğrafı / Ölçüm Raporu Kanıtı</label>
-                            <input type="file" name="evidence_file" class="form-control" style="border-radius: 7px;">
+                            <label class="form-label" style="font-weight: 700; color: #0f172a;">Hata Fotoğrafı / Ölçüm Raporu Kanıtı</label>
+                            <input type="file" name="evidence_file" class="form-control" style="border-radius: 8px; border: 1.5px solid #cbd5e1;">
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer" style="background: #f8fafc; padding: 12px 20px;">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="border-radius: 7px;">Vazgeç</button>
-                    <button type="submit" class="btn btn-danger" style="font-weight: 700; border-radius: 7px;">
+                <div style="background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 14px 22px; display: flex; justify-content: flex-end; gap: 10px; flex-shrink: 0;">
+                    <button type="button" onclick="closeProjNcrModal()" class="btn btn-secondary btn-sm" style="border-radius: 8px; font-weight: 600; padding: 7px 16px;">Vazgeç</button>
+                    <button type="submit" class="btn btn-danger btn-sm" style="background: #dc2626; border-color: #dc2626; font-weight: 700; border-radius: 8px; padding: 7px 18px;">
                         🚨 NCR Kaydını Aç
                     </button>
                 </div>
@@ -3436,32 +3448,31 @@
     </div>
 
     <!-- 3. KALİTE TESTİNİ DEĞERLENDİR MODALI -->
-    <div class="modal fade" id="modalProjEvaluateQuality" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
-            <form method="POST" id="formProjEvaluateQuality" enctype="multipart/form-data" class="modal-content" style="border-radius: 12px;">
+    <div id="modalProjEvaluateQuality" style="display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.65); align-items: center; justify-content: center; z-index: 10000; backdrop-filter: blur(4px);" onclick="if(event.target === this) closeProjEvaluateQuality()">
+        <div style="background: #ffffff; width: 560px; max-width: 94vw; border-radius: 16px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.35); overflow: hidden; display: flex; flex-direction: column; max-height: 90vh;">
+            <div style="background: linear-gradient(135deg, #16a34a 0%, #15803d 100%); color: #ffffff; padding: 16px 22px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
+                <h5 style="font-size: 15px; font-weight: 800; margin: 0; display: flex; align-items: center; gap: 8px;">
+                    <span>📋</span> Kalite Testini / Kabul Kriterini Değerlendir
+                </h5>
+                <button type="button" onclick="closeProjEvaluateQuality()" style="background: none; border: none; color: #ffffff; font-size: 22px; cursor: pointer; line-height: 1; padding: 0;">&times;</button>
+            </div>
+            <form method="POST" id="formProjEvaluateQuality" enctype="multipart/form-data" style="margin: 0; display: flex; flex-direction: column; overflow: hidden;">
                 @csrf
-                <div class="modal-header" style="background: #0f172a; color: #ffffff; padding: 14px 20px;">
-                    <h5 class="modal-title" style="font-size: 15px; font-weight: 800;">
-                        <span>📋</span> Kalite Testini / Kabul Kriterini Değerlendir
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body" style="padding: 20px;">
+                <div style="padding: 22px; overflow-y: auto; max-height: calc(90vh - 130px); font-size: 13px;">
+                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px 14px; margin-bottom: 16px;">
+                        <div style="font-size: 11.5px; font-weight: 700; color: #64748b;">Kriter Başlığı:</div>
+                        <div id="evalProjQualityTitle" style="font-size: 13.5px; font-weight: 800; color: #0284c7; margin-top: 2px;"></div>
+                        <div style="font-size: 11.5px; font-weight: 700; color: #64748b; margin-top: 6px;">Hedef / Standart:</div>
+                        <div id="evalProjQualityTarget" style="font-size: 12.5px; color: #334155;"></div>
+                    </div>
+
                     <div class="mb-3">
-                        <label class="form-label" style="font-weight: 700;">Kriter Başlığı</label>
-                        <div id="evalProjQualityTitle" style="font-size: 13px; font-weight: 800; color: #0284c7;"></div>
+                        <label class="form-label" style="font-weight: 700; color: #0f172a;">Ölçülen Fiili Değer</label>
+                        <input type="text" name="actual_value" id="evalProjActualValue" class="form-control" placeholder="Örn: 25.3" style="border-radius: 8px; border: 1.5px solid #cbd5e1; height: 38px; font-family: 'JetBrains Mono', monospace;">
                     </div>
                     <div class="mb-3">
-                        <label class="form-label" style="font-weight: 700;">Hedef / Standart Değer</label>
-                        <div id="evalProjQualityTarget" style="font-size: 12.5px; color: #475569;"></div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label" style="font-weight: 700;">Ölçülen Fiili Değer</label>
-                        <input type="text" name="actual_value" id="evalProjActualValue" class="form-control" placeholder="Örn: 25.3" style="border-radius: 7px;">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label" style="font-weight: 700;">Değerlendirme Sonucu *</label>
-                        <select name="status" id="evalProjStatus" class="form-select" required style="border-radius: 7px; font-weight: 700;">
+                        <label class="form-label" style="font-weight: 700; color: #0f172a;">Değerlendirme Sonucu *</label>
+                        <select name="status" id="evalProjStatus" class="form-select" required style="border-radius: 8px; border: 1.5px solid #cbd5e1; font-weight: 700; height: 38px;">
                             <option value="passed">✅ Geçti (Passed / Kabul)</option>
                             <option value="failed">❌ Kaldı / Reddedildi (Failed)</option>
                             <option value="conditionally_passed">⚠️ Şartlı Kabul Edildi (Conditionally Passed)</option>
@@ -3469,17 +3480,17 @@
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label" style="font-weight: 700;">Test Notları & Değerlendirme Raporu</label>
-                        <textarea name="evaluation_notes" id="evalProjNotes" class="form-control" rows="3" placeholder="Ölçüm ortamı, kullanılan cihaz seri no, gözlemler..." style="border-radius: 7px;"></textarea>
+                        <label class="form-label" style="font-weight: 700; color: #0f172a;">Test Notları & Değerlendirme Raporu</label>
+                        <textarea name="evaluation_notes" id="evalProjNotes" class="form-control" rows="2" placeholder="Ölçüm ortamı, kullanılan cihaz seri no, gözlemler..." style="border-radius: 8px; border: 1.5px solid #cbd5e1;"></textarea>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label" style="font-weight: 700;">Test Kanıtı / Ölçüm Raporu Dosyası</label>
-                        <input type="file" name="evidence_file" class="form-control" style="border-radius: 7px;">
+                        <label class="form-label" style="font-weight: 700; color: #0f172a;">Test Kanıtı / Ölçüm Raporu Dosyası</label>
+                        <input type="file" name="evidence_file" class="form-control" style="border-radius: 8px; border: 1.5px solid #cbd5e1;">
                     </div>
                 </div>
-                <div class="modal-footer" style="background: #f8fafc; padding: 12px 20px;">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="border-radius: 7px;">İptal</button>
-                    <button type="submit" class="btn btn-success" style="font-weight: 700; border-radius: 7px;">
+                <div style="background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 14px 22px; display: flex; justify-content: flex-end; gap: 10px; flex-shrink: 0;">
+                    <button type="button" onclick="closeProjEvaluateQuality()" class="btn btn-secondary btn-sm" style="border-radius: 8px; font-weight: 600; padding: 7px 16px;">İptal</button>
+                    <button type="submit" class="btn btn-success btn-sm" style="background: #16a34a; border-color: #16a34a; font-weight: 700; border-radius: 8px; padding: 7px 18px;">
                         ✓ Değerlendirmeyi Kaydet
                     </button>
                 </div>
@@ -3488,47 +3499,47 @@
     </div>
 
     <!-- 4. YENİ TEMEL ÇİZGİ DONDUR (FREEZE BASELINE) MODALI -->
-    <div class="modal fade" id="modalFreezeBaseline" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
-            <form method="POST" action="{{ route('projects.baselines.store', $project->id) }}" class="modal-content" style="border-radius: 12px;">
+    <div id="modalFreezeBaseline" style="display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.65); align-items: center; justify-content: center; z-index: 10000; backdrop-filter: blur(4px);" onclick="if(event.target === this) closeFreezeBaselineModal()">
+        <div style="background: #ffffff; width: 560px; max-width: 94vw; border-radius: 16px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.35); overflow: hidden; display: flex; flex-direction: column; max-height: 90vh;">
+            <div style="background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%); color: #ffffff; padding: 16px 22px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
+                <h5 style="font-size: 15px; font-weight: 800; margin: 0; display: flex; align-items: center; gap: 8px;">
+                    <span>🔒</span> Proje Temel Çizgisini Dondur (Baseline Snapshot)
+                </h5>
+                <button type="button" onclick="closeFreezeBaselineModal()" style="background: none; border: none; color: #ffffff; font-size: 22px; cursor: pointer; line-height: 1; padding: 0;">&times;</button>
+            </div>
+            <form method="POST" action="{{ route('projects.baselines.store', $project->id) }}" style="margin: 0; display: flex; flex-direction: column; overflow: hidden;">
                 @csrf
-                <div class="modal-header" style="background: #4f46e5; color: #ffffff; padding: 14px 20px;">
-                    <h5 class="modal-title" style="font-size: 15px; font-weight: 800;">
-                        <span>🔒</span> Proje Temel Çizgisini Dondur (Baseline Snapshot)
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body" style="padding: 20px;">
-                    <div class="alert alert-warning mb-3" style="font-size: 12px; border-radius: 8px;">
-                        <span>ℹ️</span> <strong>Temel Çizgi (Baseline):</strong> Projenin şu anki planlanan bütçesi ({{ number_format($project->planned_budget ?? 0, 2) }} {{ $project->currency ?? 'TRY' }}), faz ve görev tarihleri kilitlenerek saklanacaktır. Gelecekteki revizyonlar ve takvim/maliyet sapmaları (EVM) bu dondurulan referansa göre kıyaslanacaktır.
+                <div style="padding: 22px; overflow-y: auto; max-height: calc(90vh - 130px); font-size: 13px;">
+                    <div class="alert alert-warning mb-3" style="font-size: 12px; border-radius: 10px; background: #fffbeb; border: 1px solid #fef3c7; color: #92400e;">
+                        <span>ℹ️</span> <strong>Temel Çizgi (Baseline):</strong> Projenin şu anki planlanan bütçesi ({{ number_format($project->planned_budget ?? 0, 2) }} {{ $project->currency ?? 'TRY' }}), faz ve görev tarihleri kilitlenerek saklanacaktır. Gelecekteki takvim ve maliyet sapmaları bu referansa göre kıyaslanacaktır.
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label" style="font-weight: 700; font-size: 13px;">Temel Çizgi Sürüm Kodu *</label>
-                        <input type="text" name="version" class="form-control" value="v{{ $project->baselines->count() + 1 }}.0" required style="border-radius: 7px; font-weight: 700;">
-                        <small class="text-muted">Örn: v1.0 (Orijinal Onay), v2.0 (Yönetim Kurulu Bütçe Revizyonu)</small>
+                        <label class="form-label" style="font-weight: 700; color: #0f172a;">Temel Çizgi Sürüm Kodu *</label>
+                        <input type="text" name="version" class="form-control" value="v{{ $project->baselines->count() + 1 }}.0" required style="border-radius: 8px; border: 1.5px solid #cbd5e1; height: 38px; font-weight: 700;">
+                        <small class="text-muted" style="font-size: 11px;">Örn: v1.0 (Orijinal Onay), v2.0 (Bütçe Revizyonu)</small>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label" style="font-weight: 700; font-size: 13px;">Temel Çizgi Adı / Etiketi</label>
-                        <input type="text" name="name" class="form-control" value="{{ $project->baselines->count() === 0 ? 'Orijinal Onaylı Proje Planı' : 'Proje Revizyon Temel Çizgisi' }}" placeholder="Örn: 2026 Q1 Onaylı Temel Çizgi" style="border-radius: 7px;">
+                        <label class="form-label" style="font-weight: 700; color: #0f172a;">Temel Çizgi Adı / Etiketi</label>
+                        <input type="text" name="name" class="form-control" value="{{ $project->baselines->count() === 0 ? 'Orijinal Onaylı Proje Planı' : 'Proje Revizyon Temel Çizgisi' }}" placeholder="Örn: 2026 Q1 Onaylı Temel Çizgi" style="border-radius: 8px; border: 1.5px solid #cbd5e1; height: 38px;">
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label" style="font-weight: 700; font-size: 13px;">Dondurma Sebebi & Açıklama</label>
-                        <textarea name="description" class="form-control" rows="3" placeholder="Bu temel çizginin alınma gerekçesi veya yönetim kararı..." style="border-radius: 7px;"></textarea>
+                        <label class="form-label" style="font-weight: 700; color: #0f172a;">Dondurma Sebebi & Açıklama</label>
+                        <textarea name="description" class="form-control" rows="2" placeholder="Bu temel çizginin alınma gerekçesi veya yönetim kararı..." style="border-radius: 8px; border: 1.5px solid #cbd5e1;"></textarea>
                     </div>
 
-                    <div class="form-check form-switch mt-3">
+                    <div class="form-check form-switch mt-2">
                         <input class="form-check-input" type="checkbox" name="set_active" value="1" id="switchSetActive" checked>
-                        <label class="form-check-label" for="switchSetActive" style="font-weight: 700; font-size: 13px;">
+                        <label class="form-check-label" for="switchSetActive" style="font-weight: 700; font-size: 12.5px; color: #0f172a;">
                             Aktif Kıyaslama Referansı Olarak Ayarla (Gantt & EVM)
                         </label>
                     </div>
                 </div>
-                <div class="modal-footer" style="background: #f8fafc; padding: 12px 20px;">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="border-radius: 7px;">Vazgeç</button>
-                    <button type="submit" class="btn btn-primary" style="background: #4f46e5; border-color: #4f46e5; font-weight: 700; border-radius: 7px;">
+                <div style="background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 14px 22px; display: flex; justify-content: flex-end; gap: 10px; flex-shrink: 0;">
+                    <button type="button" onclick="closeFreezeBaselineModal()" class="btn btn-secondary btn-sm" style="border-radius: 8px; font-weight: 600; padding: 7px 16px;">Vazgeç</button>
+                    <button type="submit" class="btn btn-primary btn-sm" style="background: #4f46e5; border-color: #4f46e5; font-weight: 700; border-radius: 8px; padding: 7px 18px;">
                         <span>🔒</span> Temel Çizgiyi Dondur ve Kaydet
                     </button>
                 </div>
@@ -5195,13 +5206,23 @@ window.closeHandoverModal = closeHandoverModal;
 window.openChangeManagerModal = openChangeManagerModal;
 window.closeChangeManagerModal = closeChangeManagerModal;
 
-// Kalite & Temel Çizgi (Baseline) Modal Yöneticileri
+// Kalite & Temel Çizgi (Baseline) Modal Yöneticileri (Native Overlay Arşitektürü)
 function openProjQualityModal() {
-    new bootstrap.Modal(document.getElementById('modalProjNewQuality')).show();
+    const el = document.getElementById('modalProjNewQuality');
+    if (el) el.style.display = 'flex';
+}
+function closeProjQualityModal() {
+    const el = document.getElementById('modalProjNewQuality');
+    if (el) el.style.display = 'none';
 }
 
 function openProjNcrModal() {
-    new bootstrap.Modal(document.getElementById('modalProjNewNcr')).show();
+    const el = document.getElementById('modalProjNewNcr');
+    if (el) el.style.display = 'flex';
+}
+function closeProjNcrModal() {
+    const el = document.getElementById('modalProjNewNcr');
+    if (el) el.style.display = 'none';
 }
 
 function evaluateProjQuality(q) {
@@ -5211,17 +5232,41 @@ function evaluateProjQuality(q) {
     document.getElementById('evalProjStatus').value = q.status || 'passed';
     document.getElementById('evalProjNotes').value = q.evaluation_notes || '';
     document.getElementById('formProjEvaluateQuality').action = '{{ url("/kalite") }}/' + q.id + '/evaluate';
-    new bootstrap.Modal(document.getElementById('modalProjEvaluateQuality')).show();
+    const el = document.getElementById('modalProjEvaluateQuality');
+    if (el) el.style.display = 'flex';
+}
+function closeProjEvaluateQuality() {
+    const el = document.getElementById('modalProjEvaluateQuality');
+    if (el) el.style.display = 'none';
 }
 
 function openFreezeBaselineModal() {
-    new bootstrap.Modal(document.getElementById('modalFreezeBaseline')).show();
+    const el = document.getElementById('modalFreezeBaseline');
+    if (el) el.style.display = 'flex';
+}
+function closeFreezeBaselineModal() {
+    const el = document.getElementById('modalFreezeBaseline');
+    if (el) el.style.display = 'none';
 }
 
+// ESC tuşu ile kalite ve baseline modallarını kapatma
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeProjQualityModal();
+        closeProjNcrModal();
+        closeProjEvaluateQuality();
+        closeFreezeBaselineModal();
+    }
+});
+
 window.openProjQualityModal = openProjQualityModal;
+window.closeProjQualityModal = closeProjQualityModal;
 window.openProjNcrModal = openProjNcrModal;
+window.closeProjNcrModal = closeProjNcrModal;
 window.evaluateProjQuality = evaluateProjQuality;
+window.closeProjEvaluateQuality = closeProjEvaluateQuality;
 window.openFreezeBaselineModal = openFreezeBaselineModal;
+window.closeFreezeBaselineModal = closeFreezeBaselineModal;
 </script>
 @endpush
 @endsection

@@ -8,6 +8,7 @@ use App\Models\ProjectQuality;
 use App\Models\ProjectNonConformance;
 use App\Models\User;
 use App\Services\AuditLogService;
+use App\Services\NotificationMatrixService;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -245,6 +246,29 @@ class QualityController extends Controller
             $quality->project_id
         );
 
+        // Bildirim Matrisi Entegrasyonu
+        try {
+            $project = $quality->project;
+            $actor = auth()->user();
+            $actorName = ($actor && $actor->isSuperAdmin()) ? 'Sistem Yöneticisi' : ($actor?->name ?? 'Sistem Yöneticisi');
+            app(NotificationMatrixService::class)->dispatch(
+                'kalite_testi_sonuclandi',
+                [
+                    'proje_kodu' => $project?->code ?? '',
+                    'proje_adi' => $project?->title ?? '',
+                    'test_baslik' => $quality->title,
+                    'sonuc' => $statusBadge['label'],
+                    'olculen_deger' => $quality->measured_value ?? '-',
+                    'notlar' => $quality->notes ?? 'Belirtilmedi',
+                    'islem_yapan' => $actorName,
+                    'proje_url' => route('projects.show', [$quality->project_id, 'tab' => 'quality']),
+                ],
+                route('projects.show', [$quality->project_id, 'tab' => 'quality'])
+            );
+        } catch (\Throwable $e) {
+            \Log::warning("Kalite testi bildirimi gönderilemedi: " . $e->getMessage());
+        }
+
         return back()->with('success', "Kalite kontrol sonucu kaydedildi.");
     }
 
@@ -312,6 +336,33 @@ class QualityController extends Controller
             $ncr->project_id
         );
 
+        // Bildirim Matrisi Entegrasyonu
+        try {
+            $project = $ncr->project;
+            $actor = auth()->user();
+            $actorName = ($actor && $actor->isSuperAdmin()) ? 'Sistem Yöneticisi' : ($actor?->name ?? 'Sistem Yöneticisi');
+            $assigneeName = $ncr->assignee?->name ?? 'Atanmadı';
+            app(NotificationMatrixService::class)->dispatch(
+                'yeni_ncr_acildi',
+                [
+                    'proje_kodu' => $project?->code ?? '',
+                    'proje_adi' => $project?->title ?? '',
+                    'ncr_kodu' => $ncr->ncr_code,
+                    'siddet' => $ncr->severity_badge['label'],
+                    'ncr_baslik' => $ncr->title,
+                    'aciklama' => $ncr->description ?? 'Açıklama girilmedi',
+                    'dof_aksiyon' => $ncr->corrective_action ?? 'Plan belirtilmedi',
+                    'sorumlu' => $assigneeName,
+                    'termin' => $ncr->due_date ? $ncr->due_date->format('d.m.Y') : 'Belirtilmedi',
+                    'islem_yapan' => $actorName,
+                    'proje_url' => route('projects.show', [$ncr->project_id, 'tab' => 'quality']),
+                ],
+                route('projects.show', [$ncr->project_id, 'tab' => 'quality'])
+            );
+        } catch (\Throwable $e) {
+            \Log::warning("Yeni NCR bildirimi gönderilemedi: " . $e->getMessage());
+        }
+
         return back()->with('success', "Uygunsuzluk (NCR) kaydı açıldı: {$ncr->ncr_code}");
     }
 
@@ -365,6 +416,28 @@ class QualityController extends Controller
             $ncr->id,
             $ncr->project_id
         );
+
+        // Bildirim Matrisi Entegrasyonu
+        try {
+            $project = $ncr->project;
+            $actor = auth()->user();
+            $actorName = ($actor && $actor->isSuperAdmin()) ? 'Sistem Yöneticisi' : ($actor?->name ?? 'Sistem Yöneticisi');
+            app(NotificationMatrixService::class)->dispatch(
+                'ncr_durumu_guncellendi',
+                [
+                    'proje_kodu' => $project?->code ?? '',
+                    'proje_adi' => $project?->title ?? '',
+                    'ncr_kodu' => $ncr->ncr_code,
+                    'yeni_durum' => $ncr->status_badge['label'],
+                    'cozum_notu' => $ncr->resolution_notes ?? ($ncr->corrective_action ?? 'Belirtilmedi'),
+                    'islem_yapan' => $actorName,
+                    'proje_url' => route('projects.show', [$ncr->project_id, 'tab' => 'quality']),
+                ],
+                route('projects.show', [$ncr->project_id, 'tab' => 'quality'])
+            );
+        } catch (\Throwable $e) {
+            \Log::warning("NCR güncelleme bildirimi gönderilemedi: " . $e->getMessage());
+        }
 
         return back()->with('success', "NCR kaydı güncellendi ({$ncr->ncr_code}).");
     }
