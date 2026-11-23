@@ -21,15 +21,26 @@ class UserRoleController extends Controller
     {
         $query = User::with(['roles', 'bolum'])->orderBy('name', 'asc');
 
-        // Arama filtresi
+        // Arama filtresi (Çoklu kelime ve boşluk duyarlı arama)
         if ($request->filled('q')) {
-            $q = trim($request->q);
-            $query->where(function ($sub) use ($q) {
-                $sub->where('name', 'like', "%{$q}%")
-                    ->orWhere('email', 'like', "%{$q}%")
-                    ->orWhere('sicil_no', 'like', "%{$q}%")
-                    ->orWhere('unvan', 'like', "%{$q}%");
-            });
+            $rawQ = trim($request->q);
+            $cleanQ = preg_replace('/\s+/', ' ', $rawQ);
+            $terms = array_values(array_filter(explode(' ', $cleanQ)));
+
+            if (!empty($terms)) {
+                $query->where(function ($mainSub) use ($terms, $cleanQ) {
+                    $mainSub->where(function ($allTermsSub) use ($terms) {
+                        foreach ($terms as $term) {
+                            $allTermsSub->where(function ($singleTermSub) use ($term) {
+                                $singleTermSub->where('name', 'like', "%{$term}%")
+                                    ->orWhere('email', 'like', "%{$term}%")
+                                    ->orWhere('sicil_no', 'like', "%{$term}%")
+                                    ->orWhere('unvan', 'like', "%{$term}%");
+                            });
+                        }
+                    })->orWhere('name', 'like', "%{$cleanQ}%");
+                });
+            }
         }
 
         // Bölüm filtresi
@@ -183,11 +194,12 @@ class UserRoleController extends Controller
 
     /**
      * Merkezi Yönetim Sistemi (merkezi_auth_db veya merkezi_app) kullanıcılarında arama yapar.
+     * Ad-soyad birleşik arama, çoklu kelime eşleşmesi ve boşluklu aramaları destekler.
      */
     public function searchCentralUsers(Request $request)
     {
-        $q = trim($request->get('q', ''));
-        if (strlen($q) < 2) {
+        $rawQ = trim($request->get('q', ''));
+        if (strlen($rawQ) < 2) {
             return response()->json(['success' => true, 'users' => []]);
         }
 
@@ -203,21 +215,44 @@ class UserRoleController extends Controller
             return response()->json(['success' => false, 'users' => [], 'message' => 'Merkezi veritabanı bulunamadı.']);
         }
 
+        $cleanQ = preg_replace('/\s+/', ' ', $rawQ);
+        $terms = array_values(array_filter(explode(' ', $cleanQ)));
+
+        if (empty($terms)) {
+            return response()->json(['success' => true, 'users' => []]);
+        }
+
         // Mevcut PMS kullanıcılarının email ve central_user_id listesi
         $existingEmails = User::pluck('email')->map(fn($e) => strtolower($e))->toArray();
         $existingCentralIds = User::whereNotNull('central_user_id')->pluck('central_user_id')->toArray();
 
-        $results = \Illuminate\Support\Facades\DB::table("{$centralDb}.users as u")
+        $query = \Illuminate\Support\Facades\DB::table("{$centralDb}.users as u")
             ->leftJoin("{$centralDb}.departments as d", 'u.department_id', '=', 'd.id')
             ->whereNull('u.deleted_at')
-            ->where('u.is_customer', 0)
-            ->where(function ($sub) use ($q) {
-                $sub->where('u.first_name', 'like', "%{$q}%")
-                    ->orWhere('u.last_name', 'like', "%{$q}%")
-                    ->orWhere('u.email', 'like', "%{$q}%")
-                    ->orWhere('u.registration_no', 'like', "%{$q}%")
-                    ->orWhere('u.job_title', 'like', "%{$q}%");
+            ->where('u.is_customer', 0);
+
+        $query->where(function ($mainSub) use ($terms, $cleanQ) {
+            // 1. Tüm terimlerin (kelimelerin) ad, soyad, birleşik ad-soyad, e-posta, sicil veya unvanda yer alması
+            $mainSub->where(function ($allTermsSub) use ($terms) {
+                foreach ($terms as $term) {
+                    $allTermsSub->where(function ($singleTermSub) use ($term) {
+                        $singleTermSub->where('u.first_name', 'like', "%{$term}%")
+                            ->orWhere('u.last_name', 'like', "%{$term}%")
+                            ->orWhereRaw("CONCAT_WS(' ', u.first_name, u.last_name) LIKE ?", ["%{$term}%"])
+                            ->orWhere('u.email', 'like', "%{$term}%")
+                            ->orWhere('u.registration_no', 'like', "%{$term}%")
+                            ->orWhere('u.job_title', 'like', "%{$term}%")
+                            ->orWhere('d.name', 'like', "%{$term}%");
+                    });
+                }
             })
+            // 2. VEYA doğrudan birleşik tam ifadenin ad-soyad / soyad-ad şeklinde eşleşmesi
+            ->orWhereRaw("CONCAT_WS(' ', u.first_name, u.last_name) LIKE ?", ["%{$cleanQ}%"])
+            ->orWhereRaw("CONCAT_WS(' ', u.last_name, u.first_name) LIKE ?", ["%{$cleanQ}%"]);
+        });
+
+        $firstTerm = $terms[0] ?? '';
+        $results = $query
             ->select([
                 'u.id',
                 'u.first_name',
@@ -229,7 +264,15 @@ class UserRoleController extends Controller
                 'u.profile_photo as avatar',
                 'd.name as department_name',
             ])
-            ->limit(25)
+            ->orderByRaw("
+                CASE 
+                    WHEN CONCAT_WS(' ', u.first_name, u.last_name) LIKE ? THEN 1
+                    WHEN u.first_name LIKE ? THEN 2
+                    WHEN u.last_name LIKE ? THEN 3
+                    ELSE 4
+                END, u.first_name ASC, u.last_name ASC
+            ", ["{$cleanQ}%", "{$firstTerm}%", "{$firstTerm}%"])
+            ->limit(30)
             ->get();
 
         $formatted = $results->map(function ($u) use ($existingEmails, $existingCentralIds) {

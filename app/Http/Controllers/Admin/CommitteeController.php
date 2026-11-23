@@ -83,12 +83,22 @@ class CommitteeController extends Controller
             ->with('bolum:id,ad');
 
         if ($query !== '') {
-            $usersQuery->where(function ($q) use ($query) {
-                $q->where('name', 'like', "%{$query}%")
-                    ->orWhere('email', 'like', "%{$query}%")
-                    ->orWhere('sicil_no', 'like', "%{$query}%")
-                    ->orWhere('unvan', 'like', "%{$query}%");
-            });
+            $cleanQ = preg_replace('/\s+/', ' ', $query);
+            $terms = array_values(array_filter(explode(' ', $cleanQ)));
+            if (!empty($terms)) {
+                $usersQuery->where(function ($mainSub) use ($terms, $cleanQ) {
+                    $mainSub->where(function ($allTermsSub) use ($terms) {
+                        foreach ($terms as $term) {
+                            $allTermsSub->where(function ($singleTermSub) use ($term) {
+                                $singleTermSub->where('name', 'like', "%{$term}%")
+                                    ->orWhere('email', 'like', "%{$term}%")
+                                    ->orWhere('sicil_no', 'like', "%{$term}%")
+                                    ->orWhere('unvan', 'like', "%{$term}%");
+                            });
+                        }
+                    })->orWhere('name', 'like', "%{$cleanQ}%");
+                });
+            }
         }
 
         $usersQuery->orderBy('name', 'asc');

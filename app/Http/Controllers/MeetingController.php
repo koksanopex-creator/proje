@@ -100,12 +100,22 @@ class MeetingController extends Controller
         $query = User::where('is_active', true)->with('bolum:id,ad');
 
         if ($q !== '') {
-            $query->where(function ($sq) use ($q) {
-                $sq->where('name', 'like', "%{$q}%")
-                   ->orWhere('email', 'like', "%{$q}%")
-                   ->orWhere('sicil_no', 'like', "%{$q}%")
-                   ->orWhere('unvan', 'like', "%{$q}%");
-            });
+            $cleanQ = preg_replace('/\s+/', ' ', $q);
+            $terms = array_values(array_filter(explode(' ', $cleanQ)));
+            if (!empty($terms)) {
+                $query->where(function ($mainSub) use ($terms, $cleanQ) {
+                    $mainSub->where(function ($allTermsSub) use ($terms) {
+                        foreach ($terms as $term) {
+                            $allTermsSub->where(function ($singleTermSub) use ($term) {
+                                $singleTermSub->where('name', 'like', "%{$term}%")
+                                    ->orWhere('email', 'like', "%{$term}%")
+                                    ->orWhere('sicil_no', 'like', "%{$term}%")
+                                    ->orWhere('unvan', 'like', "%{$term}%");
+                            });
+                        }
+                    })->orWhere('name', 'like', "%{$cleanQ}%");
+                });
+            }
         }
 
         $projectMemberIds = [];

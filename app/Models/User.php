@@ -320,6 +320,14 @@ class User extends Authenticatable
             ->exists();
     }
 
+    /**
+     * Kullanıcının projeyi yönetme (düzenleme, görev atama, toplantı açma vb.) yetkisi var mı?
+     */
+    public function canManageProject(Project $project): bool
+    {
+        return app(\App\Services\ProjectStakeholderService::class)->canManageProject($project, $this);
+    }
+
     public function committees()
     {
         return $this->belongsToMany(Committee::class, 'committee_members', 'user_id', 'committee_id')

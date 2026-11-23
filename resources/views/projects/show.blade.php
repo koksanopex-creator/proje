@@ -2069,7 +2069,7 @@
         <div class="card">
             <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; background: #ffffff; padding: 14px 20px; border-bottom: 1px solid #e2e8f0;">
                 <span class="card-title" style="margin: 0; font-size: 15px; font-weight: 700; color: #0f172a;">Projeye Bağlı Toplantılar ve Alınan Kararlar</span>
-                @if(!auth()->user()->isYonetim() && (auth()->user()->isSuperAdmin() || auth()->user()->isAdmin() || auth()->user()->hasPermission('meeting.create') || auth()->user()->hasPermission('meeting.manage') || auth()->user()->canManageProject($project)))
+                @if(!auth()->user()->isYonetim() && (auth()->user()->isSuperAdmin() || auth()->user()->isAdmin() || auth()->user()->hasPermission('meeting.create') || auth()->user()->hasPermission('meeting.manage') || ($canManage ?? false) || auth()->user()->canManageProject($project)))
                     <a href="{{ route('meetings.index', ['project_id' => $project->id]) }}" class="btn btn-sm btn-primary" style="display: inline-flex; align-items: center; gap: 6px; font-weight: 700; text-decoration: none; padding: 6px 14px; font-size: 12.5px;">
                         <span>📅</span> + Bu Projede Yeni Toplantı Planla
                     </a>
