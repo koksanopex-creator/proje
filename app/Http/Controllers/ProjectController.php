@@ -346,7 +346,17 @@ class ProjectController extends Controller
 
         $user = auth()->user();
         $data['created_by'] = $user->id;
-        $data['bolum_id'] = $data['bolum_id'] ?? $user->bolum_id;
+        if (empty($data['bolum_id'])) {
+            if (!empty($data['bolum_ids']) && is_array($data['bolum_ids'])) {
+                $data['bolum_id'] = (int)$data['bolum_ids'][0];
+            } else {
+                $data['bolum_id'] = $user->bolum_id;
+            }
+        }
+
+        // Bütçe Güvencesi (SQL 1048 Column 'planned_budget' cannot be null hatası önleme)
+        $data['planned_budget'] = !empty($data['planned_budget']) ? (float)$data['planned_budget'] : 0.00;
+        $data['currency'] = !empty($data['currency']) ? $data['currency'] : 'TRY';
 
         // Proje Kodu Üretimi
         $prefix = 'PRJ-' . date('Y') . '-';
@@ -545,6 +555,13 @@ class ProjectController extends Controller
             'milestones' => 'nullable|array',
             'deleted_attachment_ids' => 'nullable|array',
         ]);
+
+        $validated['planned_budget'] = !empty($validated['planned_budget']) ? (float)$validated['planned_budget'] : 0.00;
+        if (empty($validated['bolum_id'])) {
+            if (!empty($validated['bolum_ids']) && is_array($validated['bolum_ids'])) {
+                $validated['bolum_id'] = (int)$validated['bolum_ids'][0];
+            }
+        }
 
         // Silinen dosyalar
         if ($request->filled('deleted_attachment_ids')) {
@@ -1311,17 +1328,22 @@ class ProjectController extends Controller
      */
     protected function normalizeBudgetInputs(Request $request): void
     {
-        if ($request->has('planned_budget') && $request->input('planned_budget') !== null) {
-            $rawBudget = (string) $request->input('planned_budget');
-            if (strpos($rawBudget, ',') !== false) {
-                $rawBudget = str_replace('.', '', $rawBudget);
-                $rawBudget = str_replace(',', '.', $rawBudget);
-            } else {
-                if (substr_count($rawBudget, '.') > 1 || preg_match('/\.\d{3}$/', $rawBudget)) {
+        if ($request->has('planned_budget')) {
+            $rawBudget = $request->input('planned_budget');
+            if ($rawBudget !== null && $rawBudget !== '') {
+                $rawBudget = (string) $rawBudget;
+                if (strpos($rawBudget, ',') !== false) {
                     $rawBudget = str_replace('.', '', $rawBudget);
+                    $rawBudget = str_replace(',', '.', $rawBudget);
+                } else {
+                    if (substr_count($rawBudget, '.') > 1 || preg_match('/\.\d{3}$/', $rawBudget)) {
+                        $rawBudget = str_replace('.', '', $rawBudget);
+                    }
                 }
+                $request->merge(['planned_budget' => is_numeric($rawBudget) ? (float)$rawBudget : 0.00]);
+            } else {
+                $request->merge(['planned_budget' => 0.00]);
             }
-            $request->merge(['planned_budget' => is_numeric($rawBudget) ? (float)$rawBudget : null]);
         }
 
         if ($request->has('budget_items') && is_array($request->input('budget_items'))) {

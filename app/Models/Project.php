@@ -18,6 +18,23 @@ class Project extends Model
         'is_template', 'created_by'
     ];
 
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::saving(function ($project) {
+            if ($project->planned_budget === null || $project->planned_budget === '') {
+                $project->planned_budget = 0.00;
+            }
+            if ($project->actual_spent === null || $project->actual_spent === '') {
+                $project->actual_spent = 0.00;
+            }
+            if ($project->progress_percentage === null || $project->progress_percentage === '') {
+                $project->progress_percentage = 0;
+            }
+        });
+    }
+
     protected function casts(): array
     {
         return [
