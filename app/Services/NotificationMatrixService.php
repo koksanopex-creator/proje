@@ -47,18 +47,42 @@ class NotificationMatrixService
             if ($targetUser && $targetUser->is_active) {
                 $roleIds = $targetUser->roles->pluck('id')->toArray();
 
+                // Proje bağlamı varsa kullanıcının projedeki rolünü (Yönetici, Sponsor) tespit et
+                $primaryProjectRoleId = null;
+                if (!empty($variables['project_id'])) {
+                    $proj = \App\Models\Project::find($variables['project_id']);
+                    if ($proj) {
+                        if ($proj->sponsor_id === $targetUser->id) {
+                            $primaryProjectRoleId = \App\Models\Role::where('name', 'like', '%Proje Sponsoru%')->value('id') ?? 28;
+                        } elseif ($proj->manager_id === $targetUser->id) {
+                            $primaryProjectRoleId = \App\Models\Role::where('name', 'like', '%Proje Yöneticisi%')->value('id') ?? 21;
+                        }
+                    }
+                }
+
+                if ($primaryProjectRoleId) {
+                    $roleIds[] = $primaryProjectRoleId;
+                }
+                $roleIds = array_values(array_unique($roleIds));
+
                 $matrixEntries = NotificationMatrix::where('event_key', $eventKey)
                     ->whereIn('role_id', $roleIds)
                     ->get();
 
-                // Eğer kullanıcının rollerinden birinde zil veya mail aktifse
-                $bellActive = $matrixEntries->contains('is_bell_active', true);
-                $mailActive = $matrixEntries->contains('is_mail_active', true);
+                // Eğer kullanıcının öncelikli bir proje rolü varsa (örn: Proje Sponsoru veya Proje Yöneticisi)
+                // matristeki o role özel ayar öncelikli olarak uygulanır.
+                $projectRoleEntry = $primaryProjectRoleId ? $matrixEntries->firstWhere('role_id', $primaryProjectRoleId) : null;
 
-                // Özel kullanıcı hedefliyse ve matriste kural henüz girilmemişse varsayılan aktif say
-                if ($matrixEntries->isEmpty()) {
+                if ($projectRoleEntry) {
+                    $bellActive = (bool) $projectRoleEntry->is_bell_active;
+                    $mailActive = (bool) $projectRoleEntry->is_mail_active;
+                } elseif ($matrixEntries->isEmpty()) {
+                    // Henüz matrise kural girilmemişse varsayılan açık say
                     $bellActive = true;
                     $mailActive = true;
+                } else {
+                    $bellActive = $matrixEntries->contains('is_bell_active', true);
+                    $mailActive = $matrixEntries->contains('is_mail_active', true);
                 }
 
                 if ($bellActive || $mailActive) {

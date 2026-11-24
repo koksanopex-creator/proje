@@ -292,6 +292,7 @@ class ProjectExternalVendorService
             $actionUrl = route('projects.show', ['project' => $vendor->project_id]) . '#external-vendors';
             foreach ($stakeholderUserIds as $uId) {
                 $this->notifService->dispatch('dis_paydas_dosya_yukledi', [
+                    'project_id' => $project->id,
                     'proje_adi' => $project->title,
                     'proje_kodu' => $project->code ?? ('#' . $project->id),
                     'firma_adi' => $vendor->company_name,
@@ -336,6 +337,7 @@ class ProjectExternalVendorService
         $actionUrl = route('projects.show', ['project' => $vendor->project_id]) . '#external-vendors';
         foreach ($stakeholderUserIds as $uId) {
             $this->notifService->dispatch('dis_paydas_dosya_yukledi', [
+                'project_id' => $project->id,
                 'proje_adi' => $project->title,
                 'proje_kodu' => $project->code ?? ('#' . $project->id),
                 'firma_adi' => $vendor->company_name,
