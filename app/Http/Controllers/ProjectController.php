@@ -187,7 +187,8 @@ class ProjectController extends Controller
             'qualities.checker', 'qualities.approver', 'nonConformances.assignee',
             'baselines.creator', 'activeBaseline.tasks',
             'discussions.user.bolum', 'auditLogs.user', 'auditLogs.actingAsUser', 'draftSuggestions.user',
-            'draftShares.sharedBy', 'draftShares.revokedBy'
+            'draftShares.sharedBy', 'draftShares.revokedBy',
+            'externalVendors.files.uploadedByUser', 'externalVendors.addedBy', 'externalVendors.approvedBy'
         ])->findOrFail($id);
 
         $user = auth()->user();
@@ -252,7 +253,10 @@ class ProjectController extends Controller
         $categories = ProjectCategory::where('is_active', true)->orderBy('name')->get();
         $teamRoles = ProjectTeamRole::where('is_active', true)->orderBy('sort_order')->get();
         $currencies = Currency::where('is_active', true)->orderBy('sort_order')->get();
-        $budgetCategories = ProjectBudgetCategory::where('is_active', true)->orderBy('sort_order')->get();
+        $budgetCategories = ProjectBudgetCategory::with(['parent', 'children' => fn($q) => $q->where('is_active', true)->orderBy('sort_order')->orderBy('name')])
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->get();
 
         return view('projects.create', compact('bolumler', 'users', 'templates', 'categories', 'teamRoles', 'currencies', 'budgetCategories'));
     }
@@ -281,6 +285,14 @@ class ProjectController extends Controller
             $decoded = json_decode($request->input('scope_tools'), true);
             if (is_array($decoded)) {
                 $request->merge(['scope_tools' => $decoded]);
+            }
+        }
+
+        // Proje Etiketleri Normalizasyonu (tags_json string -> tags array)
+        if ($request->filled('tags_json') && is_string($request->input('tags_json'))) {
+            $decodedTags = json_decode($request->input('tags_json'), true);
+            if (is_array($decodedTags)) {
+                $request->merge(['tags' => array_values(array_filter(array_map('trim', $decodedTags)))]);
             }
         }
 
@@ -406,12 +418,21 @@ class ProjectController extends Controller
                 if (!empty($bItem['title']) && isset($bItem['planned_amount']) && (float)$bItem['planned_amount'] > 0) {
                     $itemAmount = (float)$bItem['planned_amount'];
                     $totalBudget += $itemAmount;
+                    $catName = trim($bItem['category'] ?? 'Genel');
+                    $subCatName = !empty($bItem['sub_category']) ? trim($bItem['sub_category']) : null;
+                    $catModel = ProjectBudgetCategory::where('name', $catName)->first();
+                    $subCatModel = $subCatName ? ProjectBudgetCategory::where('name', $subCatName)->first() : null;
+
                     $project->budgetItems()->create([
-                        'title' => $bItem['title'],
+                        'title' => trim($bItem['title']),
                         'planned_amount' => $itemAmount,
-                        'spent_amount' => 0,
+                        'actual_spent' => 0,
+                        'committed_amount' => 0,
                         'currency' => $data['currency'] ?? 'TRY',
-                        'category' => $bItem['category'] ?? 'Genel',
+                        'category' => $catName,
+                        'sub_category' => $subCatName,
+                        'category_id' => $catModel?->id,
+                        'sub_category_id' => $subCatModel?->id,
                     ]);
                 }
             }
@@ -434,6 +455,7 @@ class ProjectController extends Controller
                     $project->stakeholders()->create([
                         'user_id' => $tm['user_id'],
                         'role_type' => 'team',
+                        'notes' => $tm['responsibility'] ?? 'Ekip Üyesi',
                         'responsibility' => $tm['responsibility'] ?? 'Ekip Üyesi',
                     ]);
                 }
@@ -495,7 +517,10 @@ class ProjectController extends Controller
         $categories = ProjectCategory::where('is_active', true)->orderBy('name')->get();
         $teamRoles = ProjectTeamRole::where('is_active', true)->orderBy('sort_order')->get();
         $currencies = Currency::where('is_active', true)->orderBy('sort_order')->get();
-        $budgetCategories = ProjectBudgetCategory::where('is_active', true)->orderBy('sort_order')->get();
+        $budgetCategories = ProjectBudgetCategory::with(['parent', 'children' => fn($q) => $q->where('is_active', true)->orderBy('sort_order')->orderBy('name')])
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->get();
         $templates = Project::where('is_template', true)->with('phases.tasks', 'risks')->get();
 
         return view('projects.edit', compact(
@@ -527,6 +552,14 @@ class ProjectController extends Controller
             }
         }
 
+        // Proje Etiketleri Normalizasyonu (tags_json string -> tags array)
+        if ($request->filled('tags_json') && is_string($request->input('tags_json'))) {
+            $decodedTags = json_decode($request->input('tags_json'), true);
+            if (is_array($decodedTags)) {
+                $request->merge(['tags' => array_values(array_filter(array_map('trim', $decodedTags)))]);
+            }
+        }
+
         $request->merge([
             'code' => $request->input('code', $project->code),
             'status' => $request->input('action_type') === 'draft' ? 'draft' : $request->input('status', $project->status),
@@ -553,6 +586,9 @@ class ProjectController extends Controller
             'team_members' => 'nullable|array',
             'budget_items' => 'nullable|array',
             'milestones' => 'nullable|array',
+            'tags' => 'nullable|array',
+            'observers' => 'nullable|array',
+            'external_observers' => 'nullable|array',
             'deleted_attachment_ids' => 'nullable|array',
         ]);
 

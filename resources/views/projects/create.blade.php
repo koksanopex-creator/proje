@@ -629,9 +629,10 @@
                             <table class="table" style="width: 100%; margin-bottom: 10px; border-collapse: separate; border-spacing: 0 6px;">
                                 <thead>
                                     <tr style="background: #f8fafc; font-size: 11.5px; color: #475569; text-transform: uppercase; letter-spacing: 0.5px;">
-                                        <th style="padding: 8px 10px; width: 30%; border-radius: 6px 0 0 6px;">Harcama Kategorisi</th>
-                                        <th style="padding: 8px 10px; width: 42%;">Kalem Tanımı & Açıklaması</th>
-                                        <th style="padding: 8px 10px; width: 22%;">Planlanan Tutar</th>
+                                        <th style="padding: 8px 10px; width: 22%; border-radius: 6px 0 0 6px;">Ana Kategori <span class="text-danger">*</span></th>
+                                        <th style="padding: 8px 10px; width: 22%;">Alt Kategori <span style="font-size: 10px; color: #64748b; font-weight: normal; text-transform: none;">(Opsiyonel)</span></th>
+                                        <th style="padding: 8px 10px; width: 32%;">Kalem Tanımı & Açıklaması <span class="text-danger">*</span></th>
+                                        <th style="padding: 8px 10px; width: 18%;">Planlanan Tutar <span class="text-danger">*</span></th>
                                         <th style="padding: 8px 10px; width: 6%; text-align: center; border-radius: 0 6px 6px 0;">Sil</th>
                                     </tr>
                                 </thead>
@@ -2360,18 +2361,23 @@ function showToast(msg, type = 'info') {
 // =========================================================================
 let budgetItemRowIndex = 0;
 window.BUDGET_CATEGORIES_CACHE = new Map();
-let budgetCategories = @json(isset($budgetCategories) ? $budgetCategories->pluck("name") : []);
-if (!budgetCategories || budgetCategories.length === 0) {
-    budgetCategories = [
-        "Kaynak ve İşçilik Maliyetleri",
-        "İletişim ve Teknoloji Yatırımları",
-        "İnşaat & Tesis Altyapı",
-        "Makine & Donanım Teçhizatı",
-        "Hammadde & Satın Alma",
-        "Mühendislik & Danışmanlık",
-        "İSG & Çevre Yatırımları",
-        "Genel Yönetim & Diğer"
-    ];
+window.BUDGET_CATEGORIES_DATA = @json(isset($budgetCategories) ? $budgetCategories : []);
+
+function getParentCategoriesList() {
+    if (!window.BUDGET_CATEGORIES_DATA || window.BUDGET_CATEGORIES_DATA.length === 0) {
+        return [];
+    }
+    return window.BUDGET_CATEGORIES_DATA.filter(c => !c.parent_id);
+}
+
+function getSubCategoriesForParent(parentName) {
+    if (!window.BUDGET_CATEGORIES_DATA || !parentName) return [];
+    const parent = window.BUDGET_CATEGORIES_DATA.find(c => c.name === parentName);
+    if (!parent) return [];
+    if (parent.children && parent.children.length > 0) {
+        return parent.children.filter(c => c.is_active !== false);
+    }
+    return window.BUDGET_CATEGORIES_DATA.filter(c => Number(c.parent_id) === Number(parent.id) && c.is_active !== false);
 }
 
 // Para Birimleri Motoru Veri Önbelleği
@@ -2419,7 +2425,7 @@ function setBudgetMode(mode) {
 
         // Ilk acilista bos 1 satir ekle
         if (document.querySelectorAll('#budgetItemsTbody tr').length === 0) {
-            addBudgetItemRow('', '', '');
+            addBudgetItemRow('', '', '', '');
         }
         recalcBudgetTotal();
     } else {
@@ -2434,14 +2440,19 @@ function setBudgetMode(mode) {
     }
 }
 
-function addBudgetItemRow(defaultCat = '', defaultTitle = '', defaultAmount = 0) {
+function addBudgetItemRow(defaultCat = '', defaultSubCat = '', defaultTitle = '', defaultAmount = 0) {
     const tbody = document.getElementById('budgetItemsTbody');
     const idx = budgetItemRowIndex++;
 
+    const parentCats = getParentCategoriesList();
+    if (!defaultCat && parentCats.length > 0) {
+        defaultCat = parentCats[0].name;
+    }
+
     let catOptions = '';
-    budgetCategories.forEach(cat => {
-        const isSel = (cat === defaultCat) ? 'selected' : '';
-        catOptions += `<option value="${cat}" ${isSel}>${cat}</option>`;
+    parentCats.forEach(cat => {
+        const isSel = (cat.name === defaultCat) ? 'selected' : '';
+        catOptions += `<option value="${escapeHtml(cat.name)}" ${isSel}>${escapeHtml(cat.name)}</option>`;
     });
 
     const formattedAmount = (defaultAmount !== "" && defaultAmount !== 0) ? formatThousandsNumber(defaultAmount) : "";
@@ -2452,12 +2463,17 @@ function addBudgetItemRow(defaultCat = '', defaultTitle = '', defaultAmount = 0)
 
     tr.innerHTML = `
         <td style="padding: 6px 10px;">
-            <select name="budget_items[${idx}][category]" class="form-control text-xs" style="height: 36px; font-weight: 600;" required>
+            <select name="budget_items[${idx}][category]" class="form-control text-xs" style="height: 36px; font-weight: 600;" onchange="onBudgetItemCategoryChange(this, ${idx})" required>
                 ${catOptions}
             </select>
         </td>
         <td style="padding: 6px 10px;">
-            <input type="text" name="budget_items[${idx}][title]" value="${defaultTitle}" class="form-control text-xs" placeholder="Örn: Mekanik Kaynak Malzeme Bütçesi..." required style="height: 36px;">
+            <select name="budget_items[${idx}][sub_category]" id="budget_subcat_${idx}" class="form-control text-xs" style="height: 36px;">
+                <!-- onBudgetItemCategoryChange ile doldurulacak -->
+            </select>
+        </td>
+        <td style="padding: 6px 10px;">
+            <input type="text" name="budget_items[${idx}][title]" value="${escapeHtml(defaultTitle)}" class="form-control text-xs" placeholder="Örn: Torna ve Yüzey İşlemleri Hizmet Alımı..." required style="height: 36px;">
         </td>
         <td style="padding: 6px 10px;">
             <div style="position: relative;">
@@ -2470,7 +2486,35 @@ function addBudgetItemRow(defaultCat = '', defaultTitle = '', defaultAmount = 0)
     `;
 
     tbody.appendChild(tr);
+    updateSubCategoryDropdown(idx, defaultCat, defaultSubCat);
     recalcBudgetTotal();
+}
+
+function onBudgetItemCategoryChange(selectElem, rowIdx) {
+    updateSubCategoryDropdown(rowIdx, selectElem.value, '');
+}
+
+function updateSubCategoryDropdown(rowIdx, parentCatName, selectedSubCat = '') {
+    const subSelect = document.getElementById(`budget_subcat_${rowIdx}`);
+    if (!subSelect) return;
+
+    const subCats = getSubCategoriesForParent(parentCatName);
+    let html = '<option value="">— Genel / Alt Kırılım Yok —</option>';
+    if (subCats.length > 0) {
+        subCats.forEach(sc => {
+            const isSel = (sc.name === selectedSubCat) ? 'selected' : '';
+            html += `<option value="${escapeHtml(sc.name)}" ${isSel}>↳ ${escapeHtml(sc.name)}</option>`;
+        });
+        subSelect.style.color = '#0f172a';
+        subSelect.style.background = '#ffffff';
+        subSelect.style.borderColor = '#cbd5e1';
+    } else {
+        html = '<option value="">— Alt Kırılım Tanımlanmamış —</option>';
+        subSelect.style.color = '#94a3b8';
+        subSelect.style.background = '#f8fafc';
+        subSelect.style.borderColor = '#e2e8f0';
+    }
+    subSelect.innerHTML = html;
 }
 
 function removeBudgetItemRow(idx) {
@@ -3733,15 +3777,40 @@ function closeBudgetCategoryModal() {
     if (modal) modal.style.display = 'none';
 }
 
+function escapeJs(str) {
+    if (!str) return '';
+    return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+}
+
 function resetBudgetCategoryForm() {
     document.getElementById('editBudgetCatId').value = '';
+    const parentSelect = document.getElementById('newBudgetCatParentId');
+    if (parentSelect) {
+        parentSelect.value = '';
+        Array.from(parentSelect.options).forEach(opt => opt.disabled = false);
+    }
     document.getElementById('newBudgetCatName').value = '';
+    document.getElementById('newBudgetCatName').placeholder = 'Örn: Torna İşlemleri, Yüzey İşlemleri...';
     document.getElementById('newBudgetCatColor').value = '#0284c7';
     document.getElementById('newBudgetCatColorHex').value = '#0284c7';
     document.getElementById('newBudgetCatDesc').value = '';
     document.getElementById('budgetCatFormHeaderTitle').textContent = '➕ Yeni Harcama Kategorisi Ekle';
     document.getElementById('btnSaveBudgetCat').textContent = '✓ Harcama Kategorisini Kaydet';
     document.getElementById('btnCancelEditBudgetCat').style.display = 'none';
+}
+
+function quickAddChildCategory(parentId, parentName) {
+    resetBudgetCategoryForm();
+    const parentSelect = document.getElementById('newBudgetCatParentId');
+    if (parentSelect) parentSelect.value = String(parentId);
+    document.getElementById('budgetCatFormHeaderTitle').innerHTML = `➕ '<strong>${escapeHtml(parentName)}</strong>' için Alt Kategori Ekle`;
+    document.getElementById('btnSaveBudgetCat').textContent = '✓ Alt Kategoriyi Kaydet';
+    document.getElementById('btnCancelEditBudgetCat').style.display = 'inline';
+    const nameInput = document.getElementById('newBudgetCatName');
+    if (nameInput) {
+        nameInput.focus();
+        nameInput.placeholder = 'Örn: Torna İşlemleri, Yüzey İşlemleri...';
+    }
 }
 
 function loadBudgetCategoriesList() {
@@ -3751,32 +3820,83 @@ function loadBudgetCategoriesList() {
     .then(r => r.json())
     .then(data => {
         if (!data.success) return;
+        window.BUDGET_CATEGORIES_DATA = data.categories;
         window.BUDGET_CATEGORIES_CACHE.clear();
-        budgetCategories = data.categories.map(c => c.name);
+
+        // 1. Üst Kategori Selectini Güncelle
+        const parentSelect = document.getElementById('newBudgetCatParentId');
+        if (parentSelect) {
+            const currentSelectedParent = parentSelect.value;
+            let pOptions = '<option value="">📁 [ Ana Kategori (Üst Kategori Yok) ]</option>';
+            const parents = (data.parents && data.parents.length > 0) ? data.parents : data.categories.filter(c => !c.parent_id);
+            parents.forEach(p => {
+                pOptions += `<option value="${p.id}">📁 ${escapeHtml(p.name)}</option>`;
+            });
+            parentSelect.innerHTML = pOptions;
+            parentSelect.value = currentSelectedParent;
+        }
+
+        // 2. Tablo Ağacını Render Et
         const tbody = document.getElementById('budgetCategoryModalTableBody');
         if (!tbody) return;
         tbody.innerHTML = '';
-        data.categories.forEach(cat => {
-            window.BUDGET_CATEGORIES_CACHE.set(Number(cat.id), cat);
+
+        const allCats = data.categories;
+        allCats.forEach(cat => window.BUDGET_CATEGORIES_CACHE.set(Number(cat.id), cat));
+
+        const mainCats = allCats.filter(c => !c.parent_id);
+        mainCats.forEach(mainCat => {
+            // Ana Kategori Satırı
             const tr = document.createElement('tr');
             tr.style.borderBottom = '1px solid #f1f5f9';
+            tr.style.background = '#f8fafc';
             tr.innerHTML = `
                 <td style="padding: 10px 12px;">
                     <div style="display: flex; align-items: center; gap: 8px;">
-                        <span style="width: 10px; height: 10px; border-radius: 50%; background: ${cat.color || '#0284c7'}; flex-shrink: 0;"></span>
-                        <strong style="color: #0f172a; font-size: 12.5px;">${escapeHtml(cat.name)}</strong>
+                        <span style="width: 12px; height: 12px; border-radius: 50%; background: ${mainCat.color || '#0284c7'}; flex-shrink: 0; box-shadow: 0 0 0 2px #ffffff, 0 0 0 3px ${mainCat.color || '#0284c7'};"></span>
+                        <strong style="color: #0f172a; font-size: 13px;">${escapeHtml(mainCat.name)}</strong>
+                        <span class="badge" style="background: #e0f2fe; color: #0369a1; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 4px; margin-left: 4px;">Ana Kategori</span>
                     </div>
-                    ${cat.description ? `<div style="font-size: 11px; color: #64748b; margin-left: 18px;">${escapeHtml(cat.description)}</div>` : ''}
+                    ${mainCat.description ? `<div style="font-size: 11px; color: #64748b; margin-left: 20px; margin-top: 2px;">${escapeHtml(mainCat.description)}</div>` : ''}
                 </td>
                 <td style="padding: 10px 12px; text-align: right; white-space: nowrap;">
                     <div style="display: inline-flex; align-items: center; justify-content: flex-end; gap: 6px;">
-                        <button type="button" class="btn btn-xs btn-outline-primary" onclick="editBudgetCatItem(${cat.id})" style="padding: 4px 9px; font-weight: 600; border-radius: 5px; cursor: pointer;">✏️ Düzenle</button>
-                        <button type="button" class="btn btn-xs btn-outline-danger" onclick="deleteBudgetCategoryItem(${cat.id})" style="padding: 4px 9px; font-weight: 600; border-radius: 5px; cursor: pointer; color: #dc2626; border-color: #fca5a5;">🗑️ Sil</button>
+                        <button type="button" class="btn btn-xs btn-outline-success" onclick="quickAddChildCategory(${mainCat.id}, '${escapeJs(mainCat.name)}')" title="Bu kategoriye alt kırılım ekle" style="padding: 3px 8px; font-weight: 600; border-radius: 5px; font-size: 11px; color: #15803d; border-color: #86efac; background: #f0fdf4;">➕ Alt Ekle</button>
+                        <button type="button" class="btn btn-xs btn-outline-primary" onclick="editBudgetCatItem(${mainCat.id})" style="padding: 3px 8px; font-weight: 600; border-radius: 5px; font-size: 11px;">✏️ Düzenle</button>
+                        <button type="button" class="btn btn-xs btn-outline-danger" onclick="deleteBudgetCategoryItem(${mainCat.id})" style="padding: 3px 8px; font-weight: 600; border-radius: 5px; font-size: 11px; color: #dc2626; border-color: #fca5a5;">🗑️ Sil</button>
                     </div>
                 </td>
             `;
             tbody.appendChild(tr);
+
+            // Alt Kategoriler (Varsa ağaç kırılımı şeklinde altına bas)
+            const children = allCats.filter(c => Number(c.parent_id) === Number(mainCat.id));
+            children.forEach(sub => {
+                const subTr = document.createElement('tr');
+                subTr.style.borderBottom = '1px solid #f1f5f9';
+                subTr.style.background = '#ffffff';
+                subTr.innerHTML = `
+                    <td style="padding: 8px 12px 8px 32px;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="color: #94a3b8; font-size: 13px; font-weight: 700;">└──</span>
+                            <span style="width: 8px; height: 8px; border-radius: 50%; background: ${sub.color || '#64748b'}; flex-shrink: 0;"></span>
+                            <span style="color: #1e293b; font-size: 12px; font-weight: 600;">${escapeHtml(sub.name)}</span>
+                            <span class="badge" style="background: #f1f5f9; color: #64748b; font-size: 9.5px; padding: 1px 6px; border-radius: 4px; font-weight: 500;">Alt Kategori</span>
+                        </div>
+                        ${sub.description ? `<div style="font-size: 11px; color: #94a3b8; margin-left: 30px; margin-top: 1px;">${escapeHtml(sub.description)}</div>` : ''}
+                    </td>
+                    <td style="padding: 8px 12px; text-align: right; white-space: nowrap;">
+                        <div style="display: inline-flex; align-items: center; justify-content: flex-end; gap: 6px;">
+                            <button type="button" class="btn btn-xs btn-outline-primary" onclick="editBudgetCatItem(${sub.id})" style="padding: 3px 8px; font-weight: 600; border-radius: 5px; font-size: 11px;">✏️ Düzenle</button>
+                            <button type="button" class="btn btn-xs btn-outline-danger" onclick="deleteBudgetCategoryItem(${sub.id})" style="padding: 3px 8px; font-weight: 600; border-radius: 5px; font-size: 11px; color: #dc2626; border-color: #fca5a5;">🗑️ Sil</button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(subTr);
+            });
         });
+
+        // 3. Formdaki aktif bütçe tablosundaki açılır menüleri senkronize et
         refreshBudgetCategoryDropdowns();
     })
     .catch(err => console.error('Bütçe kategorileri yüklenirken hata:', err));
@@ -3786,6 +3906,14 @@ function editBudgetCatItem(id) {
     const cat = window.BUDGET_CATEGORIES_CACHE.get(Number(id));
     if (!cat) return;
     document.getElementById('editBudgetCatId').value = cat.id;
+    const parentSelect = document.getElementById('newBudgetCatParentId');
+    if (parentSelect) {
+        parentSelect.value = cat.parent_id ? String(cat.parent_id) : '';
+        // Kendisini üst kategori olarak seçmesini engelle
+        Array.from(parentSelect.options).forEach(opt => {
+            opt.disabled = (opt.value === String(cat.id));
+        });
+    }
     document.getElementById('newBudgetCatName').value = cat.name;
     document.getElementById('newBudgetCatColor').value = cat.color || '#0284c7';
     document.getElementById('newBudgetCatColorHex').value = cat.color || '#0284c7';
@@ -3798,6 +3926,7 @@ function editBudgetCatItem(id) {
 
 function saveBudgetCategoryModalAction() {
     const editId = document.getElementById('editBudgetCatId').value;
+    const parentId = document.getElementById('newBudgetCatParentId') ? document.getElementById('newBudgetCatParentId').value : '';
     const name = document.getElementById('newBudgetCatName').value.trim();
     const color = document.getElementById('newBudgetCatColor').value;
     const desc = document.getElementById('newBudgetCatDesc').value.trim();
@@ -3820,7 +3949,7 @@ function saveBudgetCategoryModalAction() {
             'X-CSRF-TOKEN': csrfToken,
             'Accept': 'application/json'
         },
-        body: JSON.stringify({ name, color, description: desc, _token: csrfToken })
+        body: JSON.stringify({ parent_id: parentId || null, name, color, description: desc, _token: csrfToken })
     })
     .then(r => r.json())
     .then(res => {
@@ -3841,7 +3970,7 @@ function deleteBudgetCategoryItem(id) {
     showAppConfirmModal({
         title: 'Harcama Kategorisini Sil',
         message: `'${catName}' kategorisini silmek istediğinize emin misiniz?`,
-        details: 'Bu kategori bütçe kırılım listesinden kaldırılacaktır. Mevcut projelerdeki bütçe kayıtları güvenle korunur.',
+        details: 'Bu kategori ve varsa alt kategorileri bütçe kırılım listesinden kaldırılacaktır. Mevcut projelerdeki bütçe kayıtları güvenle korunur.',
         confirmButtonText: 'Evet, Kategoriyi Sil',
         onConfirm: function() {
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}';
@@ -3886,14 +4015,24 @@ function deleteBudgetCategoryItem(id) {
 }
 
 function refreshBudgetCategoryDropdowns() {
+    const parentCats = getParentCategoriesList();
     document.querySelectorAll('#budgetItemsTbody select[name$="[category]"]').forEach(select => {
+        const match = select.name.match(/budget_items\[(\d+)\]\[category\]/);
+        if (!match) return;
+        const rowIdx = match[1];
         const currentVal = select.value;
+
         let catOptions = '';
-        budgetCategories.forEach(cat => {
-            const isSel = (cat === currentVal) ? 'selected' : '';
-            catOptions += `<option value="${escapeHtml(cat)}" ${isSel}>${escapeHtml(cat)}</option>`;
+        parentCats.forEach(cat => {
+            const isSel = (cat.name === currentVal) ? 'selected' : '';
+            catOptions += `<option value="${escapeHtml(cat.name)}" ${isSel}>${escapeHtml(cat.name)}</option>`;
         });
         select.innerHTML = catOptions;
+
+        // Alt kategoriyi de güncelle
+        const subSelect = document.getElementById(`budget_subcat_${rowIdx}`);
+        const currentSubVal = subSelect ? subSelect.value : '';
+        updateSubCategoryDropdown(rowIdx, select.value, currentSubVal);
     });
 }
 

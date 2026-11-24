@@ -18,9 +18,12 @@ class ProjectBudgetCategoryController extends Controller
     public function index()
     {
         $categories = $this->service->getAll(activeOnly: false);
+        $parents = $this->service->getParents(activeOnly: true);
+
         return response()->json([
             'success' => true,
             'categories' => $categories,
+            'parents' => $parents,
         ]);
     }
 
@@ -32,6 +35,7 @@ class ProjectBudgetCategoryController extends Controller
         }
 
         $data = $request->validate([
+            'parent_id' => 'nullable|integer|exists:project_budget_categories,id',
             'name' => 'required|string|max:150',
             'code' => 'nullable|string|max:100',
             'description' => 'nullable|string|max:255',
@@ -55,6 +59,7 @@ class ProjectBudgetCategoryController extends Controller
         }
 
         $data = $request->validate([
+            'parent_id' => 'nullable|integer|exists:project_budget_categories,id',
             'name' => 'required|string|max:150',
             'code' => 'nullable|string|max:100',
             'description' => 'nullable|string|max:255',

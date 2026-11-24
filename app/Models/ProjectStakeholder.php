@@ -11,6 +11,7 @@ class ProjectStakeholder extends Model
         'user_id',
         'role_type',
         'raci_role',
+        'responsibility',
         'notes',
         'is_active',
         'left_at',
@@ -24,6 +25,16 @@ class ProjectStakeholder extends Model
             'is_active' => 'boolean',
             'left_at' => 'datetime',
         ];
+    }
+
+    public function getResponsibilityAttribute(): string
+    {
+        return (string)($this->attributes['notes'] ?? 'Ekip Üyesi');
+    }
+
+    public function setResponsibilityAttribute($value): void
+    {
+        $this->attributes['notes'] = $value;
     }
 
     public function project() { return $this->belongsTo(Project::class); }

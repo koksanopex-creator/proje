@@ -1110,6 +1110,9 @@
         <button class="tab-btn" onclick="switchTab('baselines')"
             style="background: #eef2ff; color: #4338ca; border-radius: 6px 6px 0 0; font-weight: 700;">📐 12. Temel Çizgi
             (Baseline & EVM) ({{ $project->baselines->count() }})</button>
+        <button class="tab-btn" onclick="switchTab('vendors')"
+            style="background: #f0fdfa; color: #0f766e; border-radius: 6px 6px 0 0; font-weight: 700;">🌐 13. Dış Paydaş Portalları
+            ({{ $project->externalVendors->count() }})</button>
     </div>
 
     <!-- TAB 1: FAZLAR & MONDAY.COM TARZI KATLANABİLİR WBS TABLOSU (Görsel 4) -->
@@ -2186,6 +2189,78 @@
                 @endif
             </div>
         </div>
+
+        <!-- DIŞ YÜKLENİCİ FİRMALAR & TAŞERONLAR KARTI (PAYDAŞLARIN TAMAMI GÖRÜR) -->
+        <div class="card mb-4" style="border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background: #ffffff;">
+            <div class="card-header" style="background: #f0fdfa; border-bottom: 1px solid #ccfbf1; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                <div>
+                    <span class="card-title" style="margin: 0; font-size: 15px; font-weight: 800; color: #0f766e; display: flex; align-items: center; gap: 8px;">
+                        <span>🏢</span> Anlaşmalı Dış Yüklenici Firmalar & Taşeronlar
+                    </span>
+                    <div style="font-size: 11.5px; color: #115e59; margin-top: 2px;">
+                        Projede parça, otomasyon, test veya teknik hizmet alınan dış paydaş firmalar. Tüm proje ekibi tarafından görüntülenebilir.
+                    </div>
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-primary" onclick="switchTab('vendors')" style="font-weight: 700; font-size: 12px; border-radius: 6px;">
+                    🌐 Dış Paydaş Portallarını Yönet ➔
+                </button>
+            </div>
+            <div class="card-body" style="padding: 0;">
+                @if($project->externalVendors->isEmpty())
+                    <div style="text-align: center; padding: 24px; color: #94a3b8; font-size: 12.5px;">
+                        Bu projede henüz kayıtlı bir dış yüklenici/firma bulunmuyor.
+                    </div>
+                @else
+                    <table class="app-table">
+                        <thead>
+                            <tr>
+                                <th>Firma Adı</th>
+                                <th>Yetkili Personel</th>
+                                <th>Verilen İş / Çalışma Konusu</th>
+                                <th>Ekleyen Kişi</th>
+                                <th>Durum</th>
+                                <th style="text-align: right;">Detay</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($project->externalVendors as $vnd)
+                                <tr>
+                                    <td>
+                                        <strong style="color: #0f172a;">{{ $vnd->company_name }}</strong>
+                                    </td>
+                                    <td>
+                                        <div>{{ $vnd->contact_person }}</div>
+                                        <div style="font-size: 11px; color: #64748b;">{{ $vnd->email }}</div>
+                                    </td>
+                                    <td>
+                                        <span style="font-size: 12px; color: #334155;">{{ $vnd->service_scope }}</span>
+                                    </td>
+                                    <td>
+                                        <span style="font-size: 12px; color: #475569;">{{ $vnd->addedBy?->name ?? 'Kullanıcı' }}</span>
+                                    </td>
+                                    <td>
+                                        @if($vnd->status === 'approved')
+                                            <span class="badge" style="background: #ecfdf5; color: #047857; font-size: 10.5px; font-weight: 700;">✅ Aktif</span>
+                                        @elseif($vnd->status === 'pending_approval')
+                                            <span class="badge" style="background: #fffbeb; color: #b45309; font-size: 10.5px; font-weight: 700;">⏳ Onay Bekliyor</span>
+                                        @elseif($vnd->status === 'rejected')
+                                            <span class="badge" style="background: #fee2e2; color: #991b1b; font-size: 10.5px; font-weight: 700;">❌ Reddedildi</span>
+                                        @else
+                                            <span class="badge" style="background: #f1f5f9; color: #64748b; font-size: 10.5px; font-weight: 700;">🚫 Çıkarıldı</span>
+                                        @endif
+                                    </td>
+                                    <td style="text-align: right;">
+                                        <button type="button" class="btn btn-xs btn-outline-primary" onclick="switchTab('vendors')" style="font-size: 11px; padding: 2px 8px; border-radius: 4px;">
+                                            İncele ➔
+                                        </button>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                @endif
+            </div>
+        </div>
     </div>
     <!-- TAB 4: 5x5 RİSK MATRİSİ -->
     <div id="tab-risks" class="tab-content" style="display: none;">
@@ -2396,10 +2471,18 @@
                             @endphp
                             <tr>
                                 <td>
-                                    <span class="badge"
-                                        style="background: #eff6ff; color: #1e40af; font-size: 11px; padding: 3px 8px; border-radius: 6px; font-weight: 600;">
-                                        {{ $item->category }}
-                                    </span>
+                                    <div style="display: flex; flex-direction: column; gap: 4px; align-items: flex-start;">
+                                        <span class="badge"
+                                            style="background: #eff6ff; color: #1e40af; font-size: 11px; padding: 3px 8px; border-radius: 6px; font-weight: 700;">
+                                            {{ $item->category }}
+                                        </span>
+                                        @if(!empty($item->sub_category))
+                                            <span class="badge"
+                                                style="background: #f8fafc; color: #475569; border: 1px solid #e2e8f0; font-size: 10px; padding: 2px 7px; border-radius: 5px; font-weight: 600;">
+                                                ↳ {{ $item->sub_category }}
+                                            </span>
+                                        @endif
+                                    </div>
                                 </td>
                                 <td>
                                     <strong style="color: #0f172a; font-size: 12.5px;">{{ $item->title }}</strong>
@@ -3779,6 +3862,11 @@
                     </div>
                 </div>
             @endif
+        </div>
+
+        <!-- TAB 13: DIŞ PAYDAŞ & TAŞERON BELGE PORTALLARI -->
+        <div id="tab-vendors" class="tab-content" style="display: none;">
+            @include('projects.partials.external_vendors_tab', ['project' => $project])
         </div>
 
         <!-- MODALLER: KALİTE & TEMEL ÇİZGİ (NATIVE OVERLAY ARŞİTEKTÜRÜ) -->

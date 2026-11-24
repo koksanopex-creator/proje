@@ -196,7 +196,7 @@
                             @endforeach
                         </div>
 
-                        <input type="hidden" name="tags_json" id="projectTagsJsonInput" value="{{ json_encode(old('tags', isset($project) ? ($project->tags ?? []) : [])) }}">
+                        <input type="hidden" name="tags_json" id="projectTagsJsonInput" value="{{ json_encode(old('tags', isset($project) ? ($project->tags_array ?? []) : [])) }}">
                     </div>
 
                     <!-- Satır 1: Başlık & Çoklu Kategori (Eşit Baseline) -->
@@ -222,7 +222,7 @@
 
                                 <div class="sms-dropdown-menu" id="categoriesDropdownMenu">
                                     @foreach($categories as $cat)
-                                        <div class="sms-dropdown-item category-item" data-id="{{ $cat->slug }}" data-text="{{ $cat->name }}" onclick="toggleCategoryItem('{{ $cat->slug }}', '{{ addslashes($cat->name) }}', '{{ $cat->color ?? '#0284c7' }}')">
+                                        <div class="sms-dropdown-item category-item" data-id="{{ $cat->slug }}" data-slug="{{ $cat->slug }}" data-text="{{ $cat->name }}" onclick="toggleCategoryItem('{{ $cat->slug }}', '{{ addslashes($cat->name) }}', '{{ $cat->color ?? '#0284c7' }}')">
                                             <div style="display: flex; align-items: center; gap: 8px;">
                                                 <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background-color: {{ $cat->color ?? '#0284c7' }};"></span>
                                                 <strong style="color: #0f172a;">{{ $cat->name }}</strong>
@@ -626,9 +626,10 @@
                             <table class="table" style="width: 100%; margin-bottom: 10px; border-collapse: separate; border-spacing: 0 6px;">
                                 <thead>
                                     <tr style="background: #f8fafc; font-size: 11.5px; color: #475569; text-transform: uppercase; letter-spacing: 0.5px;">
-                                        <th style="padding: 8px 10px; width: 30%; border-radius: 6px 0 0 6px;">Harcama Kategorisi</th>
-                                        <th style="padding: 8px 10px; width: 42%;">Kalem Tanımı & Açıklaması</th>
-                                        <th style="padding: 8px 10px; width: 22%;">Planlanan Tutar</th>
+                                        <th style="padding: 8px 10px; width: 22%; border-radius: 6px 0 0 6px;">Ana Kategori <span class="text-danger">*</span></th>
+                                        <th style="padding: 8px 10px; width: 22%;">Alt Kategori <span style="font-size: 10px; color: #64748b; font-weight: normal; text-transform: none;">(Opsiyonel)</span></th>
+                                        <th style="padding: 8px 10px; width: 32%;">Kalem Tanımı & Açıklaması <span class="text-danger">*</span></th>
+                                        <th style="padding: 8px 10px; width: 18%;">Planlanan Tutar <span class="text-danger">*</span></th>
                                         <th style="padding: 8px 10px; width: 6%; text-align: center; border-radius: 0 6px 6px 0;">Sil</th>
                                     </tr>
                                 </thead>
@@ -1242,43 +1243,40 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-        renderProjectTags();
+    renderProjectTags();
 
     // 1. Kategorileri Doldur
-    const initialCategories = @json($project->categories ?? ($project->category ? [$project->category] : []));
-    if (Array.isArray(initialCategories)) {
+    const initialCategories = @json(!empty($project->categories) ? (array)$project->categories : (!empty($project->category) ? [$project->category] : []));
+    const allCategoriesData = @json($categories->keyBy('slug'));
+    if (Array.isArray(initialCategories) && initialCategories.length > 0) {
         initialCategories.forEach(slug => {
-            const item = document.querySelector(`.category-item[data-slug="${slug}"]`);
+            const item = document.querySelector(`.category-item[data-slug="${slug}"], .category-item[data-id="${slug}"]`);
+            let name = slug;
+            let color = '#0284c7';
             if (item) {
-                const name = item.querySelector('strong')?.textContent?.trim() || slug;
-                const color = item.querySelector('span[style*="background-color"]')?.style?.backgroundColor || '#0284c7';
-                selectedCategories.set(slug, { name, color });
+                name = item.querySelector('strong')?.textContent?.trim() || slug;
+                color = item.querySelector('span[style*="background-color"]')?.style?.backgroundColor || '#0284c7';
+                const check = item.querySelector('.sms-check-indicator');
+                if (check) check.style.display = 'inline';
+            } else if (allCategoriesData && allCategoriesData[slug]) {
+                name = allCategoriesData[slug].name;
+                color = allCategoriesData[slug].color || '#0284c7';
             }
+            selectedCategories.set(slug, { name, color });
         });
         if (typeof renderCategoryTags === 'function') renderCategoryTags();
     }
 
-    // 3. Proje Yöneticisi & Sponsor Doldur
-    @if($project->manager)
-        if (typeof selectManager === 'function') {
-            selectManager({{ $project->manager->id }}, @json($project->manager->name), @json($project->manager->unvan ?? 'Proje Yöneticisi'));
-        }
-    @endif
-    @if($project->sponsor)
-        if (typeof selectSponsor === 'function') {
-            selectSponsor({{ $project->sponsor->id }}, @json($project->sponsor->name), @json($project->sponsor->unvan ?? 'Proje Sponsoru'));
-        }
-    @endif
-
-
     // 2. Bölümleri Doldur
-    const initialBolumler = @json($project->bolum_ids ?? ($project->bolum_id ? [$project->bolum_id] : []));
-    if (Array.isArray(initialBolumler)) {
+    const initialBolumler = @json(!empty($project->bolum_ids) ? (array)$project->bolum_ids : (!empty($project->bolum_id) ? [$project->bolum_id] : []));
+    if (Array.isArray(initialBolumler) && initialBolumler.length > 0) {
         initialBolumler.forEach(id => {
             const item = document.querySelector(`.bolum-item[data-id="${id}"]`);
             if (item) {
                 const name = item.querySelector('strong')?.textContent?.trim() || `Bölüm #${id}`;
                 selectedBolumler.set(String(id), { name });
+                const check = item.querySelector('.sms-check-indicator');
+                if (check) check.style.display = 'inline';
             }
         });
         if (typeof renderBolumTags === 'function') renderBolumTags();
@@ -1286,20 +1284,24 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 3. Proje Yöneticisi Doldur
     @if($project->manager)
-        selectManager(
-            {{ $project->manager->id }},
-            @json($project->manager->name),
-            @json($project->manager->unvan ?? $project->manager->roles->first()?->name ?? 'Uzman')
-        );
+        if (typeof selectManager === 'function') {
+            selectManager(
+                {{ $project->manager->id }},
+                @json($project->manager->name),
+                @json($project->manager->unvan ?? $project->manager->roles->first()?->name ?? 'Proje Yöneticisi')
+            );
+        }
     @endif
 
     // 4. Proje Sponsoru Doldur
     @if($project->sponsor)
-        selectSponsor(
-            {{ $project->sponsor->id }},
-            @json($project->sponsor->name),
-            @json($project->sponsor->unvan ?? $project->sponsor->roles->first()?->name ?? 'Yönetici')
-        );
+        if (typeof selectSponsor === 'function') {
+            selectSponsor(
+                {{ $project->sponsor->id }},
+                @json($project->sponsor->name),
+                @json($project->sponsor->unvan ?? $project->sponsor->roles->first()?->name ?? 'Proje Sponsoru')
+            );
+        }
     @endif
 
     // 5. Ekip Üyelerini Doldur
@@ -1309,7 +1311,7 @@ document.addEventListener('DOMContentLoaded', function() {
             {
                 user_id: {{ $stk->user_id }},
                 user_name: @json($stk->user->name . ' (' . ($stk->user->unvan ?? 'Uzman') . ')'),
-                responsibility: @json($stk->notes ?? 'Ekip Üyesi')
+                responsibility: @json(!empty($stk->notes) ? $stk->notes : (!empty($stk->responsibility) ? $stk->responsibility : 'Ekip Üyesi'))
             },
             @endif
         @endforeach
@@ -1318,22 +1320,6 @@ document.addEventListener('DOMContentLoaded', function() {
     if (initialTeamMembers.length > 0) {
         initialTeamMembers.forEach(m => {
             addTeamMemberRow(m);
-            // Son eklenen satırın sorumluluk ve kullanıcısını seç
-            const lastIdx = teamMemberRowIndex - 1;
-            if (typeof selectTeamUser === 'function') {
-                selectTeamUser(lastIdx, m.user_id, m.user_name);
-            }
-            const selEl = document.querySelector(`select[name="team_members[${lastIdx}][responsibility]"]`);
-            if (selEl) {
-                selEl.value = m.responsibility;
-                if (!selEl.value) {
-                    selEl.value = 'Diğer';
-                    const customWrap = document.getElementById(`customRespWrap_${lastIdx}`);
-                    const customInp = document.getElementById(`customRespInput_${lastIdx}`);
-                    if (customWrap) customWrap.style.display = 'block';
-                    if (customInp) customInp.value = m.responsibility;
-                }
-            }
         });
     }
 
@@ -1355,6 +1341,7 @@ document.addEventListener('DOMContentLoaded', function() {
         @foreach($project->budgetItems as $bItem)
         {
             category: @json($bItem->category ?? 'Genel Yatırım'),
+            sub_category: @json($bItem->sub_category ?? ''),
             title: @json($bItem->title),
             amount: {{ (float)$bItem->planned_amount }}
         },
@@ -1368,7 +1355,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const tbody = document.getElementById('budgetItemsTbody');
         if (tbody) tbody.innerHTML = '';
         initialBudgetItems.forEach(b => {
-            addBudgetItemRow(b.category, b.title, b.amount);
+            addBudgetItemRow(b.category, b.sub_category, b.title, b.amount);
         });
     }
 });
@@ -2178,6 +2165,31 @@ function addTeamMemberRow(prefill = null) {
     `;
 
     container.appendChild(row);
+
+    // EĞER PREFILL VARSA HEMEN DOLDUR!
+    if (prefill) {
+        if (prefill.user_id && prefill.user_name) {
+            selectTeamUser(index, prefill.user_id, prefill.user_name);
+        }
+        if (prefill.responsibility) {
+            const selEl = document.getElementById(`respSelect_${index}`);
+            if (selEl) {
+                let found = false;
+                for (let i = 0; i < selEl.options.length; i++) {
+                    if (selEl.options[i].value === prefill.responsibility) {
+                        selEl.selectedIndex = i;
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found && prefill.responsibility) {
+                    const newOpt = new Option(prefill.responsibility, prefill.responsibility, true, true);
+                    selEl.add(newOpt);
+                    selEl.value = prefill.responsibility;
+                }
+            }
+        }
+    }
 }
 
 function toggleTeamUserDropdown(index, event) {
@@ -2579,18 +2591,23 @@ function showToast(msg, type = 'info') {
 // =========================================================================
 let budgetItemRowIndex = 0;
 window.BUDGET_CATEGORIES_CACHE = new Map();
-let budgetCategories = @json(isset($budgetCategories) ? $budgetCategories->pluck("name") : []);
-if (!budgetCategories || budgetCategories.length === 0) {
-    budgetCategories = [
-        "Kaynak ve İşçilik Maliyetleri",
-        "İletişim ve Teknoloji Yatırımları",
-        "İnşaat & Tesis Altyapı",
-        "Makine & Donanım Teçhizatı",
-        "Hammadde & Satın Alma",
-        "Mühendislik & Danışmanlık",
-        "İSG & Çevre Yatırımları",
-        "Genel Yönetim & Diğer"
-    ];
+window.BUDGET_CATEGORIES_DATA = @json(isset($budgetCategories) ? $budgetCategories : []);
+
+function getParentCategoriesList() {
+    if (!window.BUDGET_CATEGORIES_DATA || window.BUDGET_CATEGORIES_DATA.length === 0) {
+        return [];
+    }
+    return window.BUDGET_CATEGORIES_DATA.filter(c => !c.parent_id);
+}
+
+function getSubCategoriesForParent(parentName) {
+    if (!window.BUDGET_CATEGORIES_DATA || !parentName) return [];
+    const parent = window.BUDGET_CATEGORIES_DATA.find(c => c.name === parentName);
+    if (!parent) return [];
+    if (parent.children && parent.children.length > 0) {
+        return parent.children.filter(c => c.is_active !== false);
+    }
+    return window.BUDGET_CATEGORIES_DATA.filter(c => Number(c.parent_id) === Number(parent.id) && c.is_active !== false);
 }
 
 // Para Birimleri Motoru Veri Önbelleği
@@ -2638,9 +2655,9 @@ function setBudgetMode(mode) {
 
         // İlk açılışta satır yoksa örnek satırları ekle
         if (document.querySelectorAll('#budgetItemsTbody tr').length === 0) {
-            addBudgetItemRow('Kaynak ve İşçilik Maliyetleri', 'Mekanik Sac Kaynağı & Montaj İşçilikleri', 15000000);
-            addBudgetItemRow('İletişim ve Teknoloji Yatırımları', 'SCADA, Sensör & BT Ağ Altyapısı', 8500000);
-            addBudgetItemRow('İnşaat & Tesis Altyapı', 'Zemin Drenaj & Temel Kazı İmalatları', 28500000);
+            addBudgetItemRow('Kaynak ve İşçilik Maliyetleri', '', 'Mekanik Sac Kaynağı & Montaj İşçilikleri', 15000000);
+            addBudgetItemRow('İletişim ve Teknoloji Yatırımları', '', 'SCADA, Sensör & BT Ağ Altyapısı', 8500000);
+            addBudgetItemRow('İnşaat & Tesis Altyapı', '', 'Zemin Drenaj & Temel Kazı İmalatları', 28500000);
         }
         recalcBudgetTotal();
     } else {
@@ -2655,17 +2672,22 @@ function setBudgetMode(mode) {
     }
 }
 
-function addBudgetItemRow(defaultCat = '', defaultTitle = '', defaultAmount = 0) {
+function addBudgetItemRow(defaultCat = '', defaultSubCat = '', defaultTitle = '', defaultAmount = 0) {
     const tbody = document.getElementById('budgetItemsTbody');
     const idx = budgetItemRowIndex++;
 
+    const parentCats = getParentCategoriesList();
+    if (!defaultCat && parentCats.length > 0) {
+        defaultCat = parentCats[0].name;
+    }
+
     let catOptions = '';
-    budgetCategories.forEach(cat => {
-        const isSel = (cat === defaultCat) ? 'selected' : '';
-        catOptions += `<option value="${cat}" ${isSel}>${cat}</option>`;
+    parentCats.forEach(cat => {
+        const isSel = (cat.name === defaultCat) ? 'selected' : '';
+        catOptions += `<option value="${escapeHtml(cat.name)}" ${isSel}>${escapeHtml(cat.name)}</option>`;
     });
 
-    const formattedAmount = formatThousandsNumber(defaultAmount);
+    const formattedAmount = (defaultAmount !== "" && defaultAmount !== 0) ? formatThousandsNumber(defaultAmount) : "";
 
     const tr = document.createElement('tr');
     tr.id = `budgetRow_${idx}`;
@@ -2673,12 +2695,17 @@ function addBudgetItemRow(defaultCat = '', defaultTitle = '', defaultAmount = 0)
 
     tr.innerHTML = `
         <td style="padding: 6px 10px;">
-            <select name="budget_items[${idx}][category]" class="form-control text-xs" style="height: 36px; font-weight: 600;" required>
+            <select name="budget_items[${idx}][category]" class="form-control text-xs" style="height: 36px; font-weight: 600;" onchange="onBudgetItemCategoryChange(this, ${idx})" required>
                 ${catOptions}
             </select>
         </td>
         <td style="padding: 6px 10px;">
-            <input type="text" name="budget_items[${idx}][title]" value="${defaultTitle}" class="form-control text-xs" placeholder="Örn: Mekanik Kaynak Malzeme Bütçesi..." required style="height: 36px;">
+            <select name="budget_items[${idx}][sub_category]" id="budget_subcat_${idx}" class="form-control text-xs" style="height: 36px;">
+                <!-- onBudgetItemCategoryChange ile doldurulacak -->
+            </select>
+        </td>
+        <td style="padding: 6px 10px;">
+            <input type="text" name="budget_items[${idx}][title]" value="${escapeHtml(defaultTitle)}" class="form-control text-xs" placeholder="Örn: Torna ve Yüzey İşlemleri Hizmet Alımı..." required style="height: 36px;">
         </td>
         <td style="padding: 6px 10px;">
             <div style="position: relative;">
@@ -2691,7 +2718,35 @@ function addBudgetItemRow(defaultCat = '', defaultTitle = '', defaultAmount = 0)
     `;
 
     tbody.appendChild(tr);
+    updateSubCategoryDropdown(idx, defaultCat, defaultSubCat);
     recalcBudgetTotal();
+}
+
+function onBudgetItemCategoryChange(selectElem, rowIdx) {
+    updateSubCategoryDropdown(rowIdx, selectElem.value, '');
+}
+
+function updateSubCategoryDropdown(rowIdx, parentCatName, selectedSubCat = '') {
+    const subSelect = document.getElementById(`budget_subcat_${rowIdx}`);
+    if (!subSelect) return;
+
+    const subCats = getSubCategoriesForParent(parentCatName);
+    let html = '<option value="">— Genel / Alt Kırılım Yok —</option>';
+    if (subCats.length > 0) {
+        subCats.forEach(sc => {
+            const isSel = (sc.name === selectedSubCat) ? 'selected' : '';
+            html += `<option value="${escapeHtml(sc.name)}" ${isSel}>↳ ${escapeHtml(sc.name)}</option>`;
+        });
+        subSelect.style.color = '#0f172a';
+        subSelect.style.background = '#ffffff';
+        subSelect.style.borderColor = '#cbd5e1';
+    } else {
+        html = '<option value="">— Alt Kırılım Tanımlanmamış —</option>';
+        subSelect.style.color = '#94a3b8';
+        subSelect.style.background = '#f8fafc';
+        subSelect.style.borderColor = '#e2e8f0';
+    }
+    subSelect.innerHTML = html;
 }
 
 function removeBudgetItemRow(idx) {
@@ -3954,15 +4009,40 @@ function closeBudgetCategoryModal() {
     if (modal) modal.style.display = 'none';
 }
 
+function escapeJs(str) {
+    if (!str) return '';
+    return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+}
+
 function resetBudgetCategoryForm() {
     document.getElementById('editBudgetCatId').value = '';
+    const parentSelect = document.getElementById('newBudgetCatParentId');
+    if (parentSelect) {
+        parentSelect.value = '';
+        Array.from(parentSelect.options).forEach(opt => opt.disabled = false);
+    }
     document.getElementById('newBudgetCatName').value = '';
+    document.getElementById('newBudgetCatName').placeholder = 'Örn: Torna İşlemleri, Yüzey İşlemleri...';
     document.getElementById('newBudgetCatColor').value = '#0284c7';
     document.getElementById('newBudgetCatColorHex').value = '#0284c7';
     document.getElementById('newBudgetCatDesc').value = '';
     document.getElementById('budgetCatFormHeaderTitle').textContent = '➕ Yeni Harcama Kategorisi Ekle';
     document.getElementById('btnSaveBudgetCat').textContent = '✓ Harcama Kategorisini Kaydet';
     document.getElementById('btnCancelEditBudgetCat').style.display = 'none';
+}
+
+function quickAddChildCategory(parentId, parentName) {
+    resetBudgetCategoryForm();
+    const parentSelect = document.getElementById('newBudgetCatParentId');
+    if (parentSelect) parentSelect.value = String(parentId);
+    document.getElementById('budgetCatFormHeaderTitle').innerHTML = `➕ '<strong>${escapeHtml(parentName)}</strong>' için Alt Kategori Ekle`;
+    document.getElementById('btnSaveBudgetCat').textContent = '✓ Alt Kategoriyi Kaydet';
+    document.getElementById('btnCancelEditBudgetCat').style.display = 'inline';
+    const nameInput = document.getElementById('newBudgetCatName');
+    if (nameInput) {
+        nameInput.focus();
+        nameInput.placeholder = 'Örn: Torna İşlemleri, Yüzey İşlemleri...';
+    }
 }
 
 function loadBudgetCategoriesList() {
@@ -3972,32 +4052,83 @@ function loadBudgetCategoriesList() {
     .then(r => r.json())
     .then(data => {
         if (!data.success) return;
+        window.BUDGET_CATEGORIES_DATA = data.categories;
         window.BUDGET_CATEGORIES_CACHE.clear();
-        budgetCategories = data.categories.map(c => c.name);
+
+        // 1. Üst Kategori Selectini Güncelle
+        const parentSelect = document.getElementById('newBudgetCatParentId');
+        if (parentSelect) {
+            const currentSelectedParent = parentSelect.value;
+            let pOptions = '<option value="">📁 [ Ana Kategori (Üst Kategori Yok) ]</option>';
+            const parents = (data.parents && data.parents.length > 0) ? data.parents : data.categories.filter(c => !c.parent_id);
+            parents.forEach(p => {
+                pOptions += `<option value="${p.id}">📁 ${escapeHtml(p.name)}</option>`;
+            });
+            parentSelect.innerHTML = pOptions;
+            parentSelect.value = currentSelectedParent;
+        }
+
+        // 2. Tablo Ağacını Render Et
         const tbody = document.getElementById('budgetCategoryModalTableBody');
         if (!tbody) return;
         tbody.innerHTML = '';
-        data.categories.forEach(cat => {
-            window.BUDGET_CATEGORIES_CACHE.set(Number(cat.id), cat);
+
+        const allCats = data.categories;
+        allCats.forEach(cat => window.BUDGET_CATEGORIES_CACHE.set(Number(cat.id), cat));
+
+        const mainCats = allCats.filter(c => !c.parent_id);
+        mainCats.forEach(mainCat => {
+            // Ana Kategori Satırı
             const tr = document.createElement('tr');
             tr.style.borderBottom = '1px solid #f1f5f9';
+            tr.style.background = '#f8fafc';
             tr.innerHTML = `
                 <td style="padding: 10px 12px;">
                     <div style="display: flex; align-items: center; gap: 8px;">
-                        <span style="width: 10px; height: 10px; border-radius: 50%; background: ${cat.color || '#0284c7'}; flex-shrink: 0;"></span>
-                        <strong style="color: #0f172a; font-size: 12.5px;">${escapeHtml(cat.name)}</strong>
+                        <span style="width: 12px; height: 12px; border-radius: 50%; background: ${mainCat.color || '#0284c7'}; flex-shrink: 0; box-shadow: 0 0 0 2px #ffffff, 0 0 0 3px ${mainCat.color || '#0284c7'};"></span>
+                        <strong style="color: #0f172a; font-size: 13px;">${escapeHtml(mainCat.name)}</strong>
+                        <span class="badge" style="background: #e0f2fe; color: #0369a1; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 4px; margin-left: 4px;">Ana Kategori</span>
                     </div>
-                    ${cat.description ? `<div style="font-size: 11px; color: #64748b; margin-left: 18px;">${escapeHtml(cat.description)}</div>` : ''}
+                    ${mainCat.description ? `<div style="font-size: 11px; color: #64748b; margin-left: 20px; margin-top: 2px;">${escapeHtml(mainCat.description)}</div>` : ''}
                 </td>
                 <td style="padding: 10px 12px; text-align: right; white-space: nowrap;">
                     <div style="display: inline-flex; align-items: center; justify-content: flex-end; gap: 6px;">
-                        <button type="button" class="btn btn-xs btn-outline-primary" onclick="editBudgetCatItem(${cat.id})" style="padding: 4px 9px; font-weight: 600; border-radius: 5px; cursor: pointer;">✏️ Düzenle</button>
-                        <button type="button" class="btn btn-xs btn-outline-danger" onclick="deleteBudgetCategoryItem(${cat.id})" style="padding: 4px 9px; font-weight: 600; border-radius: 5px; cursor: pointer; color: #dc2626; border-color: #fca5a5;">🗑️ Sil</button>
+                        <button type="button" class="btn btn-xs btn-outline-success" onclick="quickAddChildCategory(${mainCat.id}, '${escapeJs(mainCat.name)}')" title="Bu kategoriye alt kırılım ekle" style="padding: 3px 8px; font-weight: 600; border-radius: 5px; font-size: 11px; color: #15803d; border-color: #86efac; background: #f0fdf4;">➕ Alt Ekle</button>
+                        <button type="button" class="btn btn-xs btn-outline-primary" onclick="editBudgetCatItem(${mainCat.id})" style="padding: 3px 8px; font-weight: 600; border-radius: 5px; font-size: 11px;">✏️ Düzenle</button>
+                        <button type="button" class="btn btn-xs btn-outline-danger" onclick="deleteBudgetCategoryItem(${mainCat.id})" style="padding: 3px 8px; font-weight: 600; border-radius: 5px; font-size: 11px; color: #dc2626; border-color: #fca5a5;">🗑️ Sil</button>
                     </div>
                 </td>
             `;
             tbody.appendChild(tr);
+
+            // Alt Kategoriler (Varsa ağaç kırılımı şeklinde altına bas)
+            const children = allCats.filter(c => Number(c.parent_id) === Number(mainCat.id));
+            children.forEach(sub => {
+                const subTr = document.createElement('tr');
+                subTr.style.borderBottom = '1px solid #f1f5f9';
+                subTr.style.background = '#ffffff';
+                subTr.innerHTML = `
+                    <td style="padding: 8px 12px 8px 32px;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="color: #94a3b8; font-size: 13px; font-weight: 700;">└──</span>
+                            <span style="width: 8px; height: 8px; border-radius: 50%; background: ${sub.color || '#64748b'}; flex-shrink: 0;"></span>
+                            <span style="color: #1e293b; font-size: 12px; font-weight: 600;">${escapeHtml(sub.name)}</span>
+                            <span class="badge" style="background: #f1f5f9; color: #64748b; font-size: 9.5px; padding: 1px 6px; border-radius: 4px; font-weight: 500;">Alt Kategori</span>
+                        </div>
+                        ${sub.description ? `<div style="font-size: 11px; color: #94a3b8; margin-left: 30px; margin-top: 1px;">${escapeHtml(sub.description)}</div>` : ''}
+                    </td>
+                    <td style="padding: 8px 12px; text-align: right; white-space: nowrap;">
+                        <div style="display: inline-flex; align-items: center; justify-content: flex-end; gap: 6px;">
+                            <button type="button" class="btn btn-xs btn-outline-primary" onclick="editBudgetCatItem(${sub.id})" style="padding: 3px 8px; font-weight: 600; border-radius: 5px; font-size: 11px;">✏️ Düzenle</button>
+                            <button type="button" class="btn btn-xs btn-outline-danger" onclick="deleteBudgetCategoryItem(${sub.id})" style="padding: 3px 8px; font-weight: 600; border-radius: 5px; font-size: 11px; color: #dc2626; border-color: #fca5a5;">🗑️ Sil</button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(subTr);
+            });
         });
+
+        // 3. Formdaki aktif bütçe tablosundaki açılır menüleri senkronize et
         refreshBudgetCategoryDropdowns();
     })
     .catch(err => console.error('Bütçe kategorileri yüklenirken hata:', err));
@@ -4007,6 +4138,14 @@ function editBudgetCatItem(id) {
     const cat = window.BUDGET_CATEGORIES_CACHE.get(Number(id));
     if (!cat) return;
     document.getElementById('editBudgetCatId').value = cat.id;
+    const parentSelect = document.getElementById('newBudgetCatParentId');
+    if (parentSelect) {
+        parentSelect.value = cat.parent_id ? String(cat.parent_id) : '';
+        // Kendisini üst kategori olarak seçmesini engelle
+        Array.from(parentSelect.options).forEach(opt => {
+            opt.disabled = (opt.value === String(cat.id));
+        });
+    }
     document.getElementById('newBudgetCatName').value = cat.name;
     document.getElementById('newBudgetCatColor').value = cat.color || '#0284c7';
     document.getElementById('newBudgetCatColorHex').value = cat.color || '#0284c7';
@@ -4019,6 +4158,7 @@ function editBudgetCatItem(id) {
 
 function saveBudgetCategoryModalAction() {
     const editId = document.getElementById('editBudgetCatId').value;
+    const parentId = document.getElementById('newBudgetCatParentId') ? document.getElementById('newBudgetCatParentId').value : '';
     const name = document.getElementById('newBudgetCatName').value.trim();
     const color = document.getElementById('newBudgetCatColor').value;
     const desc = document.getElementById('newBudgetCatDesc').value.trim();
@@ -4041,7 +4181,7 @@ function saveBudgetCategoryModalAction() {
             'X-CSRF-TOKEN': csrfToken,
             'Accept': 'application/json'
         },
-        body: JSON.stringify({ name, color, description: desc, _token: csrfToken })
+        body: JSON.stringify({ parent_id: parentId || null, name, color, description: desc, _token: csrfToken })
     })
     .then(r => r.json())
     .then(res => {
@@ -4062,7 +4202,7 @@ function deleteBudgetCategoryItem(id) {
     showAppConfirmModal({
         title: 'Harcama Kategorisini Sil',
         message: `'${catName}' kategorisini silmek istediğinize emin misiniz?`,
-        details: 'Bu kategori bütçe kırılım listesinden kaldırılacaktır. Mevcut projelerdeki bütçe kayıtları güvenle korunur.',
+        details: 'Bu kategori ve varsa alt kategorileri bütçe kırılım listesinden kaldırılacaktır. Mevcut projelerdeki bütçe kayıtları güvenle korunur.',
         confirmButtonText: 'Evet, Kategoriyi Sil',
         onConfirm: function() {
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}';
@@ -4107,14 +4247,24 @@ function deleteBudgetCategoryItem(id) {
 }
 
 function refreshBudgetCategoryDropdowns() {
+    const parentCats = getParentCategoriesList();
     document.querySelectorAll('#budgetItemsTbody select[name$="[category]"]').forEach(select => {
+        const match = select.name.match(/budget_items\[(\d+)\]\[category\]/);
+        if (!match) return;
+        const rowIdx = match[1];
         const currentVal = select.value;
+
         let catOptions = '';
-        budgetCategories.forEach(cat => {
-            const isSel = (cat === currentVal) ? 'selected' : '';
-            catOptions += `<option value="${escapeHtml(cat)}" ${isSel}>${escapeHtml(cat)}</option>`;
+        parentCats.forEach(cat => {
+            const isSel = (cat.name === currentVal) ? 'selected' : '';
+            catOptions += `<option value="${escapeHtml(cat.name)}" ${isSel}>${escapeHtml(cat.name)}</option>`;
         });
         select.innerHTML = catOptions;
+
+        // Alt kategoriyi de güncelle
+        const subSelect = document.getElementById(`budget_subcat_${rowIdx}`);
+        const currentSubVal = subSelect ? subSelect.value : '';
+        updateSubCategoryDropdown(rowIdx, select.value, currentSubVal);
     });
 }
 
@@ -4496,14 +4646,15 @@ document.addEventListener('DOMContentLoaded', function() {
 // =========================================================================
 // PROJE ETİKETLERİ (PROJECT TAGS) YÖNETİMİ
 // =========================================================================
-let currentProjectTags = [];
-try {
-    const rawTags = document.getElementById('projectTagsJsonInput') ? document.getElementById('projectTagsJsonInput').value : '[]';
-    currentProjectTags = JSON.parse(rawTags || '[]');
-    if (!Array.isArray(currentProjectTags)) currentProjectTags = [];
-} catch(e) {
-    currentProjectTags = [];
+let currentProjectTags = @json(old('tags', isset($project) ? ($project->tags_array ?? []) : []));
+if (!Array.isArray(currentProjectTags) || currentProjectTags.length === 0) {
+    try {
+        const rawTags = document.getElementById('projectTagsJsonInput') ? document.getElementById('projectTagsJsonInput').value : '[]';
+        const parsed = JSON.parse(rawTags || '[]');
+        if (Array.isArray(parsed) && parsed.length > 0) currentProjectTags = parsed;
+    } catch(e) {}
 }
+if (!Array.isArray(currentProjectTags)) currentProjectTags = [];
 
 function renderProjectTags() {
     const list = document.getElementById('projectActiveTagsList');

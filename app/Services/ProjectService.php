@@ -172,8 +172,20 @@ class ProjectService
             if (empty($cats) && !empty($data['category'])) {
                 $cats = [$data['category']];
             }
+            if (empty($cats) && !empty($project->categories)) {
+                $cats = (array)$project->categories;
+            } elseif (empty($cats) && !empty($project->category)) {
+                $cats = [$project->category];
+            }
             $data['categories'] = array_values(array_filter((array)$cats));
-            $data['category'] = !empty($data['categories']) ? $data['categories'][0] : ($project->category ?? 'genel');
+            if (empty($data['categories'])) {
+                $data['categories'] = ['genel'];
+            }
+            $data['category'] = $data['categories'][0];
+
+            if (array_key_exists('tags', $data)) {
+                $data['tags'] = is_array($data['tags']) ? array_values(array_filter($data['tags'])) : [];
+            }
 
             $bolumler = $data['bolum_ids'] ?? [];
             if (empty($bolumler) && !empty($data['bolum_id'])) {
@@ -306,7 +318,7 @@ class ProjectService
                 if ($uId == $project->manager_id || $uId == $project->sponsor_id) continue;
 
                 $resp = $m['responsibility'] ?? 'Ekip Üyesi';
-                if ($resp === 'Diğer' && !empty($m['custom_responsibility'])) {
+                if (($resp === 'Diğer' || str_starts_with($resp, 'Diğer')) && !empty($m['custom_responsibility'])) {
                     $resp = $m['custom_responsibility'];
                 }
 
@@ -323,6 +335,7 @@ class ProjectService
                         'role_type' => 'team',
                         'raci_role' => 'R',
                         'notes' => $resp,
+                        'responsibility' => $resp,
                     ]);
 
                     $notifService->dispatch('projeye_dahil_edildi', [
@@ -485,11 +498,19 @@ class ProjectService
                     if (!empty($bItem['title']) && isset($bItem['planned_amount']) && (float)$bItem['planned_amount'] > 0) {
                         $amt = (float)$bItem['planned_amount'];
                         $totalCalcBudget += $amt;
+                        $catName = trim($bItem['category'] ?? 'Genel Yatırım');
+                        $subCatName = !empty($bItem['sub_category']) ? trim($bItem['sub_category']) : null;
+                        $catModel = \App\Models\ProjectBudgetCategory::where('name', $catName)->first();
+                        $subCatModel = $subCatName ? \App\Models\ProjectBudgetCategory::where('name', $subCatName)->first() : null;
+
                         ProjectBudgetItem::create([
                             'project_id' => $project->id,
                             'title' => trim($bItem['title']),
                             'budget_type' => 'capex',
-                            'category' => $bItem['category'] ?? 'Genel Yatırım',
+                            'category' => $catName,
+                            'sub_category' => $subCatName,
+                            'category_id' => $catModel?->id,
+                            'sub_category_id' => $subCatModel?->id,
                             'planned_amount' => $amt,
                             'currency' => $project->currency,
                         ]);

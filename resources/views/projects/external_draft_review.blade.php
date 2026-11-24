@@ -449,9 +449,16 @@
                                                 <strong style="color: #0f172a;">{{ $bItem->title }}</strong>
                                             </td>
                                             <td>
-                                                <span style="background: #f1f5f9; color: #475569; font-size: 11.5px; padding: 2px 8px; border-radius: 4px; font-weight: 600;">
-                                                    {{ $bItem->category ?? 'Genel Yatırım' }}
-                                                </span>
+                                                <div style="display: flex; flex-direction: column; gap: 3px; align-items: flex-start;">
+                                                    <span style="background: #eff6ff; color: #1e40af; font-size: 11.5px; padding: 3px 8px; border-radius: 4px; font-weight: 600;">
+                                                        {{ $bItem->category ?? 'Genel Yatırım' }}
+                                                    </span>
+                                                    @if(!empty($bItem->sub_category))
+                                                        <span style="background: #f1f5f9; color: #475569; font-size: 10.5px; padding: 2px 6px; border-radius: 4px; font-weight: 500;">
+                                                            ↳ {{ $bItem->sub_category }}
+                                                        </span>
+                                                    @endif
+                                                </div>
                                             </td>
                                             <td style="text-align: right; font-weight: 800; color: #0f172a;">
                                                 {{ ($project->currency_symbol ?? '₺') . number_format($bItem->planned_amount, 2, ',', '.') }} {{ $bItem->currency ?? $project->currency }}

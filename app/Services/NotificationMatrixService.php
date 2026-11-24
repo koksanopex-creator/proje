@@ -13,6 +13,13 @@ use Illuminate\Support\Facades\Log;
 class NotificationMatrixService
 {
     /**
+     * Lokal geliştirme ortamında gerçek mail atılmasını engelleyip sadece log tutulmasını sağlar.
+     */
+    public static function isLocalMailSimulation(): bool
+    {
+        return app()->environment('local') || env('APP_ENV') === 'local' || config('mail.default') === 'log';
+    }
+    /**
      * Bildirim matrisindeki kurallara göre Zil ve E-Posta bildirimi dağıtır.
      */
     public function dispatch(
@@ -226,10 +233,14 @@ class NotificationMatrixService
 
             if ($r['mail'] && !empty($targetUser->email)) {
                 try {
-                    \Illuminate\Support\Facades\Mail::html($mailBody, function ($msg) use ($targetUser, $mailSubject) {
-                        $msg->to($targetUser->email, $targetUser->name)
-                            ->subject($mailSubject);
-                    });
+                    if (self::isLocalMailSimulation()) {
+                        \Illuminate\Support\Facades\Log::info("[Lokal Geliştirme - Mail Loglandı] Kime: {$targetUser->email} | Başlık: {$mailSubject}");
+                    } else {
+                        \Illuminate\Support\Facades\Mail::html($mailBody, function ($msg) use ($targetUser, $mailSubject) {
+                            $msg->to($targetUser->email, $targetUser->name)
+                                ->subject($mailSubject);
+                        });
+                    }
 
                     // Bildirim Loguna Ekle (E-Posta Başarılı)
                     NotificationLog::create([
@@ -421,10 +432,14 @@ class NotificationMatrixService
 
             if ($r['mail'] && !empty($targetUser->email)) {
                 try {
-                    \Illuminate\Support\Facades\Mail::html($mailBody, function ($msg) use ($targetUser, $mailSubject) {
-                        $msg->to($targetUser->email, $targetUser->name)
-                            ->subject($mailSubject);
-                    });
+                    if (self::isLocalMailSimulation()) {
+                        \Illuminate\Support\Facades\Log::info("[Lokal Geliştirme - Mail Loglandı] Kime: {$targetUser->email} | Başlık: {$mailSubject}");
+                    } else {
+                        \Illuminate\Support\Facades\Mail::html($mailBody, function ($msg) use ($targetUser, $mailSubject) {
+                            $msg->to($targetUser->email, $targetUser->name)
+                                ->subject($mailSubject);
+                        });
+                    }
 
                     // Bildirim Logu (Mail Başarılı)
                     NotificationLog::create([
@@ -572,10 +587,14 @@ class NotificationMatrixService
             $mailBody = $this->renderRawHtml($template->mail_body_template, $variables);
 
             try {
-                \Illuminate\Support\Facades\Mail::html($mailBody, function ($msg) use ($targetUser, $mailSubject) {
-                    $msg->to($targetUser->email, $targetUser->name)
-                        ->subject($mailSubject);
-                });
+                if (self::isLocalMailSimulation()) {
+                    \Illuminate\Support\Facades\Log::info("[Lokal Geliştirme - Mail Loglandı] Kime: {$targetUser->email} | Başlık: {$mailSubject}");
+                } else {
+                    \Illuminate\Support\Facades\Mail::html($mailBody, function ($msg) use ($targetUser, $mailSubject) {
+                        $msg->to($targetUser->email, $targetUser->name)
+                            ->subject($mailSubject);
+                    });
+                }
 
                 // Bildirim Logu (Mail Başarılı)
                 NotificationLog::create([
@@ -648,10 +667,14 @@ class NotificationMatrixService
         $mailBody = $this->renderRawHtml($template->mail_body_template, $variables);
 
         try {
-            \Illuminate\Support\Facades\Mail::html($mailBody, function ($msg) use ($share, $mailSubject) {
-                $msg->to($share->email)
-                    ->subject($mailSubject);
-            });
+            if (self::isLocalMailSimulation()) {
+                \Illuminate\Support\Facades\Log::info("[Lokal Geliştirme - Harici Mail Loglandı] Kime: {$share->email} | Başlık: {$mailSubject}");
+            } else {
+                \Illuminate\Support\Facades\Mail::html($mailBody, function ($msg) use ($share, $mailSubject) {
+                    $msg->to($share->email)
+                        ->subject($mailSubject);
+                });
+            }
 
             // Bildirim Logu (Harici Mail Başarılı)
             NotificationLog::create([

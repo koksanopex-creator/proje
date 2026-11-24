@@ -186,6 +186,9 @@ class Project extends Model
     public function auditLogs() { return $this->hasMany(ProjectAuditLog::class, 'project_id')->latest(); }
     public function approvalRequests() { return $this->hasMany(ProjectApprovalRequest::class, 'project_id')->latest(); }
     public function latestApprovalRequest() { return $this->hasOne(ProjectApprovalRequest::class, 'project_id')->latestOfMany(); }
+    public function externalVendors() { return $this->hasMany(ProjectExternalVendor::class, 'project_id')->latest(); }
+    public function activeExternalVendors() { return $this->hasMany(ProjectExternalVendor::class, 'project_id')->where('status', 'approved')->latest(); }
+    public function vendorFiles() { return $this->hasMany(ProjectVendorFile::class, 'project_id')->latest(); }
 
     // Canlı Bekleme Süresi Formatı
     public function getWaitingDurationAttribute(): ?string

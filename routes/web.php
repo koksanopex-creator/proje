@@ -28,6 +28,8 @@ use App\Http\Controllers\Admin\ProjectTeamRoleController;
 use App\Http\Controllers\Admin\ProjectBudgetCategoryController;
 use App\Http\Controllers\Admin\CurrencyController;
 use App\Http\Controllers\Admin\UserRoleController;
+use App\Http\Controllers\ProjectExternalVendorController;
+use App\Http\Controllers\ExternalVendorPortalController;
 use App\Http\Controllers\Admin\DoaThresholdController;
 use App\Http\Controllers\Admin\CommitteeController;
 use App\Http\Controllers\Admin\NotificationLogController;
@@ -47,6 +49,15 @@ Route::post('/forgot-password', [AuthController::class, 'sendResetLink'])->name(
 Route::get('/taslak-proje/{project}/harici-inceleme', [ProjectController::class, 'externalDraftReview'])->name('projects.external_draft_review');
 Route::post('/taslak-proje/{project}/harici-oneri', [ProjectController::class, 'storeExternalDraftSuggestion'])->name('projects.store_external_draft_suggestion');
 Route::get('/taslak-proje/{project}/dosya/{file}/indir', [ProjectController::class, 'downloadExternalFile'])->name('projects.external_download_file');
+
+// Dış Paydaş Güvenli Belge Portalı (İzole, Token & Passkey Korumalı)
+Route::get('/vendor-portal/{token}', [ExternalVendorPortalController::class, 'show'])->name('vendor_portal.show');
+Route::post('/vendor-portal/{token}/auth', [ExternalVendorPortalController::class, 'verifyPasskey'])->middleware('throttle:10,1')->name('vendor_portal.verify');
+Route::post('/vendor-portal/{token}/resend-passkey', [ExternalVendorPortalController::class, 'resendPasskey'])->middleware('throttle:5,1')->name('vendor_portal.resend_passkey');
+Route::post('/vendor-portal/{token}/logout', [ExternalVendorPortalController::class, 'logout'])->name('vendor_portal.logout');
+Route::post('/vendor-portal/{token}/upload', [ExternalVendorPortalController::class, 'upload'])->middleware('throttle:15,1')->name('vendor_portal.upload');
+Route::post('/vendor-portal/{token}/files/{file}/void', [ExternalVendorPortalController::class, 'markVoid'])->name('vendor_portal.mark_void');
+Route::get('/vendor-portal/{token}/files/{file}/download', [ExternalVendorPortalController::class, 'download'])->name('vendor_portal.download');
 
 // Merkezi API Otomatik Kullanıcı Senkronizasyon Webhook Uç Noktası
 Route::post('/api/central/sync-user', [UserRoleController::class, 'handleWebhook'])->name('api.central.sync_user');
@@ -89,6 +100,19 @@ Route::middleware('auth')->group(function () {
     Route::post('/projects/{project}/files/{file}/tags', [ProjectController::class, 'updateFileTags'])->name('projects.files.update_tags');
     Route::delete('/projects/{project}/files/{file}', [ProjectController::class, 'deleteFile'])->name('projects.delete_file');
     Route::get('/projects/{project}/files/{file}/download', [ProjectController::class, 'downloadFile'])->name('projects.download_file');
+
+    // Dış Paydaş (Taşeron / Firma) Yönetimi & Karşılıklı Dosya Paylaşımı
+    Route::post('/projects/{project}/vendors', [ProjectExternalVendorController::class, 'store'])->name('projects.vendors.store');
+    Route::post('/projects/{project}/vendors/{vendor}/categories', [ProjectExternalVendorController::class, 'updateCategories'])->name('projects.vendors.update_categories');
+    Route::post('/projects/{project}/vendors/{vendor}/send-credentials', [ProjectExternalVendorController::class, 'sendCredentials'])->name('projects.vendors.send_credentials');
+    Route::post('/projects/{project}/vendors/{vendor}/approve', [ProjectExternalVendorController::class, 'approve'])->name('projects.vendors.approve');
+    Route::post('/projects/{project}/vendors/{vendor}/reject', [ProjectExternalVendorController::class, 'reject'])->name('projects.vendors.reject');
+    Route::delete('/projects/{project}/vendors/{vendor}/revoke', [ProjectExternalVendorController::class, 'revoke'])->name('projects.vendors.revoke');
+    Route::post('/projects/{project}/vendors/{vendor}/outbound-files', [ProjectExternalVendorController::class, 'uploadOutboundFile'])->name('projects.vendors.upload_outbound');
+    Route::post('/projects/{project}/vendor-files/{file}/review', [ProjectExternalVendorController::class, 'reviewFile'])->name('projects.vendor_files.review');
+    Route::post('/projects/{project}/vendor-files/{file}/toggle-visibility', [ProjectExternalVendorController::class, 'toggleVisibility'])->name('projects.vendor_files.toggle_visibility');
+    Route::post('/projects/{project}/vendor-files/{file}/void', [ProjectExternalVendorController::class, 'markVoid'])->name('projects.vendor_files.mark_void');
+    Route::get('/projects/{project}/vendor-files/{file}/download', [ProjectExternalVendorController::class, 'downloadFile'])->name('projects.vendor_files.download');
     Route::post('/projects/{project}/discussions', [ProjectController::class, 'storeDiscussion'])->name('projects.discussions.store');
     Route::put('/projects/{project}/discussions/{discussion}', [ProjectController::class, 'updateDiscussion'])->name('projects.discussions.update');
     Route::delete('/projects/{project}/discussions/{discussion}', [ProjectController::class, 'deleteDiscussion'])->name('projects.discussions.delete');
